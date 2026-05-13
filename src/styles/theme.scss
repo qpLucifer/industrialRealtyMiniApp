@@ -1,0 +1,24 @@
+/* Design tokens — visual intent from internal mini-app prototype, rewritten for uni-app */
+$ic-bg-deep: #f4f7fb;
+$ic-surface: #ffffff;
+$ic-surface2: #f8fafc;
+$ic-border: rgba(15, 23, 42, 0.08);
+$ic-border-strong: rgba(13, 148, 136, 0.22);
+$ic-text: #0f172a;
+$ic-muted: #64748b;
+$ic-cyan: #0e7490;
+$ic-mint: #0d9488;
+$ic-amber: #d97706;
+$ic-rose: #e11d48;
+$ic-shadow-md: 0 8rpx 28rpx rgba(15, 23, 42, 0.07);
+
+@mixin ic-card-base {
+  background: $ic-surface;
+  border: 1rpx solid $ic-border;
+  border-radius: 36rpx;
+  box-shadow: $ic-shadow-md;
+}
+
+@mixin ic-gradient-primary {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #0e7490 100%);
+}

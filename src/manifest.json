@@ -1,0 +1,22 @@
+{
+  "name": "工业地产 · 内部办公",
+  "appid": "__UNI__INDUSTRIAL_REALTY",
+  "description": "Industrial realty internal WeChat mini program (uni-app)",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "vueVersion": "3",
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "lazyCodeLoading": "requiredComponents"
+  },
+  "uniStatistics": {
+    "enable": false
+  }
+}

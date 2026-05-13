@@ -1,0 +1,72 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^ic-(.*)": "@/components/ic-$1/ic-$1.vue"
+    }
+  },
+  "pages": [
+    { "path": "pages/login/login", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/home/home", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/property/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/customer/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/message/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/me/index", "style": { "navigationStyle": "custom" } }
+  ],
+  "subPackages": [
+    {
+      "root": "package-property",
+      "pages": [
+        { "path": "detail", "style": { "navigationStyle": "custom" } },
+        { "path": "publish", "style": { "navigationStyle": "custom" } },
+        { "path": "log", "style": { "navigationStyle": "custom" } }
+      ]
+    },
+    {
+      "root": "package-customer",
+      "pages": [
+        { "path": "detail", "style": { "navigationStyle": "custom" } },
+        { "path": "form", "style": { "navigationStyle": "custom" } },
+        { "path": "follow", "style": { "navigationStyle": "custom" } },
+        { "path": "video-faq", "style": { "navigationStyle": "custom" } }
+      ]
+    },
+    {
+      "root": "package-me",
+      "pages": [
+        { "path": "my-properties", "style": { "navigationStyle": "custom" } },
+        { "path": "settings", "style": { "navigationStyle": "custom" } },
+        { "path": "viewing-form", "style": { "navigationStyle": "custom" } },
+        { "path": "viewing-list", "style": { "navigationStyle": "custom" } },
+        { "path": "deal-form", "style": { "navigationStyle": "custom" } }
+      ]
+    },
+    {
+      "root": "package-common",
+      "pages": [{ "path": "announcements", "style": { "navigationStyle": "custom" } }]
+    }
+  ],
+  "preloadRule": {
+    "pages/home/home": { "network": "all", "packages": ["package-property"] }
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "工业地产",
+    "navigationBarBackgroundColor": "#F4F7FB",
+    "backgroundColor": "#F4F7FB"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#64748b",
+    "selectedColor": "#0d9488",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "首页" },
+      { "pagePath": "pages/property/index", "text": "房源" },
+      { "pagePath": "pages/customer/index", "text": "客户" },
+      { "pagePath": "pages/message/index", "text": "消息" },
+      { "pagePath": "pages/me/index", "text": "我的" }
+    ]
+  }
+}
