@@ -1,0 +1,75 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import { fetchMessageList } from '@/api/message'
+import type { MessageItem } from '@/mock/data/messages'
+
+const topBarInsetStyle = useTopBarInsetStyle()
+
+const list = ref<MessageItem[]>([])
+
+onMounted(async () => {
+  const r = await fetchMessageList()
+  list.value = r.list
+})
+
+function iconStyle(tone: MessageItem['iconTone']) {
+  const map: Record<MessageItem['iconTone'], string> = {
+    amber: 'background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#78350f',
+    rose: 'background:linear-gradient(135deg,#fb7185,#e11d48);color:#fff',
+    mint: 'background:linear-gradient(135deg,#34d399,#0d9488);color:#fff',
+    cyan: 'background:linear-gradient(135deg,#22d3ee,#0ea5e9);color:#0c4a6e',
+    slate: 'background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff',
+  }
+  return map[tone] || map.slate
+}
+
+function open(m: MessageItem) {
+  if (m.nav === 'property-detail' && m.propId) {
+    uni.navigateTo({ url: `/pages/property/detail?id=${encodeURIComponent(m.propId)}` })
+    return
+  }
+  if (m.nav === 'customer-detail' && m.customerId) {
+    uni.navigateTo({ url: `/pages/customer/detail?id=${encodeURIComponent(m.customerId)}` })
+    return
+  }
+  if (m.nav === 'announcements') {
+    uni.navigateTo({ url: '/pages/announcements/list' })
+  }
+}
+</script>
+
+<template>
+  <view class="app-shell">
+    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+      <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
+        <view class="top-bar__titles">
+          <view class="tb-title">消息中心</view>
+          <view class="sub">审核 · 任务 · 系统</view>
+        </view>
+      </view>
+      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+        <view
+          v-for="m in list"
+          :key="m.id"
+          class="list-item"
+          style="align-items: flex-start"
+          @click="open(m)"
+        >
+          <view
+            style="width: 80rpx; height: 80rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 700; flex-shrink: 0"
+            :style="iconStyle(m.iconTone)"
+            >{{ m.icon }}</view
+          >
+          <view style="flex: 1; min-width: 0">
+            <view style="display: flex; justify-content: space-between; gap: 16rpx">
+              <text style="font-size: 28rpx; font-weight: 700">{{ m.title }}</text>
+              <text v-if="m.time" style="font-size: 22rpx; color: var(--muted); flex-shrink: 0">{{ m.time }}</text>
+            </view>
+            <text class="hint" style="display: block; margin-top: 10rpx; font-size: 24rpx">{{ m.hint }}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</template>

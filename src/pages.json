@@ -1,72 +1,66 @@
 {
-  "easycom": {
-    "autoscan": true,
-    "custom": {
-      "^ic-(.*)": "@/components/ic-$1/ic-$1.vue"
-    }
-  },
   "pages": [
     { "path": "pages/login/login", "style": { "navigationStyle": "custom" } },
     { "path": "pages/home/home", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/property/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/customer/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/message/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/me/index", "style": { "navigationStyle": "custom" } }
+    { "path": "pages/property/list", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/customer/list", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/msg/msg", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/me/me", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/property/detail", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/property/publish", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/property/log", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/customer/detail", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/customer/new", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/follow/add", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/announcements/list", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/me/my-properties", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/settings", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/viewing/new", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/viewing/list", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/deal/new", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/video-faq/index", "style": { "navigationStyle": "custom" } }
   ],
-  "subPackages": [
-    {
-      "root": "package-property",
-      "pages": [
-        { "path": "detail", "style": { "navigationStyle": "custom" } },
-        { "path": "publish", "style": { "navigationStyle": "custom" } },
-        { "path": "log", "style": { "navigationStyle": "custom" } }
-      ]
-    },
-    {
-      "root": "package-customer",
-      "pages": [
-        { "path": "detail", "style": { "navigationStyle": "custom" } },
-        { "path": "form", "style": { "navigationStyle": "custom" } },
-        { "path": "follow", "style": { "navigationStyle": "custom" } },
-        { "path": "video-faq", "style": { "navigationStyle": "custom" } }
-      ]
-    },
-    {
-      "root": "package-me",
-      "pages": [
-        { "path": "my-properties", "style": { "navigationStyle": "custom" } },
-        { "path": "settings", "style": { "navigationStyle": "custom" } },
-        { "path": "viewing-form", "style": { "navigationStyle": "custom" } },
-        { "path": "viewing-list", "style": { "navigationStyle": "custom" } },
-        { "path": "deal-form", "style": { "navigationStyle": "custom" } }
-      ]
-    },
-    {
-      "root": "package-common",
-      "pages": [{ "path": "announcements", "style": { "navigationStyle": "custom" } }]
-    }
-  ],
-  "preloadRule": {
-    "pages/home/home": { "network": "all", "packages": ["package-property"] }
-  },
   "globalStyle": {
+    "navigationStyle": "custom",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "工业地产",
-    "navigationBarBackgroundColor": "#F4F7FB",
-    "backgroundColor": "#F4F7FB"
+    "backgroundColor": "#f4f7fb"
   },
   "tabBar": {
-    "custom": true,
     "color": "#64748b",
     "selectedColor": "#0d9488",
     "backgroundColor": "#ffffff",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/home/home", "text": "首页" },
-      { "pagePath": "pages/property/index", "text": "房源" },
-      { "pagePath": "pages/customer/index", "text": "客户" },
-      { "pagePath": "pages/message/index", "text": "消息" },
-      { "pagePath": "pages/me/index", "text": "我的" }
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "static/tab/home.png",
+        "selectedIconPath": "static/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/property/list",
+        "text": "房源",
+        "iconPath": "static/tab/property.png",
+        "selectedIconPath": "static/tab/property-active.png"
+      },
+      {
+        "pagePath": "pages/customer/list",
+        "text": "客户",
+        "iconPath": "static/tab/customer.png",
+        "selectedIconPath": "static/tab/customer-active.png"
+      },
+      {
+        "pagePath": "pages/msg/msg",
+        "text": "消息",
+        "iconPath": "static/tab/msg.png",
+        "selectedIconPath": "static/tab/msg-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的",
+        "iconPath": "static/tab/me.png",
+        "selectedIconPath": "static/tab/me-active.png"
+      }
     ]
   }
 }
