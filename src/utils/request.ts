@@ -3,6 +3,15 @@ import type { ApiResult } from '@/utils/result'
 import { unwrapResult } from '@/utils/result'
 
 const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
+const API_BASE = String(import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
+
+function resolveUrl(url: string) {
+  if (USE_MOCK) return url
+  if (/^https?:\/\//i.test(url)) return url
+  const base = API_BASE
+  if (!base) return url
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
+}
 
 function joinUrl(url: string, query?: Record<string, string | number | boolean | undefined>) {
   if (!query || Object.keys(query).length === 0) return url
@@ -19,10 +28,12 @@ export async function get<T>(url: string, query?: Record<string, string | number
     const raw = await dispatchMock('GET', full)
     return unwrapResult<T>(raw)
   }
+  const resolved = resolveUrl(full)
   return new Promise((resolve, reject) => {
     uni.request({
-      url: full,
+      url: resolved,
       method: 'GET',
+      header: { 'X-Client': 'miniapp' },
       success(res) {
         try {
           if (res == null) {
@@ -51,11 +62,13 @@ export async function post<T>(
     const raw = await dispatchMock('POST', full, data)
     return unwrapResult<T>(raw)
   }
+  const resolved = resolveUrl(full)
   return new Promise((resolve, reject) => {
     uni.request({
-      url: full,
+      url: resolved,
       method: 'POST',
       data,
+      header: { 'X-Client': 'miniapp', 'Content-Type': 'application/json' },
       success(res) {
         try {
           if (res == null) {
