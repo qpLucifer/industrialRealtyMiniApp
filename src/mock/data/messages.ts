@@ -68,5 +68,15 @@ export const mockAnnouncements = [
   {
     title: '电费计价调整',
     body: '全文略。支持弹窗、已读统计、按角色推送。',
+    popup: '否',
+    popupStart: null as string | null,
+    popupEnd: null as string | null,
+  },
+  {
+    title: '春节放假安排',
+    body: '放假期间系统照常运行。',
+    popup: '是',
+    popupStart: '2026-02-01T08:00',
+    popupEnd: '2026-02-08T23:59',
   },
 ]
