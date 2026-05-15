@@ -1,11 +1,7 @@
 import { post } from '@/utils/request'
+import type { MiniLoginResult } from '@/types/auth'
 
-export type MiniSessionResult = {
-  token: string
-  expiresAt: string
-  expiresIn: number
-  profile: Record<string, unknown>
-}
+export type MiniSessionResult = MiniLoginResult
 
 /** Silent renew: requires stored Bearer token; server re-checks whitelist + staff. */
 export function refreshMiniSession() {

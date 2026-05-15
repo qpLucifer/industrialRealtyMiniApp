@@ -34,6 +34,8 @@ export async function get<T>(url: string, query?: Record<string, string | number
   const token = uni.getStorageSync('mini_token')
   if (token && typeof token === 'string') {
     headers.Authorization = `Bearer ${token}`
+    // Duplicate for proxies / runtimes that mishandle Authorization (WeChat legal-domain requests).
+    headers['X-Mini-Token'] = token
   }
   return new Promise((resolve, reject) => {
     uni.request({
@@ -81,6 +83,7 @@ export async function post<T>(
   const token = uni.getStorageSync('mini_token')
   if (token && typeof token === 'string') {
     headers.Authorization = `Bearer ${token}`
+    headers['X-Mini-Token'] = token
   }
   return new Promise((resolve, reject) => {
     uni.request({

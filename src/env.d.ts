@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_USE_MOCK?: string
+  readonly VITE_API_BASE?: string
+  readonly VITE_MINI_LOGIN_PHONE_FALLBACK?: string
 }
 
 interface ImportMeta {
