@@ -1,6 +1,7 @@
 import { dispatchMock } from '@/mock/dispatch'
 import type { ApiResult } from '@/utils/result'
 import { unwrapResult } from '@/utils/result'
+import { clearMiniSessionAndGoLogin } from '@/utils/session'
 
 const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
 const API_BASE = String(import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
@@ -29,15 +30,28 @@ export async function get<T>(url: string, query?: Record<string, string | number
     return unwrapResult<T>(raw)
   }
   const resolved = resolveUrl(full)
+  const headers: Record<string, string> = { 'X-Client': 'miniapp' }
+  const token = uni.getStorageSync('mini_token')
+  if (token && typeof token === 'string') {
+    headers.Authorization = `Bearer ${token}`
+  }
   return new Promise((resolve, reject) => {
     uni.request({
       url: resolved,
       method: 'GET',
-      header: { 'X-Client': 'miniapp' },
+      header: headers,
       success(res) {
         try {
           if (res == null) {
             reject(new Error('uni.request: empty response'))
+            return
+          }
+          const sc = res.statusCode ?? 0
+          if (sc === 401 && !USE_MOCK) {
+            const data = res.data as ApiResult<unknown> | undefined
+            const msg = data && typeof data === 'object' && 'message' in data ? String((data as ApiResult<unknown>).message) : ''
+            clearMiniSessionAndGoLogin(msg)
+            reject(new Error(msg || 'Unauthorized'))
             return
           }
           resolve(unwrapResult<T>(res.data))
@@ -63,16 +77,29 @@ export async function post<T>(
     return unwrapResult<T>(raw)
   }
   const resolved = resolveUrl(full)
+  const headers: Record<string, string> = { 'X-Client': 'miniapp', 'Content-Type': 'application/json' }
+  const token = uni.getStorageSync('mini_token')
+  if (token && typeof token === 'string') {
+    headers.Authorization = `Bearer ${token}`
+  }
   return new Promise((resolve, reject) => {
     uni.request({
       url: resolved,
       method: 'POST',
       data,
-      header: { 'X-Client': 'miniapp', 'Content-Type': 'application/json' },
+      header: headers,
       success(res) {
         try {
           if (res == null) {
             reject(new Error('uni.request: empty response'))
+            return
+          }
+          const sc = res.statusCode ?? 0
+          if (sc === 401 && !USE_MOCK) {
+            const data = res.data as ApiResult<unknown> | undefined
+            const msg = data && typeof data === 'object' && 'message' in data ? String((data as ApiResult<unknown>).message) : ''
+            clearMiniSessionAndGoLogin(msg)
+            reject(new Error(msg || 'Unauthorized'))
             return
           }
           resolve(unwrapResult<T>(res.data))

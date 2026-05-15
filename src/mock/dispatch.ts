@@ -52,6 +52,15 @@ export async function dispatchMock(
     return okResult({ token: 'mock-miniapp-token', profile: mockUserProfile })
   }
 
+  if (method === 'POST' && path === '/api/auth/mini-refresh') {
+    return okResult({
+      token: 'mock-miniapp-token',
+      expiresAt: new Date(Date.now() + 365 * 864e5).toISOString(),
+      expiresIn: 365 * 24 * 60 * 60,
+      profile: mockUserProfile,
+    })
+  }
+
   if (method === 'GET' && path === '/api/workbench/summary') {
     return okResult(mockWorkbench)
   }
