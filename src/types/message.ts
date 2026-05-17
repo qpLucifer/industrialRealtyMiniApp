@@ -18,4 +18,11 @@ export interface AnnouncementItem {
   popup?: string
   popupStart?: string
   popupEnd?: string
+  /** From DB: read at current content revision */
+  read?: boolean
+}
+
+export interface AnnouncementListResult {
+  list: AnnouncementItem[]
+  unreadCount: number
 }

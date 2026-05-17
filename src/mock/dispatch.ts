@@ -14,6 +14,26 @@ import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
 
+/** Mock DB: announcement id -> content updatedAt snapshot when marked read */
+const mockAnnouncementReadContentAt: Record<string, string> = {}
+
+function buildMockAnnouncementList() {
+  const list = mockAnnouncements.map((a) => {
+    const updatedAt = String(a.updatedAt || '2026-05-17T10:00')
+    const read = mockAnnouncementReadContentAt[a.id] === updatedAt
+    return {
+      id: a.id,
+      title: a.title,
+      body: a.body,
+      popup: a.popup,
+      popupStart: a.popupStart,
+      popupEnd: a.popupEnd,
+      read,
+    }
+  })
+  return { list, unreadCount: list.filter((x) => !x.read).length }
+}
+
 function parseQuery(url: string): Record<string, string> {
   const q: Record<string, string> = {}
   const i = url.indexOf('?')
@@ -187,7 +207,16 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/announcement/list') {
-    return okResult({ list: mockAnnouncements })
+    return okResult(buildMockAnnouncementList())
+  }
+
+  const announceReadMatch = method === 'POST' && path.match(/^\/api\/announcement\/([^/]+)\/read$/)
+  if (announceReadMatch) {
+    const annId = announceReadMatch[1]
+    const row = mockAnnouncements.find((a) => a.id === annId)
+    if (!row) return okResult({ success: false })
+    mockAnnouncementReadContentAt[annId] = String(row.updatedAt || '2026-05-17T10:00')
+    return okResult({ success: true })
   }
 
   if (method === 'GET' && path === '/api/video-faq/list') {

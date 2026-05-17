@@ -3,11 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchWorkbench } from '@/api/home'
-import { fetchAnnouncementList } from '@/api/message'
+import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
 import {
-  dismissAnnouncementId,
   pickActivePopupAnnouncements,
 } from '@/utils/announcement'
 
@@ -80,6 +79,7 @@ const topBarInsetStyle = useTopBarInsetStyle()
 const data = ref<WorkbenchSummary | null>(null)
 const loadError = ref('')
 const announceCount = ref(0)
+const lastAnnounceList = ref<AnnouncementItem[]>([])
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
 const popupQueue = ref<AnnouncementItem[]>([])
@@ -117,7 +117,8 @@ async function refreshAnnouncements() {
   try {
     const r = await fetchAnnouncementList()
     const list = Array.isArray(r.list) ? r.list : []
-    announceCount.value = list.length
+    lastAnnounceList.value = list
+    announceCount.value = typeof r.unreadCount === 'number' ? r.unreadCount : list.filter((a) => !a.read).length
     const active = pickActivePopupAnnouncements(list)
     if (!active.length) {
       popupQueue.value = []
@@ -142,9 +143,18 @@ function showNextPopup() {
   popupVisible.value = true
 }
 
-function onPopupDismiss() {
+async function onPopupDismiss() {
   const cur = popupItem.value
-  if (cur?.id) dismissAnnouncementId(String(cur.id))
+  if (cur?.id) {
+    try {
+      await markAnnouncementReadApi(String(cur.id))
+      const id = String(cur.id)
+      lastAnnounceList.value = lastAnnounceList.value.map((a) => (a.id === id ? { ...a, read: true } : a))
+      announceCount.value = Math.max(0, announceCount.value - 1)
+    } catch {
+      /* badge refreshes on next onShow */
+    }
+  }
   popupQueue.value = popupQueue.value.slice(1)
   popupVisible.value = false
   popupItem.value = null

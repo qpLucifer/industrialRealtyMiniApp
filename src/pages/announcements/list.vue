@@ -1,18 +1,57 @@
 ﻿<script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
-import { fetchAnnouncementList } from '@/api/message'
+import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
+import type { AnnouncementItem } from '@/types/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
-const list = ref<{ id?: string; title: string; body: string }[]>([])
+const list = ref<AnnouncementItem[]>([])
+const popupVisible = ref(false)
+const popupItem = ref<AnnouncementItem | null>(null)
 
-onMounted(async () => {
-  const r = await fetchAnnouncementList()
-  list.value = r.list
+const items = computed(() => list.value)
+
+onMounted(() => {
+  void loadList()
 })
+
+onShow(() => {
+  void loadList()
+})
+
+async function loadList() {
+  const r = await fetchAnnouncementList()
+  list.value = Array.isArray(r.list) ? r.list : []
+}
 
 function back() {
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/home/home' }) })
+}
+
+async function openItem(item: AnnouncementItem) {
+  popupItem.value = item
+  popupVisible.value = true
+  if (!item.id || item.read) return
+  try {
+    await markAnnouncementReadApi(String(item.id))
+    list.value = list.value.map((a) => (a.id === item.id ? { ...a, read: true } : a))
+    const opened = list.value.find((a) => a.id === item.id)
+    if (opened) popupItem.value = opened
+  } catch {
+    uni.showToast({ title: '标记已读失败', icon: 'none' })
+  }
+}
+
+function closePopup() {
+  popupVisible.value = false
+  popupItem.value = null
+}
+
+function previewBody(body: string, max = 72) {
+  const t = String(body || '').replace(/\s+/g, ' ').trim()
+  if (t.length <= max) return t
+  return `${t.slice(0, max)}…`
 }
 </script>
 
@@ -29,11 +68,141 @@ function back() {
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-for="a in list" :key="a.id || a.title" class="card" style="margin-bottom: 24rpx">
-          <text style="font-size: 30rpx; font-weight: 700">{{ a.title }}</text>
-          <text class="hint" style="display: block; margin-top: 16rpx; line-height: 1.55">{{ a.body }}</text>
+        <view class="page-scroll__inner">
+          <view v-if="items.length === 0" class="card">
+            <text class="hint">暂无公告</text>
+          </view>
+          <view
+            v-for="a in items"
+            :key="a.id || a.title"
+            class="announce-row card"
+            :class="{ 'announce-row--unread': !a.read, 'announce-row--read': a.read }"
+            @click="openItem(a)"
+          >
+            <view class="announce-row__head">
+              <view v-if="!a.read" class="announce-row__dot" />
+              <text class="announce-row__title">{{ a.title }}</text>
+              <view v-if="!a.read" class="chip warn announce-row__chip">未读</view>
+            </view>
+            <text class="announce-row__preview">{{ previewBody(a.body) }}</text>
+          </view>
         </view>
       </scroll-view>
     </view>
+
+    <view v-if="popupVisible && popupItem" class="modal-overlay show" @click.self="closePopup">
+      <view class="modal-sheet announce-popup-sheet" @click.stop>
+        <view class="announce-popup-tag">公告通知</view>
+        <view class="announce-popup-title">{{ popupItem.title }}</view>
+        <scroll-view scroll-y class="announce-popup-body" :show-scrollbar="false">
+          <text class="announce-popup-text">{{ popupItem.body }}</text>
+        </scroll-view>
+        <button class="btn-primary announce-popup-btn" @click="closePopup">知道了</button>
+      </view>
+    </view>
   </view>
 </template>
+
+<style scoped>
+.announce-row {
+  margin-bottom: 24rpx;
+  transition: opacity 0.15s ease;
+}
+
+.announce-row--unread {
+  border-left: 6rpx solid var(--mint);
+  padding-left: 20rpx;
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.08), transparent 48%);
+}
+
+.announce-row--read {
+  opacity: 0.62;
+  border-left: 6rpx solid transparent;
+}
+
+.announce-row__head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.announce-row__dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: var(--mint);
+  flex-shrink: 0;
+}
+
+.announce-row__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.announce-row--read .announce-row__title {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.announce-row__chip {
+  flex-shrink: 0;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+}
+
+.announce-row__preview {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.announce-row--read .announce-row__preview {
+  color: var(--muted);
+  font-size: 24rpx;
+}
+
+.announce-popup-sheet {
+  max-width: 640rpx;
+  margin: 0 auto;
+  padding: 32rpx 28rpx 28rpx;
+}
+
+.announce-popup-tag {
+  font-size: 22rpx;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+}
+
+.announce-popup-title {
+  margin-top: 12rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  font-family: var(--display);
+  line-height: 1.35;
+}
+
+.announce-popup-body {
+  margin-top: 20rpx;
+  max-height: 48vh;
+}
+
+.announce-popup-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.announce-popup-btn {
+  margin-top: 28rpx;
+  width: 100%;
+  padding: 24rpx;
+  font-size: 30rpx;
+}
+</style>

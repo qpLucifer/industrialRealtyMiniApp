@@ -65,6 +65,7 @@ export const mockAnnouncements = [
     popup: '否',
     popupStart: '',
     popupEnd: '',
+    updatedAt: '2026-05-17T10:00',
   },
   {
     id: '2',
@@ -73,5 +74,6 @@ export const mockAnnouncements = [
     popup: '是',
     popupStart: toLocalIsoMinute(popupStart),
     popupEnd: toLocalIsoMinute(popupEnd),
+    updatedAt: '2026-05-17T12:00',
   },
 ]
