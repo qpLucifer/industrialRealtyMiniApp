@@ -1,5 +1,6 @@
+import type { WorkbenchSummary } from '@/types/workbench'
 import { get } from '@/utils/request'
 
-export function fetchWorkbench() {
-  return get<import('@/mock/data/workbench').WorkbenchSummary>('/api/workbench/summary')
+export function fetchWorkbench(): Promise<WorkbenchSummary> {
+  return get<WorkbenchSummary>('/api/workbench/summary')
 }

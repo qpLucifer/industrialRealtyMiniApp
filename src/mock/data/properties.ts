@@ -47,6 +47,8 @@ export interface PropertyDetailMock {
   auditKey: 'live' | 'pending' | 'draft' | 'rejected'
   auditBadge: string
   auditHint: string
+  rejectReason?: string
+  externalStatus?: string
   detailTitle: string
   specLine: string
   priceLine: string
@@ -55,6 +57,12 @@ export interface PropertyDetailMock {
   addrKv: string
   mapCoordLabel: string
   navAddr: string
+  lat?: string
+  lng?: string
+  district?: string
+  propertyType?: string
+  mediaImages?: string[]
+  mediaVideos?: string[]
 }
 
 const DETAIL_MAP: Record<string, PropertyDetailMock> = {
@@ -63,6 +71,7 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
     auditKey: 'live',
     auditBadge: '已上架',
     auditHint: '客户侧可见 · 可被带看/分享 · 修改会生成新版本',
+    externalStatus: '待租',
     detailTitle: '黄埔科学城 · 单层高标准厂房',
     specLine: '4200㎡ · 层高 9m · 配电 800kVA · 丙二类',
     priceLine: '¥38/㎡·月（含税挂牌）',
@@ -71,6 +80,15 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
     addrKv: '广州市黄埔区科学城 XX 路 88 号 A 区',
     mapCoordLabel: '23.179455°N · 113.429512°E',
     navAddr: '广州市黄埔区科学城 XX 路 88 号 A 区',
+    lat: '23.179455',
+    lng: '113.429512',
+    district: '黄埔区',
+    propertyType: '标准厂房',
+    mediaImages: [
+      'https://img.alicdn.com/imgextra/i1/O1CN01example1.jpg',
+      'https://img.alicdn.com/imgextra/i2/O1CN01example2.jpg',
+    ],
+    mediaVideos: [],
   },
   'P-7730': {
     id: 'P-7730',
@@ -105,6 +123,8 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
     auditKey: 'rejected',
     auditBadge: '已驳回',
     auditHint: '原因：配电容量描述与现场照片不一致 · 请修改后重新提交',
+    rejectReason: '配电容量描述与现场照片不一致，请核对后重新提交审核。',
+    externalStatus: '驳回',
     detailTitle: '南沙万顷沙 · 单层仓（待修改）',
     specLine: '约 4800㎡ · 净高 10m · 丙二类（待验）',
     priceLine: '租金待填（驳回后需重审）',
@@ -113,6 +133,10 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
     addrKv: '广东省广州市南沙区万顷沙物流园一期 B3',
     mapCoordLabel: '22.718634°N · 113.612445°E',
     navAddr: '广东省广州市南沙区万顷沙物流园一期 B3',
+    lat: '22.718634',
+    lng: '113.612445',
+    mediaImages: [],
+    mediaVideos: [],
   },
 }
 
@@ -120,59 +144,43 @@ export function getPropertyDetail(id: string): PropertyDetailMock {
   return DETAIL_MAP[id] || DETAIL_MAP['P-8821']
 }
 
-/** KV blocks aligned with prototype detail tabs (static copy for DB field mapping) */
+/** KV blocks — 8 tabs aligned with publish.vue (header/hero fields omitted) */
 export const propertyDetailKv = {
   s1: [
-    { dt: '房源类型', dd: '标准厂房 （支持多标签）' },
-    { dt: '公司名称', dd: '' },
-    { dt: '详细地址', dd: '' },
-    { dt: '业主联系人', dd: '王业主 · 业主授权代表' },
-    { dt: '现场必拍清单', dd: '门口形象照、路口进出照、车间照片、货梯、厂房屋顶、短视频已勾选' },
-    { dt: '媒体资产', dd: '现场相册 12 张（≥10）· 短视频 30s×2 · 底部含 GPS 地图导航' },
+    { dt: '房源类型', dd: '标准厂房' },
+    { dt: '业主联系人', dd: '王业主' },
+    { dt: '风险标签', dd: '无' },
   ],
-  s2: [
-    { dt: '土地（亩）', dd: '约 12.5 亩 · 实际 12.3 亩' },
-    { dt: '建筑面积 / 使用面积', dd: '4200㎡ / 4050㎡' },
-    { dt: '总层数', dd: '单层' },
-    { dt: '车间长宽高', dd: '88×48×9 m' },
-    { dt: '承重', dd: '3 吨/m²（牛腿区 10T 预留）' },
-    { dt: '结构类型', dd: '钢构' },
-    { dt: '电力总容量', dd: '800kVA · 变压器 2 台 · 可增容至 1250kVA' },
-    { dt: '货梯', dd: '2 台 · 载重 3T · 轿厢 2.4×3.0×2.8m' },
-    { dt: '装卸平台 / 转弯半径', dd: '高度 110cm · 货车转弯半径约 14m' },
-    { dt: '员工宿舍', dd: '园区内 450 元/房 · 周边 1.2km' },
-    { dt: '餐饮便利店', dd: '集中配套' },
-    { dt: '公交地铁', dd: '科学城站 · 步行约 820m' },
-    { dt: '使用情况', dd: '空置可租 · 腾空周期约 2 个月 · 现状无共租' },
-  ],
-  s3: [
-    { dt: '产权性质', dd: '国有土地 · 出让' },
-    { dt: '土地用途', dd: '工业' },
-    { dt: '证件', dd: '房产证 · 土地证 · 消防验收 · 环保批文' },
-    { dt: '抵押 / 纠纷', dd: '无' },
-    { dt: '房东心里价位', dd: '面议（后台维护）' },
-    { dt: '交易方式', dd: '出租 · 可谈出售' },
-    { dt: '交易税费（估）', dd: '按政策预估 · 见商务洽谈' },
-    { dt: '允许产业', dd: '智能制造 · 装配 · 仓储' },
-    { dt: '特殊限制', dd: '禁止高噪音喷涂（夜间）' },
-    { dt: '消防系统', dd: '喷淋 · 烟感 · 丙二类' },
-    { dt: '验收 / 监控', dd: '已通过验收 · 监控覆盖全厂区' },
-    { dt: '物流', dd: '高速口约 3.5km · 港区约 45km · 限高 4.2m · 高峰期拥堵无' },
-    { dt: '产业补贴 / 税收', dd: '无专项申报 · 税收优惠待园区确认' },
-    { dt: '环评 / 排污 / 光伏', dd: '已通过 HP-2024-0192 · 排污许可有 · 屋面可接入光伏' },
-    { dt: '厂房亮点', dd: '层高 9m · 卸货平台 · 配电充足' },
-    { dt: '潜在风险', dd: '邻里夜间装卸噪音敏感' },
-    { dt: '评估建议', dd: '优先推荐给电子装配 / 轻加工' },
-    { dt: '租金挂牌', dd: '¥38/㎡·月（含税）' },
-    { dt: '物业费', dd: '¥2.5/㎡·月' },
-    { dt: '递增 / 免租', dd: '每两年递增 5% · 免租期洽谈中（≤60 天）' },
-    { dt: '中介佣金', dd: '半月租金（内部结算）' },
-  ],
+  s2: [{ dt: '所属区域', dd: '黄埔区' }],
+  s3: [{ dt: '现场必拍', dd: '门口形象照、车间全景、配电房' }],
   s4: [
-    { dt: '跟进联系人', dd: '李昭（业主授权）' },
-    { dt: '电话', dd: '138****6281 脱敏 · 管理员可见全号' },
-    { dt: '看房预约备注', dd: '工作日 9:00–17:00；需提前 2 小时报备车牌。' },
-    { dt: '内部备注', dd: '业主配合度高 · 配电增容周期约 45 个工作日。' },
+    { dt: '土地（亩）', dd: '12.5' },
+    { dt: '建筑面积（㎡）', dd: '4200' },
+    { dt: '车间长宽高（米）', dd: '80×40×9' },
+    { dt: '结构类型', dd: '钢构' },
+  ],
+  s5: [
+    { dt: '电力总容量（kVA）', dd: '800' },
+    { dt: '货梯（台）', dd: '2' },
+    { dt: '餐饮 / 便利店', dd: '集中食堂' },
+    { dt: '使用情况备注', dd: '空置可租' },
+  ],
+  s6: [
+    { dt: '产权性质', dd: '国有' },
+    { dt: '抵押 / 纠纷', dd: '无' },
+    { dt: '消防验收', dd: '是' },
+  ],
+  s7: [
+    { dt: '产业补贴', dd: '无' },
+    { dt: '厂房亮点', dd: '层高 9m，丙二类' },
+    { dt: '潜在风险', dd: '—' },
+  ],
+  s8: [
+    { dt: '租售类型', dd: '出租' },
+    { dt: '物业费（元/㎡·月）', dd: '5' },
+    { dt: '联系人姓名', dd: '李昭' },
+    { dt: '联系人电话', dd: '138****6281' },
+    { dt: '内部备注', dd: '业主配合度高' },
   ],
 }
 

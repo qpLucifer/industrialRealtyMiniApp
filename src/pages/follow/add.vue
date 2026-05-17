@@ -1,11 +1,11 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { postAction } from '@/api/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
-const customerId = ref('zhangchen')
+const customerId = ref('')
 const note = ref('')
 const channel = ref('电话')
 const channels = ['电话', '微信', '现场', '邮件']
@@ -20,8 +20,12 @@ onLoad((q) => {
 })
 
 async function submit() {
+  if (!customerId.value.trim()) {
+    uni.showToast({ title: '缺少客户', icon: 'none' })
+    return
+  }
   await postAction('follow-add', { customerId: customerId.value, note: note.value, channel: channel.value })
-  uni.showToast({ title: '跟进已记录（原型）', icon: 'none' })
+  uni.showToast({ title: '跟进已记录', icon: 'none' })
   uni.navigateBack()
 }
 
@@ -32,7 +36,7 @@ function back() {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -42,7 +46,7 @@ function back() {
           <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="card">
           <text class="hint" style="display: block; margin-bottom: 20rpx">客户 ID：{{ customerId }}</text>
           <view class="form-group">

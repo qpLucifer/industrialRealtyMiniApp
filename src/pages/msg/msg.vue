@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchMessageList } from '@/api/message'
-import type { MessageItem } from '@/mock/data/messages'
+import type { MessageItem } from '@/types/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
@@ -35,20 +35,24 @@ function open(m: MessageItem) {
   }
   if (m.nav === 'announcements') {
     uni.navigateTo({ url: '/pages/announcements/list' })
+    return
+  }
+  if (m.nav === 'settings') {
+    uni.navigateTo({ url: '/pages/settings/settings' })
   }
 }
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">消息中心</view>
           <view class="sub">审核 · 任务 · 系统</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view
           v-for="m in list"
           :key="m.id"

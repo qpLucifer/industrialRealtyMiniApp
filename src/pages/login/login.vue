@@ -7,7 +7,7 @@ import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 const loading = ref(false)
 const manualPhone = ref('')
 
-const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 /** DevTools / H5: type phone when WeChat phone API unavailable */
 const phoneFallbackEnabled = (import.meta.env.VITE_MINI_LOGIN_PHONE_FALLBACK ?? 'false') === 'true'

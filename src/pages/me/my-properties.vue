@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchMyPublished } from '@/api/property'
@@ -48,7 +48,7 @@ function back() {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -60,7 +60,7 @@ function back() {
           </view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-for="p in list" :key="p.code" class="card list-item" @click="goDetail(p.code)">
           <view style="flex: 1; min-width: 0">
             <view style="display: flex; justify-content: space-between; gap: 16rpx; align-items: center">

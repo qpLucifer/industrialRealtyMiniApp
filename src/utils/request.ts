@@ -1,9 +1,11 @@
 import { dispatchMock } from '@/mock/dispatch'
+import type { PropertyEditForm } from '@/types/property'
 import type { ApiResult } from '@/utils/result'
 import { unwrapResult } from '@/utils/result'
 import { clearMiniSessionAndGoLogin } from '@/utils/session'
 
-const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
+/** Explicit `VITE_USE_MOCK=true` only — production builds default to real API. */
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const API_BASE = String(import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
 function resolveUrl(url: string) {
@@ -21,6 +23,54 @@ function joinUrl(url: string, query?: Record<string, string | number | boolean |
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
     .join('&')
   return qs ? `${url}?${qs}` : url
+}
+
+/** API / gateway error body — `{ code, message }`, or `msg` / `error` / plain string. */
+function messageFromApiBody(data: unknown): string {
+  if (data == null) return ''
+  if (typeof data === 'string') {
+    const t = data.trim()
+    if (!t) return ''
+    try {
+      const o = JSON.parse(t) as Record<string, unknown>
+      return messageFromApiBody(o)
+    } catch {
+      return t.length > 200 ? `${t.slice(0, 200)}…` : t
+    }
+  }
+  if (typeof data !== 'object') return ''
+  const o = data as Record<string, unknown>
+  const candidates = [o.message, o.msg, o.error, o.error_description, o.detail]
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim()
+  }
+  return ''
+}
+
+function handleHttpResponse<T>(res: UniApp.RequestSuccessCallbackResult): T {
+  if (res == null) {
+    throw new Error('uni.request: empty response')
+  }
+  const sc = res.statusCode ?? 0
+  if (sc === 401 && !USE_MOCK) {
+    const msg = messageFromApiBody(res.data)
+    clearMiniSessionAndGoLogin(msg)
+    throw new Error(msg || 'Unauthorized')
+  }
+  if (sc >= 400) {
+    const msg = messageFromApiBody(res.data) || `请求失败 (${sc})`
+    throw new Error(msg)
+  }
+  return unwrapResult<T>(res.data)
+}
+
+/** Meta APIs live here so mp-weixin pages only require utils/request.js (see .cursor/rules/mp-weixin.mdc). */
+export function fetchRegionDefs() {
+  return get<{ list: { id: string; name: string }[] }>('/api/meta/regions')
+}
+
+export function fetchCodeMasterLabels(type: string) {
+  return get<{ list: string[] }>('/api/meta/code-master', { type })
 }
 
 export async function get<T>(url: string, query?: Record<string, string | number | boolean | undefined>): Promise<T> {
@@ -44,19 +94,7 @@ export async function get<T>(url: string, query?: Record<string, string | number
       header: headers,
       success(res) {
         try {
-          if (res == null) {
-            reject(new Error('uni.request: empty response'))
-            return
-          }
-          const sc = res.statusCode ?? 0
-          if (sc === 401 && !USE_MOCK) {
-            const data = res.data as ApiResult<unknown> | undefined
-            const msg = data && typeof data === 'object' && 'message' in data ? String((data as ApiResult<unknown>).message) : ''
-            clearMiniSessionAndGoLogin(msg)
-            reject(new Error(msg || 'Unauthorized'))
-            return
-          }
-          resolve(unwrapResult<T>(res.data))
+          resolve(handleHttpResponse<T>(res))
         } catch (e) {
           reject(e)
         }
@@ -93,19 +131,7 @@ export async function post<T>(
       header: headers,
       success(res) {
         try {
-          if (res == null) {
-            reject(new Error('uni.request: empty response'))
-            return
-          }
-          const sc = res.statusCode ?? 0
-          if (sc === 401 && !USE_MOCK) {
-            const data = res.data as ApiResult<unknown> | undefined
-            const msg = data && typeof data === 'object' && 'message' in data ? String((data as ApiResult<unknown>).message) : ''
-            clearMiniSessionAndGoLogin(msg)
-            reject(new Error(msg || 'Unauthorized'))
-            return
-          }
-          resolve(unwrapResult<T>(res.data))
+          resolve(handleHttpResponse<T>(res))
         } catch (e) {
           reject(e)
         }
@@ -119,4 +145,261 @@ export async function post<T>(
 
 export function rawMockResponse<T>(result: T): ApiResult<T> {
   return { code: 200, message: 'success', result }
+}
+
+/** OSS / relative media paths — kept in request.ts for mp-weixin module graph stability. */
+const OSS_PUBLIC_BASE = String(import.meta.env.VITE_OSS_PUBLIC_BASE_URL ?? '').replace(/\/$/, '')
+
+export function resolveMediaUrl(path: string): string {
+  const p = String(path || '').trim()
+  if (!p) return ''
+  if (/^https?:\/\//i.test(p)) return p
+  if (OSS_PUBLIC_BASE) return `${OSS_PUBLIC_BASE}/${p.replace(/^\//, '')}`
+  if (API_BASE && p.startsWith('/')) return `${API_BASE}${p}`
+  return p
+}
+
+const VIDEO_DOMAIN_HINT =
+  '视频无法播放：请在微信公众平台将 OSS/API 域名加入「downloadFile 合法域名」，并与 VITE_OSS_PUBLIC_BASE_URL 一致'
+
+function showVideoDomainHint() {
+  uni.showModal({ title: '视频播放', content: VIDEO_DOMAIN_HINT, showCancel: false })
+}
+
+export function previewNetworkVideo(url: string) {
+  const resolved = resolveMediaUrl(url)
+  if (!resolved) {
+    uni.showToast({ title: '暂无视频地址', icon: 'none' })
+    return
+  }
+  if (typeof uni.previewMedia === 'function') {
+    uni.previewMedia({
+      sources: [{ url: resolved, type: 'video' }],
+      fail: () => {
+        uni.showToast({ title: '预览失败，请检查合法域名', icon: 'none' })
+        showVideoDomainHint()
+      },
+    })
+    return
+  }
+  uni.showToast({ title: '当前环境不支持 previewMedia', icon: 'none' })
+}
+
+export function onVideoComponentError() {
+  showVideoDomainHint()
+}
+
+function miniAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'X-Client': 'miniapp' }
+  const token = uni.getStorageSync('mini_token')
+  if (token && typeof token === 'string') {
+    headers.Authorization = `Bearer ${token}`
+    headers['X-Mini-Token'] = token
+  }
+  return headers
+}
+
+/** OSS multipart upload — lives in request.ts for mp-weixin module stability. */
+export function uploadOssFile(
+  filePath: string,
+  folder = 'miniapp/properties',
+): Promise<{ url: string; key: string }> {
+  if (!API_BASE) {
+    return Promise.reject(new Error('未配置 VITE_API_BASE'))
+  }
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: `${API_BASE}/api/upload/oss`,
+      filePath,
+      name: 'file',
+      formData: { folder },
+      header: miniAuthHeaders(),
+      success(res) {
+        try {
+          const sc = res.statusCode ?? 0
+          if (sc >= 400) {
+            let msg = `上传失败 (${sc})`
+            try {
+              const body = JSON.parse(res.data as string) as { message?: string }
+              if (body.message) msg = body.message
+            } catch {
+              /* ignore */
+            }
+            reject(new Error(msg))
+            return
+          }
+          const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          resolve(unwrapResult<{ url: string; key: string }>(data))
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail(err) {
+        reject(err ?? new Error('uploadFile failed'))
+      },
+    })
+  })
+}
+
+/* --- Property publish form helpers (inlined for WeChat MP module graph) --- */
+
+export function emptyPropertyForm(): PropertyEditForm {
+  return {
+    types: ['标准厂房'],
+    companyName: '',
+    address: '',
+    district: '',
+    listTitle: '',
+    listingLine1: '',
+    listingLine2: '',
+    riskTag: '',
+    lat: '',
+    lng: '',
+    landMu: 0,
+    actualLandMu: 0,
+    buildingArea: 0,
+    actualUseArea: 0,
+    floors: 1,
+    loadPerSqm: 0,
+    workshopSize: '',
+    powerKva: 0,
+    transformers: 0,
+    freightLifts: 0,
+    liftLoadT: 0,
+    dining: '集中',
+    transitStation: '',
+    vacantMonths: 0,
+    usageRemark: '',
+    structureTypes: [],
+    structureOther: '',
+    loadNote: '',
+    liftDims: '',
+    platformHeightCm: 0,
+    turnRadiusM: 0,
+    dormRent: 0,
+    dormDistanceKm: 0,
+    stationDistanceM: 0,
+    selfUseSqm: 0,
+    rentEstimateYear: 0,
+    coTenantCount: 0,
+    annualRent: null,
+    tenantCompanies: '',
+    contractYearsLeft: null,
+    propertyRights: ['国有土地'],
+    propertyRightsOther: '',
+    landUse: [],
+    landUseOther: '',
+    certificates: [],
+    mortgageDispute: '无',
+    mortgageNote: '',
+    landlordPriceWan: null,
+    tradeMode: '',
+    taxFeeNote: '',
+    rentSaleType: '出租',
+    rentListSqm: 0,
+    propertyFee: 0,
+    fireSystems: [],
+    fireOther: '',
+    firePass: '是',
+    monitorCoverage: '全厂区',
+    fireFailReason: '',
+    highwayKm: 0,
+    portAirportKm: 0,
+    roadLimits: '',
+    rushHour: '无',
+    subsidy: '无',
+    subsidyDetail: '',
+    taxBenefit: '',
+    envLevel: '',
+    dischargePermit: '有',
+    solar: '可接入',
+    highlights: '',
+    risks: '',
+    assessment: '',
+    allowedIndustries: '',
+    specialLimits: '',
+    contactName: '',
+    contactPhone: '',
+    viewingNote: '',
+    internalNote: '',
+    ownerContact: '',
+    mediaImageUrls: '',
+    mediaVideoUrls: '',
+    mediaUrls: '',
+    photoChecklist: [],
+  }
+}
+
+export function parseMediaLines(raw: unknown): string[] {
+  return String(raw ?? '')
+    .split(/\r?\n|,/)
+    .map((s) => s.trim())
+    .filter((u) => u.length > 0)
+}
+
+export function joinMediaLines(urls: string[]): string {
+  return urls.filter(Boolean).join('\n')
+}
+
+export function applyPropertyApiForm(target: PropertyEditForm, api: PropertyEditForm) {
+  const base = emptyPropertyForm()
+  Object.assign(target, base, api)
+  if (api.code) target.code = String(api.code)
+  if (!Array.isArray(target.types) || !target.types.length) {
+    target.types = ['标准厂房']
+  }
+  if (!Array.isArray(target.propertyRights) || !target.propertyRights.length) {
+    target.propertyRights = ['国有土地']
+  }
+  if (!Array.isArray(target.fireSystems)) target.fireSystems = []
+  if (!Array.isArray(target.photoChecklist)) target.photoChecklist = []
+  if (!Array.isArray(target.landUse)) target.landUse = []
+  if (!Array.isArray(target.certificates)) target.certificates = []
+  if (!Array.isArray(target.structureTypes)) target.structureTypes = []
+}
+
+function numOrEmpty(v: unknown): number | '' {
+  if (v === '' || v == null) return ''
+  const n = Number(v)
+  return Number.isFinite(n) ? n : ''
+}
+
+export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEditForm {
+  const images = joinMediaLines(parseMediaLines(form.mediaImageUrls))
+  const videos = joinMediaLines(parseMediaLines(form.mediaVideoUrls))
+  const types = Array.isArray(form.types) ? form.types.filter(Boolean) : ['标准厂房']
+  return {
+    ...form,
+    code: form.code,
+    listTitle: String(form.listTitle || '').trim() || `${form.companyName || '房源'} · ${types[0]}`,
+    companyName: String(form.companyName || '').trim(),
+    address: String(form.address || '').trim(),
+    district: String(form.district || '').trim() || '未分区',
+    types,
+    lat: form.lat != null ? String(form.lat) : '',
+    lng: form.lng != null ? String(form.lng) : '',
+    landMu: numOrEmpty(form.landMu),
+    actualLandMu: numOrEmpty(form.actualLandMu),
+    buildingArea: numOrEmpty(form.buildingArea),
+    actualUseArea: numOrEmpty(form.actualUseArea),
+    floors: numOrEmpty(form.floors),
+    loadPerSqm: numOrEmpty(form.loadPerSqm),
+    powerKva: numOrEmpty(form.powerKva),
+    transformers: numOrEmpty(form.transformers),
+    freightLifts: numOrEmpty(form.freightLifts),
+    liftLoadT: numOrEmpty(form.liftLoadT),
+    vacantMonths: numOrEmpty(form.vacantMonths),
+    rentListSqm: numOrEmpty(form.rentListSqm),
+    propertyFee: numOrEmpty(form.propertyFee),
+    mediaImageUrls: images,
+    mediaVideoUrls: videos,
+    mediaUrls: [images, videos].filter(Boolean).join('\n'),
+  }
+}
+
+export function chipListFromJoined(raw: string): string[] {
+  return raw
+    .split(/[、,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
 }

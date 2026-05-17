@@ -1,0 +1,31 @@
+---
+description: WeChat mini program build constraints for industrialRealtyMiniApp
+globs: src/**/*
+alwaysApply: false
+---
+
+# WeChat MP (mp-weixin) rules
+
+WeChat **dependency analysis** drops JS modules that are only referenced from a single page chunk. Runtime then throws `module '…' is not defined` or DevTools throws ENOENT for missing files.
+
+## Do
+
+- Keep **page-only logic inside the `.vue` file** (inline in `<script setup>`), or call APIs via **`@/utils/request`** which every page already loads.
+- Put shared HTTP helpers (`fetchRegionDefs`, `emptyPropertyForm`, media helpers) in **`src/utils/request.ts`**.
+- Run **`npm run build:mp-weixin`** after changes; open **`dist/build/mp-weixin`** in DevTools (not `src/`).
+- Rely on **`scripts/mp-weixin-compat-shims.cjs`** after build — it writes stubs; **never delete** `propertyFormUi.js`, `usePropertyFormUi.js`, or `api/meta.js` from dist.
+
+## Do not
+
+- Add `pages/**/foo.ts` or `composables/useX.ts` used by only one page.
+- Add standalone `.vue` media/components on property pages (inline UI instead).
+- `import from '@/api/meta'` in pages — use `fetchRegionDefs` / `fetchCodeMasterLabels` from `@/utils/request`.
+- Remove post-build stub files from `dist/build/mp-weixin`.
+
+## Build
+
+```bash
+npm run build:mp-weixin
+```
+
+Then: close DevTools → re-import dist → **清除全部缓存** → compile.

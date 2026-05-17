@@ -2,13 +2,20 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
-import { fetchPropertyDetail } from '@/api/property'
-import type { PropertyDetailPayload } from '@/mock/data/properties'
+import { fetchPropertyDetail, fetchPropertyEditForm } from '@/api/property'
+import type { PropertyDetailPayload } from '@/types/property'
+import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
+import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
 const topBarInsetStyle = useTopBarInsetStyle()
-const pid = ref('P-8821')
+const pid = ref('')
 const detail = ref<PropertyDetailPayload | null>(null)
 const tab = ref(0)
+
+/** Same order as publish wizard */
+const tabLabels = ['基础分类', '地图定位', '图片视频', '土地建筑', '电力配套', '产权合规', '政策亮点', '挂牌联系']
+
+const TAB_KV_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'] as const
 
 const auditClass = computed(() => {
   const k = detail.value?.auditKey || 'live'
@@ -18,19 +25,48 @@ const auditClass = computed(() => {
   return 'audit-draft'
 })
 
-const codeChipClass = computed(() => {
-  const k = detail.value?.auditKey
-  if (k === 'live') return 'ok'
-  if (k === 'pending') return 'warn'
-  return ''
+const canViewing = computed(() => detail.value?.auditKey === 'live')
+
+const kvRows = computed(() => {
+  const d = detail.value?.kv
+  if (!d) return []
+  return d[TAB_KV_KEYS[tab.value]] ?? []
 })
 
-const codeChipStyle = computed(() => {
-  const k = detail.value?.auditKey
-  if (k === 'rejected')
-    return 'background:rgba(254,226,226,0.9);color:#b91c1c;border-color:rgba(244,63,94,0.35)'
-  if (k === 'draft') return 'background:#e2e8f0;color:#475569'
-  return ''
+const mediaImages = computed(() => (detail.value?.mediaImages ?? []).map((u) => resolveMediaUrl(u)))
+const mediaVideos = computed(() => (detail.value?.mediaVideos ?? []).map((u) => resolveMediaUrl(u)))
+const heroVideo = computed(() => mediaVideos.value[0] || '')
+const propertyTypeLabel = computed(() => detail.value?.propertyType || '')
+const heroImage = computed(() => (heroVideo.value ? '' : mediaImages.value[0] || ''))
+const heroActiveImage = ref(0)
+
+function parseCoord(v: unknown) {
+  const n = Number.parseFloat(String(v ?? '').trim())
+  return Number.isFinite(n) ? n : NaN
+}
+
+const hasMapCoords = computed(() => {
+  const d = detail.value
+  if (!d) return false
+  const lat = parseCoord(d.lat)
+  const lng = parseCoord(d.lng)
+  return Number.isFinite(lat) && Number.isFinite(lng)
+})
+
+const mapLatitude = computed(() => (hasMapCoords.value ? parseCoord(detail.value!.lat) : 23.129112))
+const mapLongitude = computed(() => (hasMapCoords.value ? parseCoord(detail.value!.lng) : 113.264385))
+
+const mapMarkers = computed(() => {
+  if (!hasMapCoords.value || !detail.value) return []
+  return [
+    {
+      id: 1,
+      latitude: parseCoord(detail.value.lat),
+      longitude: parseCoord(detail.value.lng),
+      width: 28,
+      height: 36,
+    },
+  ]
 })
 
 onLoad((q) => {
@@ -38,12 +74,31 @@ onLoad((q) => {
 })
 
 async function load() {
-  detail.value = await fetchPropertyDetail(pid.value)
+  if (!pid.value) return
+  try {
+    const [payload, form] = await Promise.all([
+      fetchPropertyDetail(pid.value),
+      fetchPropertyEditForm(pid.value).catch(() => null),
+    ])
+    if (form) {
+      payload.kv = buildPropertyDetailKvFromForm(form, {
+        type: payload.propertyType,
+        district: payload.district,
+        company: payload.company,
+        statusTag: payload.externalStatus || payload.leaseChip,
+        priceLine: payload.priceLine,
+        submitterName: typeof form.submitterName === 'string' ? form.submitterName : undefined,
+      })
+    } else if (isLegacyPropertyDetailKv(payload.kv)) {
+      uni.showToast({ title: '表单数据加载失败，Tab 可能不完整', icon: 'none' })
+    }
+    detail.value = payload
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  }
 }
 
-onShow(() => {
-  load()
-})
+onShow(() => load())
 
 function back() {
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/property/list' }) })
@@ -58,17 +113,59 @@ function goLog() {
 }
 
 function goViewing() {
-  uni.navigateTo({ url: '/pages/viewing/new' })
+  uni.navigateTo({ url: `/pages/viewing/new?propId=${encodeURIComponent(pid.value)}` })
 }
 
-function shareDemo() {
-  uni.showToast({ title: '已生成内部转发卡片（原型）', icon: 'none' })
+function openMap() {
+  const d = detail.value
+  if (!d) return
+  const lat = Number(d.lat)
+  const lng = Number(d.lng)
+  if (!lat || !lng) {
+    uni.showToast({ title: '暂无坐标', icon: 'none' })
+    return
+  }
+  uni.openLocation({
+    latitude: lat,
+    longitude: lng,
+    name: d.detailTitle,
+    address: d.navAddr || d.addrKv,
+  })
+}
+
+function copyCoord() {
+  const d = detail.value
+  if (!d) return
+  uni.setClipboardData({ data: d.lat && d.lng ? `${d.lat}, ${d.lng}` : d.mapCoordLabel })
+}
+
+function shareInternal() {
+  const d = detail.value
+  if (!d) return
+  uni.setClipboardData({
+    data: `【房源】${d.detailTitle}\n编号 ${d.id}\n${d.priceLine}\n${d.addrKv}`,
+    success: () => uni.showToast({ title: '已复制转发文案', icon: 'none' }),
+  })
+}
+
+function previewHeroImage(index: number) {
+  const urls = mediaImages.value
+  if (!urls.length) return
+  uni.previewImage({ urls, current: urls[index] || urls[0] })
+}
+
+function playHeroFullscreen() {
+  if (heroVideo.value) previewNetworkVideo(heroVideo.value)
+}
+
+function openVideoFullscreen(url: string) {
+  previewNetworkVideo(url)
 }
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -76,149 +173,185 @@ function shareDemo() {
           </view>
           <view class="top-bar__nav-mid">房源详情</view>
           <view class="top-bar__nav-right">
-            <button class="btn-ghost sm" @click="goEdit">编辑</button>
             <button class="btn-ghost sm" @click="goLog">日志</button>
           </view>
         </view>
       </view>
-      <view class="detail-hero"><view class="orb" /></view>
-      <view class="detail-tabs">
-        <button class="tab-btn" :class="{ active: tab === 0 }" @click="tab = 0">基础与媒体</button>
-        <button class="tab-btn" :class="{ active: tab === 1 }" @click="tab = 1">土地·配套·使用</button>
-        <button class="tab-btn" :class="{ active: tab === 2 }" @click="tab = 2">产权·合规·备注</button>
-        <button class="tab-btn" :class="{ active: tab === 3 }" @click="tab = 3">联系</button>
+
+      <view v-if="!detail" class="page-scroll pf-detail-loading">
+        <text class="hint">加载中…</text>
       </view>
-      <scroll-view v-if="detail" scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0; padding-top: 24rpx">
-        <view class="prop-detail-audit-strip" :class="auditClass">
-          <view style="flex: 1; min-width: 0">
-            <text style="font-size: 28rpx; font-weight: 700; display: block">{{ detail.auditBadge }}</text>
-            <text class="hint" style="display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.5">{{
-              detail.auditHint
-            }}</text>
+
+      <scroll-view v-else scroll-y :show-scrollbar="false" class="page-scroll">
+        <view class="pf-detail-hero-wrap">
+          <view class="prop-media-hero">
+            <video
+              v-if="heroVideo"
+              class="prop-media-hero__main prop-media-hero__video"
+              :src="heroVideo"
+              controls
+              show-center-play-btn
+              object-fit="cover"
+              @error="onVideoComponentError"
+            />
+            <image
+              v-else-if="heroImage"
+              class="prop-media-hero__main"
+              :src="heroImage"
+              mode="aspectFill"
+              @click="previewHeroImage(0)"
+            />
+            <view v-else class="prop-media-hero__main prop-media-hero__empty">
+              <view class="prop-media-hero__orb" />
+              <text class="prop-media-hero__empty-txt">暂无图片/视频</text>
+            </view>
+            <view v-if="heroVideo" class="prop-media-hero__fs" @tap="playHeroFullscreen">全屏</view>
+            <scroll-view v-if="mediaImages.length > 1" scroll-x class="prop-media-hero__strip" :show-scrollbar="false">
+              <image
+                v-for="(url, i) in mediaImages"
+                :key="'t' + i"
+                class="prop-media-hero__thumb"
+                :class="{ on: !heroVideo && heroActiveImage === i }"
+                :src="url"
+                mode="aspectFill"
+                @click="heroActiveImage = i; previewHeroImage(i)"
+              />
+            </scroll-view>
           </view>
-          <text class="chip" :class="codeChipClass" :style="codeChipStyle">{{ detail.id }}</text>
         </view>
-        <view class="card card-glow">
-          <view class="badge-row">
-            <text
-              v-for="s in ['待租', '已租', '待售', '已售', '意向中', '下架封存']"
-              :key="s"
-              class="chip"
-              :class="{ on: detail.leaseChip === s, ok: s === '待租' || s === '已租', danger: s === '下架封存' }"
-              >{{ s }}</text
-            >
+
+        <view class="pf-detail-sheet">
+          <view class="pf-detail-title-card">
+            <text class="detail-header-card__code">{{ detail.id }} · {{ detail.auditBadge }}</text>
+            <text class="detail-header-card__title">{{ detail.detailTitle }}</text>
+            <text class="detail-header-card__meta">{{ detail.specLine }}</text>
+            <text class="pf-detail-price">{{ detail.priceLine }}</text>
+            <view class="chip-row">
+              <text v-if="propertyTypeLabel" class="chip">{{ propertyTypeLabel }}</text>
+              <text class="chip on ok">{{ detail.leaseChip }}</text>
+              <text v-if="detail.company" class="chip">{{ detail.company }}</text>
+              <text v-if="detail.externalStatus" class="chip">{{ detail.externalStatus }}</text>
+            </view>
           </view>
-          <text class="hint" style="display: block; margin-top: 20rpx"
-            >有权限时可一键切换状态 · 全量写入操作日志 · 字段与发布房源同源</text
+
+          <view v-if="detail.auditKey === 'rejected' && detail.rejectReason" class="pf-reject-box">
+            <text class="pf-reject-box__title">驳回原因</text>
+            <text class="pf-reject-box__body">{{ detail.rejectReason }}</text>
+          </view>
+
+          <view v-else-if="detail.auditHint" class="pf-detail-audit-wrap">
+            <view class="prop-detail-audit-strip" :class="auditClass">
+              <text>{{ detail.auditHint }}</text>
+            </view>
+          </view>
+
+          <view v-else-if="detail.auditKey === 'rejected'" class="pf-detail-audit-wrap">
+            <view class="prop-detail-audit-strip audit-rejected">
+              <text>审核未通过，请编辑后重新提交</text>
+            </view>
+          </view>
+
+          <view class="pf-detail-tabs-wrap">
+            <view class="pf-step-tabs">
+              <text
+                v-for="(label, i) in tabLabels"
+                :key="label"
+                class="pf-step-tab"
+                :class="{ on: tab === i }"
+                @click="tab = i"
+                >{{ label }}</text
+              >
+            </view>
+          </view>
+
+          <view v-if="kvRows.length" class="pf-kv-card">
+            <view v-for="(row, i) in kvRows" :key="i" class="pf-kv-row">
+              <text class="pf-kv-dt">{{ row.dt }}</text>
+              <text class="pf-kv-dd">{{ row.dd }}</text>
+            </view>
+          </view>
+
+          <!-- Tab 1: map panel (address + coords; not duplicated in KV) -->
+          <view v-if="tab === 1" class="pf-kv-card pf-detail-map-card">
+            <view class="section-title">位置 · 地图</view>
+            <view class="pf-map-preview-wrap pf-map-preview-wrap--detail">
+              <map
+                class="pf-map-preview"
+                :latitude="mapLatitude"
+                :longitude="mapLongitude"
+                :scale="16"
+                :markers="mapMarkers"
+                enable-scroll
+                enable-zoom
+              />
+              <view v-if="!hasMapCoords" class="pf-map-preview__empty">
+                <text>尚未录入坐标</text>
+              </view>
+            </view>
+            <text class="pf-detail-map-addr">{{ detail.navAddr || detail.addrKv }}</text>
+            <text v-if="hasMapCoords" class="pf-detail-map-coord">坐标：{{ detail.lat }}, {{ detail.lng }}</text>
+            <view class="page-footer__row">
+              <button class="btn-primary" style="flex: 1" :disabled="!hasMapCoords" @click="openMap">导航</button>
+              <button class="btn-secondary" style="flex: 1" @click="copyCoord">复制坐标</button>
+            </view>
+          </view>
+
+          <!-- Tab 2: gallery (hero is preview only; full list here) -->
+          <view v-if="tab === 2 && (mediaImages.length || mediaVideos.length)" class="pf-kv-card">
+            <view v-if="mediaImages.length" class="pf-detail-media-block">
+              <view class="section-title">全部图片</view>
+              <view class="pf-detail-media-grid">
+                <image
+                  v-for="(url, i) in mediaImages"
+                  :key="'img' + i"
+                  class="pf-detail-media-grid__img"
+                  :src="url"
+                  mode="aspectFill"
+                  @click="previewHeroImage(i)"
+                />
+              </view>
+            </view>
+            <view v-if="mediaVideos.length" class="pf-detail-media-block">
+              <view class="section-title">全部视频</view>
+              <view v-for="(url, i) in mediaVideos" :key="'vid' + i" class="pf-detail-video-item">
+                <video
+                  class="prop-media-editor__video-sm"
+                  :src="url"
+                  controls
+                  object-fit="contain"
+                  @error="onVideoComponentError"
+                />
+                <button class="btn-ghost sm" style="width: 100%; margin-top: 12rpx" @click="openVideoFullscreen(url)">全屏播放</button>
+              </view>
+            </view>
+          </view>
+
+          <text
+            v-if="!kvRows.length && tab !== 1 && !(tab === 2 && (mediaImages.length || mediaVideos.length))"
+            class="hint pf-detail-empty"
+            >暂无数据</text
           >
-          <view style="font-size: 36rpx; margin-top: 28rpx; font-family: var(--display); font-weight: 700">{{
-            detail.detailTitle
-          }}</view>
-          <text class="hint" style="display: block; margin-top: 16rpx; font-size: 26rpx; line-height: 1.5">{{
-            detail.specLine
-          }}</text>
-          <text style="display: block; margin-top: 12rpx; font-size: 30rpx; font-weight: 600; color: var(--cyan)">{{
-            detail.priceLine
-          }}</text>
-        </view>
-        <view v-show="tab === 0" class="detail-tab-panel card">
-          <view class="section-title">分类 · 基础信息 · 媒体（对应发布 Step 1）</view>
-          <view class="kv">
-            <view v-for="(row, i) in detail.kv.s1" :key="'s1' + i" class="kv-row">
-              <text class="kv-dt">{{ row.dt }}</text>
-              <text class="kv-dd">{{ row.dd }}</text>
-            </view>
-          </view>
-        </view>
-        <view v-show="tab === 1" class="detail-tab-panel card">
-          <view class="section-title">验厂表 2–5 · 土地 · 电力 · 配套 · 使用</view>
-          <view class="kv">
-            <view v-for="(row, i) in detail.kv.s2" :key="'s2' + i" class="kv-row">
-              <text class="kv-dt">{{ row.dt }}</text>
-              <text class="kv-dd">{{ row.dd }}</text>
-            </view>
-          </view>
-        </view>
-        <view v-show="tab === 2" class="detail-tab-panel card">
-          <view class="section-title">验厂表 7–13 · 产权 · 交易 · 政策 · 环保</view>
-          <view class="kv">
-            <view v-for="(row, i) in detail.kv.s3" :key="'s3' + i" class="kv-row">
-              <text class="kv-dt">{{ row.dt }}</text>
-              <text class="kv-dd">{{ row.dd }}</text>
-            </view>
-          </view>
-        </view>
-        <view v-show="tab === 3" class="detail-tab-panel card">
-          <view class="section-title">联系人 · 预约 · 内部跟进</view>
-          <view class="kv">
-            <view v-for="(row, i) in detail.kv.s4" :key="'s4' + i" class="kv-row">
-              <text class="kv-dt">{{ row.dt }}</text>
-              <text class="kv-dd">{{ row.dd }}</text>
-            </view>
-          </view>
-          <view style="display: flex; gap: 20rpx; margin-top: 32rpx">
-            <button class="btn-primary" style="flex: 1; padding: 24rpx" @click="goViewing">预约带看</button>
-            <button class="btn-secondary" style="flex: 1; padding: 24rpx" @click="shareDemo">内部转发</button>
-          </view>
-        </view>
-        <view class="card">
-          <view class="section-title">媒体资产</view>
-          <view class="upload-grid">
-            <view class="upload-tile"><text class="tile-title">现场相册</text>12 张 · 含必拍项</view>
-            <view class="upload-tile"><text class="tile-title">短视频</text>30s×2</view>
-          </view>
-        </view>
-        <view class="card map-location-card">
-          <view class="section-title">实地位置 · 地图导航</view>
-          <text class="hint" style="display: block; margin-bottom: 20rpx"
-            >每套厂房介绍页底部展示真实 GPS，与后台录入经纬度一致；用户可一键跳转系统地图导航。</text
+          <text
+            v-else-if="tab === 1 && !kvRows.length && !hasMapCoords && !(detail.navAddr || detail.addrKv)"
+            class="hint pf-detail-empty"
+            >暂无位置信息</text
           >
-          <view class="map-placeholder">
-            <view class="map-pin" />
-            <text class="map-coord">{{ detail.mapCoordLabel }}</text>
-          </view>
-          <view class="kv" style="margin-top: 24rpx">
-            <view class="kv-row">
-              <text class="kv-dt">导航地址</text>
-              <text class="kv-dd">{{ detail.navAddr }}</text>
-            </view>
-            <view class="kv-row">
-              <text class="kv-dt">定位来源</text>
-              <text class="kv-dd">发布人现场采集 · WGS84</text>
-            </view>
-          </view>
-          <view style="display: flex; gap: 20rpx; margin-top: 28rpx">
-            <button class="btn-primary" style="flex: 1; padding: 24rpx">打开地图导航</button>
-            <button class="btn-secondary" style="flex: 1; padding: 24rpx">复制坐标</button>
-          </view>
         </view>
       </scroll-view>
+
+      <view v-if="detail" class="page-footer">
+        <view class="page-footer__row">
+          <button
+            class="btn-secondary"
+            :class="{ 'btn-primary': !canViewing }"
+            :style="canViewing ? '' : 'flex: 1'"
+            @click="goEdit"
+            >编辑</button
+          >
+          <button v-if="canViewing" class="btn-primary" style="flex: 1" @click="goViewing">预约带看</button>
+        </view>
+        <button v-if="canViewing" class="btn-ghost" style="width: 100%; margin-top: 12rpx" @click="shareInternal">复制转发文案</button>
+      </view>
     </view>
   </view>
 </template>
-
-<style scoped>
-.tb-center {
-  flex: 1;
-  text-align: center;
-  font-size: 32rpx;
-  font-weight: 600;
-}
-.btn-ghost.sm {
-  padding: 16rpx 20rpx;
-  font-size: 26rpx;
-}
-.kv-row {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 16rpx;
-}
-.kv-dt {
-  font-size: 22rpx;
-  color: var(--muted);
-}
-.kv-dd {
-  font-size: 26rpx;
-  margin-top: 6rpx;
-}
-</style>

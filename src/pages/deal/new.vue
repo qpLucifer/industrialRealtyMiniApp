@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchDealFormDefaults } from '@/api/extra'
@@ -25,7 +25,7 @@ async function submit() {
     commissionWan: commissionWan.value,
     invoice: invoice.value,
   })
-  uni.showToast({ title: '成交单已保存（原型）', icon: 'none' })
+  uni.showToast({ title: '成交单已保存', icon: 'none' })
   uni.navigateBack()
 }
 
@@ -36,7 +36,7 @@ function back() {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -46,7 +46,7 @@ function back() {
           <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="card">
           <view class="form-group">
             <text class="label">合同类型</text>

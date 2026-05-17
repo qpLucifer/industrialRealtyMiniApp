@@ -1,21 +1,19 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchCustomerDetail } from '@/api/customer'
 import { postAction } from '@/api/message'
-import type { CustomerDetailMock } from '@/mock/data/customers'
+import type { CustomerDetail } from '@/types/customer'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 const id = ref('zhangchen')
-const d = ref<CustomerDetailMock | null>(null)
+const d = ref<CustomerDetail | null>(null)
 
 const badges = computed(() => {
   const raw = d.value?.badgesHtml || ''
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const text = raw.replace(/<[^>]*>/g, ' ').trim()
+  return text.split(/[,，·\s]+/).map((s) => s.trim()).filter(Boolean)
 })
 
 onLoad((q) => {
@@ -41,17 +39,18 @@ function goFollow() {
 async function saveFollow() {
   if (!d.value) return
   await postAction('customer-follow-save', {
-    id: id.value,
+    customerId: id.value,
     grade: d.value.followGradeValue,
     next: d.value.nextFollowInput,
   })
-  uni.showToast({ title: '已保存（原型）', icon: 'none' })
+  uni.showToast({ title: '已保存', icon: 'none' })
+  await load()
 }
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -89,7 +88,7 @@ async function saveFollow() {
             <text class="timeline-line">{{ line }}</text>
           </view>
         </view>
-        <view class="section-title">写跟进（原型）</view>
+        <view class="section-title">写跟进</view>
         <view class="card">
           <text class="hint" style="display: block; margin-bottom: 20rpx">{{ d.inheritHint }}</text>
           <view class="form-group">

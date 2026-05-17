@@ -1,0 +1,345 @@
+/**
+ * Layout & visual polish for WeChat MP — fixes excess bottom gap, heavy borders, wizard UX.
+ */
+
+/* WeChat MP: native <button> adds hairline border via ::after — strip globally */
+button {
+  margin: 0;
+  line-height: inherit;
+  overflow: visible;
+}
+
+button::after {
+  display: none;
+  border: none;
+  border-radius: 0;
+}
+
+button[plain]::after {
+  display: none;
+  border: none;
+}
+
+/* Full-width on device; drop prototype “phone frame” side borders */
+.app-shell {
+  max-width: none;
+  margin: 0;
+  border-left: none;
+  border-right: none;
+  box-shadow: none;
+  background: var(--bg-deep);
+}
+
+/* Subpages had 76px bottom pad for unused custom tab-bar — removed */
+.screen {
+  padding-bottom: 0;
+  min-height: 0;
+}
+
+.page-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.page-frame.screen--tab {
+  /* Native tabBar handles bottom inset */
+  padding-bottom: 0;
+}
+
+.page-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-scroll__inner {
+  padding: 12px 16px 20px;
+  box-sizing: border-box;
+}
+
+.page-footer {
+  flex-shrink: 0;
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 -6px 28px rgba(15, 23, 42, 0.06);
+}
+
+.page-footer__row {
+  display: flex;
+  gap: 12px;
+}
+
+.page-footer__row .btn-secondary,
+.page-footer__row .btn-primary {
+  flex: 1;
+}
+
+/* Softer surfaces — less “boxed in boxes” */
+.card {
+  border: none;
+  border-radius: 20rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
+}
+
+.card-glow {
+  border: none;
+  box-shadow:
+    0 0 0 2rpx rgba(13, 148, 136, 0.12),
+    0 4rpx 24rpx rgba(13, 148, 136, 0.08);
+}
+
+.scroll {
+  padding: 0;
+}
+
+.top-bar {
+  border-bottom: none;
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.04);
+}
+
+.segmented {
+  border: none;
+  background: #eef2f6;
+  padding: 6rpx;
+  margin-bottom: 24rpx;
+}
+
+.chip {
+  border: none;
+  background: #eef2f6;
+  padding: 10rpx 22rpx;
+  font-size: 24rpx;
+}
+
+.chip.on {
+  border: none;
+  box-shadow: 0 2rpx 8rpx rgba(13, 148, 136, 0.2);
+}
+
+.list-item {
+  border-bottom: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.prop-list-card {
+  display: flex;
+  gap: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border-radius: 20rpx;
+  background: var(--surface);
+  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
+}
+
+.prop-list-card:active {
+  opacity: 0.92;
+  transform: scale(0.995);
+}
+
+.thumb {
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 16rpx;
+  border: none;
+}
+
+.search-bar input {
+  border: none;
+  background: var(--surface);
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.05);
+}
+
+.form-group input,
+.form-group textarea,
+.screen input,
+.screen textarea {
+  border: none;
+  background: #f1f5f9;
+  border-radius: 16rpx;
+}
+
+.section-title {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 26rpx;
+  color: var(--text);
+  margin-bottom: 20rpx;
+}
+
+.section-title::after {
+  display: none;
+}
+
+/* Publish wizard */
+.wizard-head {
+  margin-bottom: 24rpx;
+}
+
+.wizard-head__title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+
+.wizard-head__sub {
+  font-size: 24rpx;
+  color: var(--muted);
+  margin-top: 8rpx;
+  display: block;
+}
+
+.wizard-steps {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.wizard-step-pill {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--muted);
+  background: #eef2f6;
+}
+
+.wizard-step-pill.on {
+  color: #fff;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+
+.upload-tile {
+  border: 2rpx dashed rgba(13, 148, 136, 0.25);
+  border-radius: 20rpx;
+  background: #f8fafc;
+}
+
+.upload-tile:active {
+  background: #ecfdf5;
+}
+
+/* Property detail */
+.detail-header-card {
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
+  box-shadow: 0 4rpx 24rpx rgba(13, 148, 136, 0.1);
+}
+
+.detail-header-card__code {
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-bottom: 8rpx;
+}
+
+.detail-header-card__title {
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.detail-header-card__meta {
+  font-size: 26rpx;
+  color: var(--muted);
+  margin-top: 12rpx;
+  line-height: 1.5;
+}
+
+.detail-header-card__price {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--mint);
+  margin-top: 16rpx;
+}
+
+.detail-seg {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  flex-wrap: wrap;
+}
+
+.detail-seg__btn {
+  padding: 14rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--muted);
+  background: #eef2f6;
+  border: none;
+}
+
+.detail-seg__btn.on {
+  color: #fff;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+}
+
+.detail-kv-card .kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+}
+
+.detail-kv-card .kv-row:last-child {
+  border-bottom: none;
+}
+
+.detail-kv-card .kv-dt {
+  font-size: 24rpx;
+  color: var(--muted);
+  flex-shrink: 0;
+  max-width: 40%;
+}
+
+.detail-kv-card .kv-dd {
+  font-size: 26rpx;
+  color: var(--text);
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+.prop-detail-audit-strip {
+  border: none;
+  margin-bottom: 20rpx;
+  border-radius: 20rpx;
+}
+
+.map-placeholder {
+  border: none;
+  background: linear-gradient(180deg, #e0f2fe 0%, #f1f5f9 100%);
+}
+
+.map-location-card {
+  border: none;
+}
+
+.fab {
+  bottom: calc(32rpx + var(--safe-bottom));
+  box-shadow: 0 8rpx 32rpx rgba(13, 148, 136, 0.35);
+}
+
+.fab.fab--tab {
+  bottom: calc(32rpx + var(--safe-bottom));
+}
+
+.btn-ghost {
+  background: rgba(13, 148, 136, 0.08);
+  border-radius: 12rpx;
+}

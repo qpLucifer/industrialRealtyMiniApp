@@ -1,14 +1,7 @@
 /** Workbench home mock */
+import type { WorkbenchSummary } from '@/types/workbench'
 
-export interface WorkbenchSummary {
-  regionLine: string
-  followCount: number
-  pendingAudit: number
-  remindHtml: string
-  todos: { id: string; title: string; hint: string; tone: 'mint' | 'slate' }[]
-  stats: { value: string; label: string }[]
-  announceCard: { title: string; tag: string; hint: string; time: string }
-}
+export type { WorkbenchSummary } from '@/types/workbench'
 
 export const mockWorkbench: WorkbenchSummary = {
   regionLine: '授权区域：黄埔区 · 增城区 · UID 900218',

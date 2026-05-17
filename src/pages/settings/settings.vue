@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchSecuritySettings, saveSecuritySettings } from '@/api/user'
-import type { SecuritySettings } from '@/mock/data/user'
+import type { SecuritySettings } from '@/types/user'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 const s = ref<SecuritySettings | null>(null)
@@ -30,7 +30,7 @@ function patch<K extends keyof SecuritySettings>(key: K, e: unknown) {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -70,7 +70,7 @@ function patch<K extends keyof SecuritySettings>(key: K, e: unknown) {
             </view>
             <switch :checked="s.auditPublish" @change="patch('auditPublish', $event)" />
           </view>
-          <button class="btn-primary" style="width: 100%; margin-top: 36rpx" @click="save">保存到服务端（原型）</button>
+          <button class="btn-primary" style="width: 100%; margin-top: 36rpx" @click="save">保存到服务端</button>
         </view>
       </scroll-view>
     </view>

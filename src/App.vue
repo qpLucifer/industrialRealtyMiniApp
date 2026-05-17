@@ -3,7 +3,7 @@ import { onLaunch } from '@dcloudio/uni-app'
 import { refreshMiniSession } from '@/api/session'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 
-const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? 'true') !== 'false'
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 onLaunch(async () => {
   const token = uni.getStorageSync('mini_token')
@@ -25,3 +25,6 @@ onLaunch(async () => {
 </script>
 
 <style src="@/styles/prototype.css"></style>
+<style src="@/styles/layout-refine.css"></style>
+<style src="@/styles/property-pages.css"></style>
+<style src="@/styles/property-form-ui.css"></style>

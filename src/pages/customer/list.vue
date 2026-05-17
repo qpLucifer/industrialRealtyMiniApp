@@ -1,18 +1,40 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchCustomerList } from '@/api/customer'
-import type { CustomerListItem } from '@/mock/data/customers'
+import type { CustomerListItem } from '@/types/customer'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
 const list = ref<CustomerListItem[]>([])
 const seg = ref(0)
+const keyword = ref('')
 
-onMounted(async () => {
-  const r = await fetchCustomerList()
-  list.value = r.list
+function gradeChipClass(tone: string) {
+  return tone === 'ok' || tone === 'mint' ? 'ok' : ''
+}
+
+async function reload() {
+  try {
+    const scope = seg.value === 0 ? 'mine' : 'public'
+    const r = await fetchCustomerList({
+      scope,
+      q: keyword.value.trim() || undefined,
+    })
+    list.value = r.list
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  }
+}
+
+onMounted(() => {
+  reload()
 })
+
+function onSeg(i: number) {
+  seg.value = i
+  reload()
+}
 
 function goDetail(id: string) {
   uni.navigateTo({ url: `/pages/customer/detail?id=${encodeURIComponent(id)}` })
@@ -29,20 +51,21 @@ function goVideoFaq() {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">客户池</view>
           <view class="sub">私有优先 · ABC 分级 · 提醒联动</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
+        <view class="page-scroll__inner">
         <view class="segmented">
-          <button class="seg-btn" :class="{ active: seg === 0 }" @click="seg = 0">我的私有</button>
-          <button class="seg-btn" :class="{ active: seg === 1 }" @click="seg = 1">公司公有</button>
+          <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">我的私有</button>
+          <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">公司公有</button>
         </view>
         <view class="search-bar">
-          <input type="text" placeholder="公司 / 手机尾号 / 姓名 / 区域 / 标签…" />
+          <input v-model="keyword" type="text" placeholder="公司 / 手机尾号 / 姓名…" confirm-type="search" @confirm="reload" />
         </view>
         <view class="chip-row" style="margin-bottom: 12px">
           <view class="chip on">刚需</view>
@@ -55,7 +78,7 @@ function goVideoFaq() {
         <view
           v-for="c in list"
           :key="c.id"
-          class="list-item"
+          class="prop-list-card"
           style="align-items: flex-start"
           @click="goDetail(c.id)"
         >
@@ -65,7 +88,7 @@ function goVideoFaq() {
               height: '46px',
               borderRadius: '14px',
               flexShrink: 0,
-              background: c.gradeTone === 'ok' ? 'linear-gradient(135deg,#0d9488,#14b8a6)' : 'linear-gradient(135deg,#64748b,#94a3b8)',
+              background: gradeChipClass(c.gradeTone) ? 'linear-gradient(135deg,#0d9488,#14b8a6)' : 'linear-gradient(135deg,#64748b,#94a3b8)',
             }"
           />
           <view style="flex: 1; min-width: 0">
@@ -76,7 +99,7 @@ function goVideoFaq() {
               </view>
               <view
                 class="chip"
-                :class="c.gradeTone === 'ok' ? 'ok' : ''"
+                :class="gradeChipClass(c.gradeTone)"
                 :style="
                   c.gradeTone === 'ok'
                     ? ''
@@ -88,6 +111,7 @@ function goVideoFaq() {
             <view class="list-meta-muted" style="margin-top: 6px">{{ c.recent }}</view>
             <view style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45">{{ c.nextLine }}</view>
           </view>
+        </view>
         </view>
       </scroll-view>
       <view class="fab-col">

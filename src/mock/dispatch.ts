@@ -6,8 +6,9 @@ import {
   mockMyPublishedProperties,
   mockPropertyList,
   mockPropertyLogs,
-  propertyDetailKv,
 } from '@/mock/data/properties'
+import type { PropertyEditForm } from '@/types/property'
+import { buildPropertyDetailKvFromForm } from '@/utils/propertyDetailKv'
 import { mockSecuritySettings, mockUserProfile } from '@/mock/data/user'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
@@ -30,12 +31,59 @@ function stripQuery(url: string) {
   return i === -1 ? url : url.slice(0, i)
 }
 
+function mockEditFormForDetail(id: string): PropertyEditForm {
+  const d = getPropertyDetail(id)
+  return {
+    code: id,
+    types: d.propertyType ? [d.propertyType] : ['标准厂房'],
+    listTitle: d.detailTitle,
+    companyName: d.company,
+    address: d.addrKv,
+    district: d.district || '黄埔区',
+    lat: d.lat || '',
+    lng: d.lng || '',
+    ownerContact: '王业主',
+    riskTag: '无',
+    photoChecklist: ['门口形象照', '车间全景', '配电房'],
+    landMu: 12.5,
+    buildingArea: 4200,
+    workshopSize: '80×40×9',
+    structureTypes: ['钢构'],
+    powerKva: 800,
+    freightLifts: 2,
+    dining: '集中食堂',
+    usageRemark: '空置可租',
+    propertyRights: ['国有'],
+    mortgageDispute: '无',
+    firePass: '是',
+    subsidy: '无',
+    highlights: d.specLine,
+    rentSaleType: '出租',
+    propertyFee: 5,
+    contactName: '李昭',
+    contactPhone: '13800138000',
+    internalNote: '业主配合度高',
+  }
+}
+
 function buildPropertyDetailPayload(id: string) {
   const d = getPropertyDetail(id)
-  const kv = JSON.parse(JSON.stringify(propertyDetailKv)) as typeof propertyDetailKv
-  kv.s1[1].dd = d.company
-  kv.s1[2].dd = d.addrKv
-  return { ...d, kv }
+  const form = mockEditFormForDetail(id)
+  const kv = buildPropertyDetailKvFromForm(form, {
+    type: d.propertyType,
+    district: d.district,
+    company: d.company,
+    statusTag: d.externalStatus || d.leaseChip,
+    priceLine: d.priceLine,
+  })
+  const rejectReason = d.auditKey === 'rejected' ? d.rejectReason || d.auditHint : ''
+  return {
+    ...d,
+    rejectReason,
+    kv,
+    mediaImages: d.mediaImages ?? [],
+    mediaVideos: d.mediaVideos ?? [],
+  }
 }
 
 /** Client-side mock router — returns full ApiResult JSON (same shape as future HTTP) */
@@ -83,6 +131,22 @@ export async function dispatchMock(
     return okResult(mockWorkbench)
   }
 
+  if (method === 'GET' && path === '/api/meta/regions') {
+    return okResult({
+      list: [
+        { id: 'r1', name: '黄埔区' },
+        { id: 'r2', name: '南沙区' },
+        { id: 'r3', name: '增城区' },
+      ],
+    })
+  }
+
+  if (method === 'GET' && path === '/api/meta/code-master') {
+    return okResult({
+      list: ['标准厂房', '独门独院厂房', '仓库', '工业用地', '写字楼', '产业园商铺'],
+    })
+  }
+
   if (method === 'GET' && path === '/api/property/list') {
     return okResult({ list: mockPropertyList })
   }
@@ -90,6 +154,11 @@ export async function dispatchMock(
   if (method === 'GET' && path === '/api/property/detail') {
     const id = query.id || 'P-8821'
     return okResult(buildPropertyDetailPayload(id))
+  }
+
+  if (method === 'GET' && path === '/api/property/edit-form') {
+    const code = query.code || query.id || 'P-8821'
+    return okResult(mockEditFormForDetail(code))
   }
 
   if (method === 'GET' && path === '/api/property/logs') {

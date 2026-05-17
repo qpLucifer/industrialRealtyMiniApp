@@ -2,27 +2,46 @@
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchPropertyList } from '@/api/property'
-import type { PropertyListItem } from '@/mock/data/properties'
+import type { PropertyListItem } from '@/types/property'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<PropertyListItem[]>([])
 const filterOpen = ref(false)
 const seg = ref(0)
+const keyword = ref('')
+const segStatus = ['', '草稿', '待租', '待售', '意向中']
 
-onMounted(async () => {
-  const r = await fetchPropertyList()
-  list.value = r.list
+async function reload() {
+  try {
+    const status = segStatus[seg.value] || ''
+    const r = await fetchPropertyList({
+      q: keyword.value.trim() || undefined,
+      status: status || undefined,
+    })
+    list.value = r.list
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  }
+}
+
+onMounted(() => {
+  reload()
 })
+
+function onSeg(i: number) {
+  seg.value = i
+  reload()
+}
+
+function onSearchConfirm() {
+  reload()
+}
 
 function goDetail(id: string) {
   uni.navigateTo({ url: `/pages/property/detail?id=${encodeURIComponent(id)}` })
 }
 
 function onPropertyRow(p: PropertyListItem) {
-  if (p.status === '草稿') {
-    goPublish(false, p.id)
-    return
-  }
   goDetail(p.id)
 }
 
@@ -37,38 +56,38 @@ function goPublish(clear?: boolean, editId?: string) {
 
 function applyFilter() {
   filterOpen.value = false
-  uni.showToast({ title: '已应用筛选条件', icon: 'none' })
+  reload()
 }
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">房源库</view>
           <view class="sub">品类全 · 已按区域隔离</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
+        <view class="page-scroll__inner">
         <view class="search-bar search-bar--suffix">
-          <input type="text" placeholder="关键词：区位 / 配电 / 行车 / 行业…" />
+          <input v-model="keyword" type="text" placeholder="关键词：区位 / 配电 / 行车 / 行业…" confirm-type="search" @confirm="onSearchConfirm" />
           <view class="search-bar__suffix" @click="filterOpen = true">
             <view class="ic-filter" />
           </view>
         </view>
         <view class="segmented">
-          <button class="seg-btn" :class="{ active: seg === 0 }" @click="seg = 0">全部</button>
-          <button class="seg-btn" :class="{ active: seg === 1 }" @click="seg = 1">草稿</button>
-          <button class="seg-btn" :class="{ active: seg === 2 }" @click="seg = 2">待租</button>
-          <button class="seg-btn" :class="{ active: seg === 3 }" @click="seg = 3">待售</button>
-          <button class="seg-btn" :class="{ active: seg === 4 }" @click="seg = 4">意向中</button>
+          <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">全部</button>
+          <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">草稿</button>
+          <button class="seg-btn" :class="{ active: seg === 2 }" @click="onSeg(2)">待租</button>
+          <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待售</button>
+          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">意向中</button>
         </view>
         <view
           v-for="p in list"
           :key="p.id"
-          v-show="seg === 0 || (seg === 1 && p.status === '草稿') || (seg === 2 && p.status === '待租') || (seg === 3 && p.status === '待售') || (seg === 4 && p.status === '意向中')"
-          class="list-item"
+          class="prop-list-card"
           @click="onPropertyRow(p)"
         >
           <view class="thumb" />
@@ -91,8 +110,10 @@ function applyFilter() {
             <view v-if="p.priceLine" class="list-price-line" style="margin-top: 8px">{{ p.priceLine }}</view>
           </view>
         </view>
+        <view v-if="!list.length" class="hint" style="text-align: center; padding: 80rpx 0">暂无房源，点击右下角发布</view>
+        </view>
       </scroll-view>
-      <button class="fab" @click="goPublish(true)">＋</button>
+      <button class="fab fab--tab" @click="goPublish(true)">＋</button>
     </view>
 
     <view v-if="filterOpen" class="modal-overlay show" @click.self="filterOpen = false">
@@ -121,9 +142,9 @@ function applyFilter() {
 }
 .picker-like {
   padding: 20rpx;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 20rpx;
-  background: #fff;
+  background: #f1f5f9;
 }
 
 .ic-filter {

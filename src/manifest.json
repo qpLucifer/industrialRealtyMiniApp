@@ -1,6 +1,6 @@
 {
     "name" : "浙江企鹏工业地产",
-    "appid" : "",
+    "appid" : "wx802c623c5215ec70",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -50,11 +50,18 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "",
+        "appid" : "wx802c623c5215ec70",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "minified" : false
         },
-        "usingComponents" : true
+        "usingComponents" : true,
+        "requiredPrivateInfos" : [ "getLocation", "chooseLocation" ],
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "用于发布房源时地图选点与详情页导航"
+            }
+        }
     },
     "mp-alipay" : {
         "usingComponents" : true

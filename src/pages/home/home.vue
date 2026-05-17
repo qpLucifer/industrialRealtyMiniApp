@@ -1,8 +1,91 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchWorkbench } from '@/api/home'
-import type { WorkbenchSummary } from '@/mock/data/workbench'
+import type {
+  WorkbenchAnnounceCard,
+  WorkbenchStat,
+  WorkbenchSummary,
+  WorkbenchTodo,
+} from '@/types/workbench'
+
+function asRecord(v: unknown): Record<string, unknown> | null {
+  return v != null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
+}
+
+function num(v: unknown, fallback = 0): number {
+  const n = typeof v === 'number' ? v : Number.parseInt(String(v ?? ''), 10)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function str(v: unknown, fallback = ''): string {
+  if (v == null) return fallback
+  return String(v).trim() || fallback
+}
+
+function normalizeTodo(raw: unknown): WorkbenchTodo | null {
+  const o = asRecord(raw)
+  if (!o) return null
+  const id = str(o.id)
+  if (!id) return null
+  const tone = o.tone === 'mint' || o.tone === 'slate' ? o.tone : 'slate'
+  return {
+    id,
+    title: str(o.title, '待跟进'),
+    hint: str(o.hint, '—'),
+    tone,
+  }
+}
+
+function normalizeStat(raw: unknown): WorkbenchStat | null {
+  const o = asRecord(raw)
+  if (!o) return null
+  const label = str(o.label)
+  if (!label) return null
+  return { value: str(o.value, '0'), label }
+}
+
+function normalizeAnnounce(raw: unknown): WorkbenchAnnounceCard {
+  const o = asRecord(raw)
+  if (!o) {
+    return { title: '暂无公告', tag: '', hint: '', time: '' }
+  }
+  return {
+    title: str(o.title, '暂无公告'),
+    tag: str(o.tag, ''),
+    hint: str(o.hint, ''),
+    time: str(o.time, ''),
+  }
+}
+
+/** Coerce API / partial JSON into a safe WorkbenchSummary for the home UI. */
+function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
+  const o = asRecord(raw) ?? {}
+  const todosIn = Array.isArray(o.todos) ? o.todos : []
+  const todos: WorkbenchTodo[] = todosIn.map(normalizeTodo).filter(Boolean) as WorkbenchTodo[]
+
+  const statsIn = Array.isArray(o.stats) ? o.stats : []
+  const statsParsed = statsIn.map(normalizeStat).filter(Boolean) as WorkbenchStat[]
+  const defaultStats: WorkbenchStat[] = [
+    { value: '0', label: '可租房源' },
+    { value: '0', label: '意向客户' },
+    { value: '0', label: '本周带看' },
+  ]
+  const stats =
+    statsParsed.length >= 3
+      ? statsParsed.slice(0, 3)
+      : defaultStats.map((d, i) => statsParsed[i] ?? d)
+
+  return {
+    regionLine: str(o.regionLine, '工作台'),
+    followCount: num(o.followCount, 0),
+    pendingAudit: num(o.pendingAudit, 0),
+    remindHtml: str(o.remindHtml, ''),
+    todos,
+    stats,
+    announceCard: normalizeAnnounce(o.announceCard),
+  }
+}
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
@@ -11,7 +94,8 @@ const loadError = ref('')
 
 onMounted(async () => {
   try {
-    data.value = await fetchWorkbench()
+    const raw = await fetchWorkbench()
+    data.value = normalizeWorkbenchSummary(raw)
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
@@ -54,7 +138,7 @@ function todoCardStyle(i: number) {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--tab">
       <view class="top-bar" :style="topBarInsetStyle">
         <view class="top-bar__home-row">
           <view class="top-bar__titles">
@@ -66,11 +150,12 @@ function todoCardStyle(i: number) {
           </view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
+        <view class="page-scroll__inner">
         <view v-if="loadError" class="card" style="margin-bottom: 12px">
           <view style="font-weight: 700; margin-bottom: 8px">数据加载失败</view>
           <view class="hint">{{ loadError }}</view>
-          <view class="hint" style="margin-top: 8px">体验版请确认已重新上传含 mock 的构建；或检查控制台报错。</view>
+          <view class="hint" style="margin-top: 8px">请检查网络、登录状态与 VITE_API_BASE；或查看开发者工具控制台。</view>
         </view>
         <view v-if="data" class="card card-glow">
           <view style="display: flex; justify-content: space-between; align-items: flex-start">
@@ -88,6 +173,9 @@ function todoCardStyle(i: number) {
               <text> · {{ remindParts.body }}</text>
             </template>
             <text v-else>{{ remindParts.body }}</text>
+          </view>
+          <view v-if="data.todos.length === 0" class="hint" style="margin-top: 12px">
+            暂无待跟进客户（数据库中无带下次提醒的客户，或客户未在小程序列表展示）
           </view>
           <view
             v-for="(t, i) in data.todos"
@@ -138,6 +226,7 @@ function todoCardStyle(i: number) {
           </view>
           <view class="hint" style="margin-top: 4px">{{ data.announceCard.hint }}</view>
           <view style="font-size: 11px; color: var(--muted); margin-top: 8px">{{ data.announceCard.time }}</view>
+        </view>
         </view>
       </scroll-view>
     </view>

@@ -9,7 +9,10 @@ export function clearMiniSessionAndGoLogin(reason?: string) {
   const cur = pages[pages.length - 1] as { route?: string } | undefined
   if (cur?.route?.includes('login')) return
   redirecting = true
-  const title = reason && String(reason).trim() ? String(reason).trim() : '登录已失效，请重新登录'
+  const title =
+    reason && String(reason).trim()
+      ? String(reason).trim()
+      : '登录已失效（未读取到服务端说明，可能被网关改写 401 响应体）'
   uni.showToast({ title, icon: 'none', duration: 2500 })
   setTimeout(() => {
     uni.reLaunch({ url: '/pages/login/login' })

@@ -1,5 +1,5 @@
 import { get, post } from '@/utils/request'
-import type { SecuritySettings, UserProfile } from '@/mock/data/user'
+import type { SecuritySettings, UserProfile } from '@/types/user'
 
 export function fetchUserProfile() {
   return get<UserProfile>('/api/user/profile')

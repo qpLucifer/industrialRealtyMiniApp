@@ -1,8 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchUserProfile } from '@/api/user'
-import type { UserProfile } from '@/mock/data/user'
+import type { UserProfile } from '@/types/user'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
@@ -19,14 +19,14 @@ function go(path: string) {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">我的</view>
           <view class="sub">账号 · 资产 · 安全</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-if="profile" class="card" style="display: flex; gap: 28rpx; align-items: center">
           <view class="thumb" style="width: 120rpx; height: 120rpx; border-radius: 36rpx" />
           <view style="flex: 1; min-width: 0">

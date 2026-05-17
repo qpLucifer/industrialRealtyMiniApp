@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { postAction } from '@/api/message'
@@ -10,13 +10,17 @@ const phone = ref('')
 const need = ref('')
 
 async function submit() {
-  await postAction('customer-create', {
+  const r = await postAction<{ ok: boolean; slug?: string }>('customer-create', {
     company: company.value,
     name: name.value,
     phone: phone.value,
     need: need.value,
   })
-  uni.showToast({ title: '已创建（原型）', icon: 'none' })
+  uni.showToast({ title: '客户已创建', icon: 'none' })
+  if (r?.slug) {
+    uni.redirectTo({ url: `/pages/customer/detail?id=${encodeURIComponent(r.slug)}` })
+    return
+  }
   uni.navigateBack()
 }
 
@@ -27,7 +31,7 @@ function back() {
 
 <template>
   <view class="app-shell">
-    <view class="screen active" style="display: flex; flex-direction: column; min-height: 100vh">
+    <view class="page-frame screen active screen--sub">
       <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
         <view class="top-bar__navrow">
           <view class="top-bar__nav-left">
@@ -37,7 +41,7 @@ function back() {
           <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="card">
           <view class="form-group">
             <text class="label">公司全称<text class="req">*</text></text>

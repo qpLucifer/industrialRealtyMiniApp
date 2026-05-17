@@ -1,10 +1,10 @@
 import { get } from '@/utils/request'
-import type { CustomerDetailMock, CustomerListItem } from '@/mock/data/customers'
+import type { CustomerDetail, CustomerListItem } from '@/types/customer'
 
-export function fetchCustomerList() {
-  return get<{ list: CustomerListItem[] }>('/api/customer/list')
+export function fetchCustomerList(query?: { q?: string; scope?: 'mine' | 'public' | '' }) {
+  return get<{ list: CustomerListItem[] }>('/api/customer/list', query)
 }
 
 export function fetchCustomerDetail(id: string) {
-  return get<CustomerDetailMock>('/api/customer/detail', { id })
+  return get<CustomerDetail>('/api/customer/detail', { id })
 }
