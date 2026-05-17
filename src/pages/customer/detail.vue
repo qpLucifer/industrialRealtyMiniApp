@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchCustomerDetail, postCustomerFollowUp } from '@/api/customer'
@@ -16,11 +16,10 @@ const saving = ref(false)
 
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 
-function gradeTagClass(grade: string) {
-  if (grade.startsWith('A')) return 'mint'
-  if (grade.startsWith('B')) return 'cyan'
-  return 'rose'
-}
+const displayTitle = computed(() => {
+  if (!d.value) return ''
+  return d.value.titleLine || `${d.value.contactName} · ${d.value.company}`
+})
 
 function resetFollowFields() {
   followNote.value = ''
@@ -116,7 +115,7 @@ async function onSaveFollow() {
           <view class="top-bar__nav-left">
             <button class="btn-ghost" @click="back">返回</button>
           </view>
-          <view class="top-bar__nav-mid">客户详情</view>
+          <view class="top-bar__nav-mid">客户档案</view>
           <view class="top-bar__nav-right">
             <button v-if="d?.canEdit" class="btn-ghost" @click="goEdit">编辑</button>
           </view>
@@ -124,81 +123,78 @@ async function onSaveFollow() {
       </view>
       <scroll-view v-if="d" scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-          <view class="crm-hero">
-            <view class="crm-hero-title">{{ d.company || '—' }}</view>
-            <view class="crm-hero-sub">{{ d.titleLine || `${d.contactName} · ${d.company}` }}</view>
-            <view class="crm-hero-meta">
-              <text>{{ d.contactName }}</text>
-              <text class="crm-dot">·</text>
-              <text>手机 {{ d.phoneMasked || d.phone }}</text>
-              <text class="crm-dot">·</text>
-              <text>{{ d.scope }}</text>
-              <text v-if="d.ownerName" class="crm-dot">·</text>
-              <text v-if="d.ownerName">负责人 {{ d.ownerName }}</text>
+          <view class="card card-glow">
+            <text class="cust-head-title">{{ displayTitle }}</text>
+            <view class="cust-chip-row">
+              <text class="chip ok">{{ d.grade }}</text>
+              <text v-if="d.nextReminder" class="chip warn">下次 {{ d.nextReminder }}</text>
+              <text class="chip">{{ d.scope }}</text>
+              <text class="chip">{{ d.dealStatus }}</text>
             </view>
-            <view style="display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 20rpx">
-              <text class="crm-tag" :class="gradeTagClass(d.grade)">{{ d.grade }}</text>
-              <text class="crm-tag slate">{{ d.dealStatus }}</text>
-              <text v-if="d.nextReminder" class="crm-tag amber">下次 {{ d.nextReminder }}</text>
+            <view class="cust-meta">电话 {{ d.phoneMasked || d.phone }}</view>
+            <view v-if="d.ownerName" class="cust-meta">负责人 {{ d.ownerName }}</view>
+            <view class="cust-meta">最近跟进 {{ d.lastFollow || '—' }}</view>
+          </view>
+
+          <view class="section-title">需求与地址</view>
+          <view class="card">
+            <view class="cust-block-label">需求摘要</view>
+            <text class="cust-block-text">{{ d.demandSummary || '—' }}</text>
+            <view class="cust-block-label" style="margin-top: 16rpx">地址 / 区域</view>
+            <text class="cust-block-text">{{ d.addressHint || '—' }}</text>
+          </view>
+
+          <view v-if="d.kv.length" class="section-title">档案信息</view>
+          <view v-if="d.kv.length" class="card">
+            <view
+              v-for="(row, i) in d.kv"
+              :key="i"
+              class="cust-kv-row"
+            >
+              <text class="cust-kv-dt">{{ row.dt }}</text>
+              <text class="cust-kv-dd">{{ row.dd }}</text>
             </view>
           </view>
 
-          <view class="crm-card">
-            <view class="crm-card-title">需求与地址</view>
-            <view class="crm-card-body">{{ d.demandSummary || '—' }}</view>
-            <view class="crm-card-muted">{{ d.addressHint || '—' }}</view>
-            <view class="crm-card-muted" style="margin-top: 8rpx">最近跟进 {{ d.lastFollow || '—' }}</view>
-          </view>
-
-          <view v-if="d.kv.length" class="crm-card">
-            <view class="crm-card-title">档案字段</view>
-            <view v-for="(row, i) in d.kv" :key="i" class="crm-kv-row">
-              <text class="crm-kv-dt">{{ row.dt }}</text>
-              <text class="crm-kv-dd">{{ row.dd }}</text>
+          <view class="section-title">跟进时间轴</view>
+          <view v-if="d.timeline.length" class="timeline">
+            <view v-for="(line, i) in d.timeline" :key="i" class="timeline-item">
+              <text class="timeline-line">{{ line }}</text>
             </view>
           </view>
-
-          <view class="crm-card">
-            <view class="crm-card-title">跟进时间轴</view>
-            <view v-if="d.timeline.length">
-              <view v-for="(line, i) in d.timeline" :key="i" class="crm-timeline-item">
-                <text class="crm-timeline-line">{{ line }}</text>
-              </view>
-            </view>
-            <text v-else class="crm-card-muted">暂无跟进记录</text>
+          <view v-else class="card">
+            <text class="hint">暂无跟进记录</text>
           </view>
 
-          <view v-if="d.canEdit" class="crm-card crm-card-accent">
-            <view class="crm-card-title">写跟进</view>
-            <view class="crm-form-grid">
-              <view class="form-group">
-                <text class="label">跟进内容<text class="req">*</text></text>
-                <textarea v-model="followNote" placeholder="事实描述、客户原话、下一步" />
-              </view>
-              <view class="form-group">
-                <text class="label">跟进时间<text class="req">*</text></text>
-                <picker mode="datetime" :value="toPickerValue(followOccurredAt)" @change="onOccurredChange">
-                  <view class="crm-picker-field" :class="{ placeholder: !followOccurredAt }">
-                    {{ followOccurredAt || '选择时间' }}
-                  </view>
-                </picker>
-              </view>
-              <view class="form-group">
-                <text class="label">客户等级调整</text>
-                <picker :range="['不调整', ...grades]" @change="onGradePick">
-                  <view class="crm-picker-field">{{ followGrade || '不调整' }}</view>
-                </picker>
-              </view>
-              <view class="form-group">
-                <text class="label">下次沟通提醒（可选）</text>
-                <picker mode="datetime" :value="toPickerValue(followNextAt)" @change="onNextChange">
-                  <view class="crm-picker-field" :class="{ placeholder: !followNextAt }">
-                    {{ followNextAt || '选择提醒时间' }}
-                  </view>
-                </picker>
-              </view>
+          <view v-if="d.canEdit" class="section-title">写跟进</view>
+          <view v-if="d.canEdit" class="card">
+            <view class="form-group">
+              <text class="label">跟进内容<text class="req">*</text></text>
+              <textarea v-model="followNote" placeholder="事实描述、客户原话、下一步" />
             </view>
-            <button class="btn-primary crm-follow-btn" :disabled="saving" @click="onSaveFollow">
+            <view class="form-group">
+              <text class="label">跟进时间<text class="req">*</text></text>
+              <picker mode="datetime" :value="toPickerValue(followOccurredAt)" @change="onOccurredChange">
+                <view class="picker-like" :class="{ placeholder: !followOccurredAt }">
+                  {{ followOccurredAt || '选择时间' }}
+                </view>
+              </picker>
+            </view>
+            <view class="form-group">
+              <text class="label">客户等级调整</text>
+              <picker :range="['不调整', ...grades]" @change="onGradePick">
+                <view class="picker-like">{{ followGrade || '不调整' }}</view>
+              </picker>
+            </view>
+            <view class="form-group">
+              <text class="label">下次沟通提醒（可选）</text>
+              <picker mode="datetime" :value="toPickerValue(followNextAt)" @change="onNextChange">
+                <view class="picker-like" :class="{ placeholder: !followNextAt }">
+                  {{ followNextAt || '选择提醒时间' }}
+                </view>
+              </picker>
+            </view>
+            <button class="btn-primary" style="width: 100%; margin-top: 16rpx" :disabled="saving" @click="onSaveFollow">
               {{ saving ? '保存中…' : '保存跟进' }}
             </button>
           </view>
@@ -208,4 +204,63 @@ async function onSaveFollow() {
   </view>
 </template>
 
-<style scoped src="@/styles/customer-crm.css"></style>
+<style scoped>
+.cust-head-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.cust-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 20rpx;
+  align-items: center;
+}
+
+.cust-meta {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.cust-block-label {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+.cust-block-text {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  line-height: 1.55;
+}
+
+.cust-kv-row {
+  display: flex;
+  gap: 20rpx;
+  padding: 16rpx 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cust-kv-row:last-child {
+  border-bottom: none;
+}
+
+.cust-kv-dt {
+  width: 200rpx;
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 26rpx;
+}
+
+.cust-kv-dd {
+  flex: 1;
+  font-size: 26rpx;
+  line-height: 1.45;
+}
+</style>

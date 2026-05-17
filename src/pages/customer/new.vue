@@ -86,7 +86,7 @@ function back() {
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-          <view class="crm-card crm-form-grid">
+          <view class="card">
             <view class="form-group">
               <text class="label">公司 / 主体<text class="req">*</text></text>
               <input v-model="form.company" placeholder="营业执照名称" />
@@ -106,19 +106,19 @@ function back() {
             <view class="form-group">
               <text class="label">等级</text>
               <picker :range="grades" :value="grades.indexOf(form.grade)" @change="onGradePick">
-                <view class="crm-picker-field">{{ form.grade }}</view>
+                <view class="picker-like">{{ form.grade }}</view>
               </picker>
             </view>
             <view class="form-group">
               <text class="label">成交状态</text>
               <picker :range="deals" :value="deals.indexOf(form.dealStatus)" @change="onDealPick">
-                <view class="crm-picker-field">{{ form.dealStatus }}</view>
+                <view class="picker-like">{{ form.dealStatus }}</view>
               </picker>
             </view>
             <view class="form-group">
               <text class="label">客户池</text>
               <picker :range="scopes" :value="scopes.indexOf(form.scope)" @change="onScopePick">
-                <view class="crm-picker-field">{{ form.scope }}</view>
+                <view class="picker-like">{{ form.scope }}</view>
               </picker>
             </view>
             <view class="form-group">
@@ -129,7 +129,7 @@ function back() {
               <text class="label">需求摘要</text>
               <textarea v-model="form.demandSummary" placeholder="面积 / 区域 / 行业…" />
             </view>
-            <button class="btn-primary crm-follow-btn" :disabled="saving" @click="submit">
+            <button class="btn-primary" style="width: 100%; margin-top: 24rpx" :disabled="saving" @click="submit">
               {{ saving ? '提交中…' : '创建客户' }}
             </button>
           </view>
@@ -138,5 +138,3 @@ function back() {
     </view>
   </view>
 </template>
-
-<style scoped src="@/styles/customer-crm.css"></style>

@@ -11,12 +11,22 @@ const list = ref<CustomerListItem[]>([])
 const seg = ref(0)
 const keyword = ref('')
 
-function gradeTagClass(c: CustomerListItem) {
-  const t = c.gradeTag || ''
-  if (t === 'mint' || t === 'cyan') return t
-  if (c.grade.startsWith('A')) return 'mint'
-  if (c.grade.startsWith('B')) return 'cyan'
-  return 'rose'
+function gradeChipClass(c: CustomerListItem) {
+  if (c.grade.startsWith('A') || c.gradeTone === 'ok') return 'ok'
+  return ''
+}
+
+function avatarStyle(c: CustomerListItem) {
+  const mint = gradeChipClass(c) === 'ok'
+  return {
+    width: '46px',
+    height: '46px',
+    borderRadius: '14px',
+    flexShrink: 0,
+    background: mint
+      ? 'linear-gradient(135deg,#0d9488,#14b8a6)'
+      : 'linear-gradient(135deg,#64748b,#94a3b8)',
+  }
 }
 
 async function reload() {
@@ -63,7 +73,7 @@ function goVideoFaq() {
     <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
-          <view class="tb-title">客户统筹</view>
+          <view class="tb-title">客户池</view>
           <view class="sub">私有 / 公有 · ABC 分级 · 下次提醒</view>
         </view>
       </view>
@@ -77,7 +87,7 @@ function goVideoFaq() {
             <input
               v-model="keyword"
               type="text"
-              placeholder="电话尾号 / 公司 / 联系人…"
+              placeholder="公司 / 手机尾号 / 姓名…"
               confirm-type="search"
               @confirm="reload"
             />
@@ -85,20 +95,46 @@ function goVideoFaq() {
           <view v-if="list.length === 0" class="card">
             <text class="hint">暂无客户</text>
           </view>
-          <view v-for="c in list" :key="c.id" class="crm-list-card" @click="goDetail(c.id)">
-            <view class="crm-list-top">
-              <view style="flex: 1; min-width: 0">
-                <view class="crm-list-company">{{ c.company || '—' }}</view>
-                <view class="crm-list-name">{{ c.contactName || c.titleLine }}</view>
+          <view
+            v-for="c in list"
+            :key="c.id"
+            class="prop-list-card"
+            style="align-items: flex-start"
+            @click="goDetail(c.id)"
+          >
+            <view :style="avatarStyle(c)" />
+            <view style="flex: 1; min-width: 0">
+              <view style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
+                <view style="min-width: 0; flex: 1">
+                  <view class="list-meta-muted">{{ c.company }}</view>
+                  <view class="list-title-strong" style="display: block; margin-top: 2px">
+                    {{ c.contactName || c.titleLine }}
+                  </view>
+                </view>
+                <view
+                  class="chip"
+                  :class="gradeChipClass(c)"
+                  :style="
+                    gradeChipClass(c)
+                      ? ''
+                      : 'background:#f1f5f9;color:#475569;border-color:var(--border);flex-shrink:0'
+                  "
+                >
+                  {{ c.grade }}
+                </view>
               </view>
-              <text class="crm-tag" :class="gradeTagClass(c)">{{ c.grade }}</text>
+              <view class="list-meta-muted" style="margin-top: 6px">
+                {{ c.dealStatus }} · {{ c.scope }}
+                <text v-if="c.ownerName"> · {{ c.ownerName }}</text>
+              </view>
+              <view class="list-meta-muted" style="margin-top: 4px">{{ c.recent || '暂无最近跟进' }}</view>
+              <view
+                v-if="c.nextReminder && c.nextReminder !== '—'"
+                style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45"
+              >
+                下次沟通 {{ c.nextReminder }}
+              </view>
             </view>
-            <view style="display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; align-items: center">
-              <text class="crm-tag slate">{{ c.dealStatus }}</text>
-              <text class="crm-tag slate">{{ c.scope }}</text>
-              <text v-if="c.nextReminder && c.nextReminder !== '—'" class="crm-tag amber">{{ c.nextReminder }}</text>
-            </view>
-            <view class="crm-card-muted" style="margin-top: 12rpx">{{ c.recent || '暂无最近跟进' }}</view>
           </view>
         </view>
       </scroll-view>
@@ -133,5 +169,3 @@ function goVideoFaq() {
     center / contain no-repeat;
 }
 </style>
-
-<style scoped src="@/styles/customer-crm.css"></style>

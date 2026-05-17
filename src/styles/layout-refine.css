@@ -175,6 +175,19 @@ button[plain]::after {
   margin-bottom: 20rpx;
 }
 
+.picker-like {
+  padding: 20rpx;
+  border: none;
+  border-radius: 20rpx;
+  background: #f1f5f9;
+  font-size: 28rpx;
+  color: var(--text);
+}
+
+.picker-like.placeholder {
+  color: var(--muted);
+}
+
 .section-title::after {
   display: none;
 }
