@@ -11,9 +11,11 @@ export interface MessageItem {
 }
 
 export interface AnnouncementItem {
+  id: string
   title: string
   body: string
-  popup?: boolean
+  /** Server: 是 | 否 */
+  popup?: string
   popupStart?: string
   popupEnd?: string
 }

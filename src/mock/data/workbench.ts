@@ -17,10 +17,4 @@ export const mockWorkbench: WorkbenchSummary = {
     { value: '42', label: '意向客户' },
     { value: '7', label: '本周带看' },
   ],
-  announceCard: {
-    title: '园区电费计价规则调整',
-    tag: '必读',
-    hint: '自 6 月起执行分时电价，对内公示，禁止外链。',
-    time: '今天 09:30 · 行政部',
-  },
 }

@@ -12,13 +12,6 @@ export interface WorkbenchStat {
   label: string
 }
 
-export interface WorkbenchAnnounceCard {
-  title: string
-  tag: string
-  hint: string
-  time: string
-}
-
 export interface WorkbenchSummary {
   regionLine: string
   followCount: number
@@ -26,5 +19,4 @@ export interface WorkbenchSummary {
   remindHtml: string
   todos: WorkbenchTodo[]
   stats: WorkbenchStat[]
-  announceCard: WorkbenchAnnounceCard
 }

@@ -4,7 +4,7 @@ import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchAnnouncementList } from '@/api/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
-const list = ref<{ title: string; body: string }[]>([])
+const list = ref<{ id?: string; title: string; body: string }[]>([])
 
 onMounted(async () => {
   const r = await fetchAnnouncementList()
@@ -29,7 +29,7 @@ function back() {
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-for="(a, i) in list" :key="i" class="card" style="margin-bottom: 24rpx">
+        <view v-for="a in list" :key="a.id || a.title" class="card" style="margin-bottom: 24rpx">
           <text style="font-size: 30rpx; font-weight: 700">{{ a.title }}</text>
           <text class="hint" style="display: block; margin-top: 16rpx; line-height: 1.55">{{ a.body }}</text>
         </view>

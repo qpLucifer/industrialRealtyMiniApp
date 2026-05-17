@@ -1,13 +1,15 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchWorkbench } from '@/api/home'
-import type {
-  WorkbenchAnnounceCard,
-  WorkbenchStat,
-  WorkbenchSummary,
-  WorkbenchTodo,
-} from '@/types/workbench'
+import { fetchAnnouncementList } from '@/api/message'
+import type { AnnouncementItem } from '@/types/message'
+import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
+import {
+  dismissAnnouncementId,
+  pickActivePopupAnnouncements,
+} from '@/utils/announcement'
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v != null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
@@ -45,19 +47,6 @@ function normalizeStat(raw: unknown): WorkbenchStat | null {
   return { value: str(o.value, '0'), label }
 }
 
-function normalizeAnnounce(raw: unknown): WorkbenchAnnounceCard {
-  const o = asRecord(raw)
-  if (!o) {
-    return { title: '暂无公告', tag: '', hint: '', time: '' }
-  }
-  return {
-    title: str(o.title, '暂无公告'),
-    tag: str(o.tag, ''),
-    hint: str(o.hint, ''),
-    time: str(o.time, ''),
-  }
-}
-
 /** Coerce API / partial JSON into a safe WorkbenchSummary for the home UI. */
 function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
   const o = asRecord(raw) ?? {}
@@ -83,7 +72,6 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
     remindHtml: str(o.remindHtml, ''),
     todos,
     stats,
-    announceCard: normalizeAnnounce(o.announceCard),
   }
 }
 
@@ -91,6 +79,10 @@ const topBarInsetStyle = useTopBarInsetStyle()
 
 const data = ref<WorkbenchSummary | null>(null)
 const loadError = ref('')
+const announceCount = ref(0)
+const popupVisible = ref(false)
+const popupItem = ref<AnnouncementItem | null>(null)
+const popupQueue = ref<AnnouncementItem[]>([])
 
 onMounted(async () => {
   try {
@@ -100,6 +92,11 @@ onMounted(async () => {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
   }
+  await refreshAnnouncements()
+})
+
+onShow(() => {
+  void refreshAnnouncements()
 })
 
 /** Match prototype: amber lead "系统提醒" + body */
@@ -109,6 +106,52 @@ const remindParts = computed(() => {
   if (m) return { lead: '系统提醒', body: m[1] || '' }
   return { lead: '', body: raw }
 })
+
+const announceBadgeText = computed(() => {
+  const n = announceCount.value
+  if (n <= 0) return ''
+  return n > 99 ? '99+' : String(n)
+})
+
+async function refreshAnnouncements() {
+  try {
+    const r = await fetchAnnouncementList()
+    const list = Array.isArray(r.list) ? r.list : []
+    announceCount.value = list.length
+    const active = pickActivePopupAnnouncements(list)
+    if (!active.length) {
+      popupQueue.value = []
+      if (!popupVisible.value) popupItem.value = null
+      return
+    }
+    popupQueue.value = active
+    if (!popupVisible.value) showNextPopup()
+  } catch {
+    /* keep badge / popup state on transient errors */
+  }
+}
+
+function showNextPopup() {
+  const next = popupQueue.value[0]
+  if (!next) {
+    popupVisible.value = false
+    popupItem.value = null
+    return
+  }
+  popupItem.value = next
+  popupVisible.value = true
+}
+
+function onPopupDismiss() {
+  const cur = popupItem.value
+  if (cur?.id) dismissAnnouncementId(String(cur.id))
+  popupQueue.value = popupQueue.value.slice(1)
+  popupVisible.value = false
+  popupItem.value = null
+  if (popupQueue.value.length) {
+    setTimeout(() => showNextPopup(), 80)
+  }
+}
 
 function goAnnounce() {
   uni.navigateTo({ url: '/pages/announcements/list' })
@@ -127,10 +170,6 @@ function goCustomerNew() {
   uni.navigateTo({ url: '/pages/customer/new' })
 }
 
-function goAnnounceCard() {
-  uni.navigateTo({ url: '/pages/announcements/list' })
-}
-
 function todoCardStyle(i: number) {
   return i === 0 ? 'margin-top:12px' : 'margin-top:8px'
 }
@@ -147,6 +186,7 @@ function todoCardStyle(i: number) {
           </view>
           <view class="top-bar__home-icon" @click="goAnnounce">
             <view class="ic-announce" />
+            <view v-if="announceBadgeText" class="announce-badge">{{ announceBadgeText }}</view>
           </view>
         </view>
       </view>
@@ -218,17 +258,19 @@ function todoCardStyle(i: number) {
             ＋ 新建客户
           </button>
         </view>
-        <view v-if="data" class="section-title">公告 · 策略</view>
-        <view v-if="data" class="card" @click="goAnnounceCard">
-          <view style="display: flex; justify-content: space-between; gap: 8px">
-            <view style="font-weight: 700; flex: 1; min-width: 0; word-break: break-word">{{ data.announceCard.title }}</view>
-            <view class="chip warn" style="flex-shrink: 0">{{ data.announceCard.tag }}</view>
-          </view>
-          <view class="hint" style="margin-top: 4px">{{ data.announceCard.hint }}</view>
-          <view style="font-size: 11px; color: var(--muted); margin-top: 8px">{{ data.announceCard.time }}</view>
-        </view>
         </view>
       </scroll-view>
+    </view>
+
+    <view v-if="popupVisible && popupItem" class="modal-overlay show" @click.self="onPopupDismiss">
+      <view class="modal-sheet announce-popup-sheet" @click.stop>
+        <view class="announce-popup-tag">公告通知</view>
+        <view class="announce-popup-title">{{ popupItem.title }}</view>
+        <scroll-view scroll-y class="announce-popup-body" :show-scrollbar="false">
+          <text class="announce-popup-text">{{ popupItem.body }}</text>
+        </scroll-view>
+        <button class="btn-primary announce-popup-btn" @click="onPopupDismiss">知道了</button>
+      </view>
     </view>
   </view>
 </template>
@@ -241,10 +283,71 @@ function todoCardStyle(i: number) {
   letter-spacing: 0.04em;
 }
 
+.top-bar__home-icon {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .ic-announce {
   width: 44rpx;
   height: 44rpx;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E")
     center / contain no-repeat;
+}
+
+.announce-badge {
+  position: absolute;
+  top: -6rpx;
+  right: -10rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 999rpx;
+  background: #f43f5e;
+  color: #fff;
+  font-size: 20rpx;
+  line-height: 32rpx;
+  text-align: center;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.announce-popup-sheet {
+  max-width: 640rpx;
+  margin: 0 auto;
+  padding: 32rpx 28rpx 28rpx;
+}
+
+.announce-popup-tag {
+  font-size: 22rpx;
+  color: var(--cyan);
+  letter-spacing: 0.08em;
+}
+
+.announce-popup-title {
+  margin-top: 12rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  font-family: var(--display);
+  line-height: 1.35;
+}
+
+.announce-popup-body {
+  margin-top: 20rpx;
+  max-height: 48vh;
+}
+
+.announce-popup-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.announce-popup-btn {
+  margin-top: 28rpx;
+  width: 100%;
+  padding: 24rpx;
+  font-size: 30rpx;
 }
 </style>
