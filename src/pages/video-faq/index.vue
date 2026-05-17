@@ -62,8 +62,7 @@ function playActiveFullscreen() {
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-for="v in list" :key="v.id" class="card" style="margin-bottom: 24rpx" @click="openItem(v)">
-          <text style="font-size: 22rpx; color: var(--muted)">{{ v.meta }}</text>
-          <text style="display: block; margin-top: 12rpx; font-size: 30rpx; font-weight: 700">{{ v.title }}</text>
+          <text style="display: block; font-size: 30rpx; font-weight: 700">{{ v.title }}</text>
           <text class="hint" style="display: block; margin-top: 12rpx; line-height: 1.55">{{ v.summary }}</text>
           <text style="display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--cyan)">关键词：{{ v.keywords }}</text>
         </view>

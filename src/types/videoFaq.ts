@@ -1,7 +1,6 @@
 export interface VideoFaqItem {
   id: string
   keywords: string
-  meta: string
   title: string
   summary: string
   videoPath?: string

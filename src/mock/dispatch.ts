@@ -191,7 +191,8 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/video-faq/list') {
-    return okResult({ list: mockVideoFaqList })
+    const list = mockVideoFaqList.filter((x) => x.miniProgramSearch !== false)
+    return okResult({ list })
   }
 
   if (method === 'GET' && path === '/api/viewing/list') {
