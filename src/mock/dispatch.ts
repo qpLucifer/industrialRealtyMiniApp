@@ -198,6 +198,19 @@ export async function dispatchMock(
     return okResult(getCustomerDetail(id))
   }
 
+  if (method === 'POST' && path === '/api/customer') {
+    return okResult({ success: true, slug: 'cust-mock-new', id: 'cust-mock-new' })
+  }
+
+  if (method === 'POST' && path === '/api/customer/follow-up') {
+    return okResult({ success: true })
+  }
+
+  const customerPutMatch = method === 'PUT' && path.match(/^\/api\/customer\/([^/]+)$/)
+  if (customerPutMatch) {
+    return okResult({ success: true })
+  }
+
   if (method === 'GET' && path === '/api/message/list') {
     return okResult({ list: mockMessages })
   }

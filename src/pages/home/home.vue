@@ -225,7 +225,7 @@ function todoCardStyle(i: number) {
             <text v-else>{{ remindParts.body }}</text>
           </view>
           <view v-if="data.todos.length === 0" class="hint" style="margin-top: 12px">
-            暂无待跟进客户（数据库中无带下次提醒的客户，或客户未在小程序列表展示）
+            暂无待跟进（需设置「下次沟通提醒」且时间晚于当前）
           </view>
           <view
             v-for="(t, i) in data.todos"

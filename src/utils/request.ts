@@ -106,6 +106,43 @@ export async function get<T>(url: string, query?: Record<string, string | number
   })
 }
 
+export async function put<T>(
+  url: string,
+  data?: Record<string, unknown>,
+  query?: Record<string, string | number | boolean | undefined>,
+): Promise<T> {
+  const full = joinUrl(url, query)
+  if (USE_MOCK) {
+    const raw = await dispatchMock('PUT', full, data)
+    return unwrapResult<T>(raw)
+  }
+  const resolved = resolveUrl(full)
+  const headers: Record<string, string> = { 'X-Client': 'miniapp', 'Content-Type': 'application/json' }
+  const token = uni.getStorageSync('mini_token')
+  if (token && typeof token === 'string') {
+    headers.Authorization = `Bearer ${token}`
+    headers['X-Mini-Token'] = token
+  }
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: resolved,
+      method: 'PUT',
+      data,
+      header: headers,
+      success(res) {
+        try {
+          resolve(handleHttpResponse<T>(res))
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail(err) {
+        reject(err ?? new Error('uni.request failed'))
+      },
+    })
+  })
+}
+
 export async function post<T>(
   url: string,
   data?: Record<string, unknown>,

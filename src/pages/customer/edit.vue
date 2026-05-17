@@ -1,10 +1,12 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
-import { createCustomer } from '@/api/customer'
+import { fetchCustomerDetail, updateCustomer } from '@/api/customer'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
 
 const topBarInsetStyle = useTopBarInsetStyle()
+const id = ref('')
 const saving = ref(false)
 
 const form = reactive({
@@ -22,6 +24,26 @@ const form = reactive({
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 const deals: CustomerDealStatus[] = ['洽谈中', '已成交', '搁置']
 const scopes: CustomerScope[] = ['私有', '公有']
+
+onLoad(async (q) => {
+  if (q?.id) id.value = String(q.id)
+  if (!id.value) return
+  const d = await fetchCustomerDetail(id.value)
+  if (!d.canEdit) {
+    uni.showToast({ title: '无权编辑', icon: 'none' })
+    setTimeout(() => uni.navigateBack(), 400)
+    return
+  }
+  form.company = d.company
+  form.contactName = d.contactName
+  form.titleLine = d.titleLine
+  form.phone = d.phone
+  form.grade = (d.grade as CustomerGrade) || 'B 类'
+  form.dealStatus = (d.dealStatus as CustomerDealStatus) || '洽谈中'
+  form.demandSummary = d.demandSummary
+  form.addressHint = d.addressHint
+  form.scope = d.scope
+})
 
 function onGradePick(e: { detail: { value: string | number } }) {
   form.grade = grades[Number(e.detail.value)] ?? 'B 类'
@@ -42,7 +64,7 @@ async function submit() {
   }
   saving.value = true
   try {
-    const r = await createCustomer({
+    await updateCustomer(id.value, {
       company: form.company.trim(),
       contactName: form.contactName.trim(),
       titleLine: form.titleLine.trim(),
@@ -53,15 +75,10 @@ async function submit() {
       addressHint: form.addressHint.trim(),
       scope: form.scope,
     })
-    uni.showToast({ title: '客户已创建', icon: 'none' })
-    const slug = r.slug || r.id
-    if (slug) {
-      uni.redirectTo({ url: `/pages/customer/detail?id=${encodeURIComponent(slug)}` })
-      return
-    }
+    uni.showToast({ title: '已保存', icon: 'none' })
     uni.navigateBack()
   } catch (e) {
-    uni.showToast({ title: e instanceof Error ? e.message : '创建失败', icon: 'none' })
+    uni.showToast({ title: e instanceof Error ? e.message : '保存失败', icon: 'none' })
   } finally {
     saving.value = false
   }
@@ -80,7 +97,7 @@ function back() {
           <view class="top-bar__nav-left">
             <button class="btn-ghost" @click="back">返回</button>
           </view>
-          <view class="top-bar__nav-mid">新建客户</view>
+          <view class="top-bar__nav-mid">编辑客户</view>
           <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
         </view>
       </view>
@@ -123,14 +140,14 @@ function back() {
             </view>
             <view class="form-group">
               <text class="label">地址 / 区域</text>
-              <input v-model="form.addressHint" placeholder="意向区域" />
+              <input v-model="form.addressHint" placeholder="意向区域、地址提示" />
             </view>
             <view class="form-group">
               <text class="label">需求摘要</text>
-              <textarea v-model="form.demandSummary" placeholder="面积 / 区域 / 行业…" />
+              <textarea v-model="form.demandSummary" placeholder="面积、预算、行业偏好…" />
             </view>
             <button class="btn-primary crm-follow-btn" :disabled="saving" @click="submit">
-              {{ saving ? '提交中…' : '创建客户' }}
+              {{ saving ? '保存中…' : '保存' }}
             </button>
           </view>
         </view>

@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchCustomerList } from '@/api/customer'
 import type { CustomerListItem } from '@/types/customer'
@@ -10,8 +11,12 @@ const list = ref<CustomerListItem[]>([])
 const seg = ref(0)
 const keyword = ref('')
 
-function gradeChipClass(tone: string) {
-  return tone === 'ok' || tone === 'mint' ? 'ok' : ''
+function gradeTagClass(c: CustomerListItem) {
+  const t = c.gradeTag || ''
+  if (t === 'mint' || t === 'cyan') return t
+  if (c.grade.startsWith('A')) return 'mint'
+  if (c.grade.startsWith('B')) return 'cyan'
+  return 'rose'
 }
 
 async function reload() {
@@ -28,12 +33,16 @@ async function reload() {
 }
 
 onMounted(() => {
-  reload()
+  void reload()
+})
+
+onShow(() => {
+  void reload()
 })
 
 function onSeg(i: number) {
   seg.value = i
-  reload()
+  void reload()
 }
 
 function goDetail(id: string) {
@@ -54,64 +63,43 @@ function goVideoFaq() {
     <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
-          <view class="tb-title">客户池</view>
-          <view class="sub">私有优先 · ABC 分级 · 提醒联动</view>
+          <view class="tb-title">客户统筹</view>
+          <view class="sub">私有 / 公有 · ABC 分级 · 下次提醒</view>
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-        <view class="segmented">
-          <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">我的私有</button>
-          <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">公司公有</button>
-        </view>
-        <view class="search-bar">
-          <input v-model="keyword" type="text" placeholder="公司 / 手机尾号 / 姓名…" confirm-type="search" @confirm="reload" />
-        </view>
-        <view class="chip-row" style="margin-bottom: 12px">
-          <view class="chip on">刚需</view>
-          <view class="chip">投资</view>
-          <view class="chip">急租</view>
-          <view class="chip">急购</view>
-          <view class="chip">大客户</view>
-          <view class="chip">外地</view>
-        </view>
-        <view
-          v-for="c in list"
-          :key="c.id"
-          class="prop-list-card"
-          style="align-items: flex-start"
-          @click="goDetail(c.id)"
-        >
-          <view
-            :style="{
-              width: '46px',
-              height: '46px',
-              borderRadius: '14px',
-              flexShrink: 0,
-              background: gradeChipClass(c.gradeTone) ? 'linear-gradient(135deg,#0d9488,#14b8a6)' : 'linear-gradient(135deg,#64748b,#94a3b8)',
-            }"
-          />
-          <view style="flex: 1; min-width: 0">
-            <view style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
-              <view style="min-width: 0; flex: 1">
-                <view class="list-meta-muted">{{ c.company }}</view>
-                <view class="list-title-strong" style="display: block; margin-top: 2px">{{ c.titleLine }}</view>
-              </view>
-              <view
-                class="chip"
-                :class="gradeChipClass(c.gradeTone)"
-                :style="
-                  c.gradeTone === 'ok'
-                    ? ''
-                    : 'background:#f1f5f9;color:#475569;border-color:var(--border);flex-shrink:0'
-                "
-                >{{ c.grade }}</view
-              >
-            </view>
-            <view class="list-meta-muted" style="margin-top: 6px">{{ c.recent }}</view>
-            <view style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45">{{ c.nextLine }}</view>
+          <view class="segmented">
+            <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">我的私有</button>
+            <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">公司公有</button>
           </view>
-        </view>
+          <view class="search-bar">
+            <input
+              v-model="keyword"
+              type="text"
+              placeholder="电话尾号 / 公司 / 联系人…"
+              confirm-type="search"
+              @confirm="reload"
+            />
+          </view>
+          <view v-if="list.length === 0" class="card">
+            <text class="hint">暂无客户</text>
+          </view>
+          <view v-for="c in list" :key="c.id" class="crm-list-card" @click="goDetail(c.id)">
+            <view class="crm-list-top">
+              <view style="flex: 1; min-width: 0">
+                <view class="crm-list-company">{{ c.company || '—' }}</view>
+                <view class="crm-list-name">{{ c.contactName || c.titleLine }}</view>
+              </view>
+              <text class="crm-tag" :class="gradeTagClass(c)">{{ c.grade }}</text>
+            </view>
+            <view style="display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; align-items: center">
+              <text class="crm-tag slate">{{ c.dealStatus }}</text>
+              <text class="crm-tag slate">{{ c.scope }}</text>
+              <text v-if="c.nextReminder && c.nextReminder !== '—'" class="crm-tag amber">{{ c.nextReminder }}</text>
+            </view>
+            <view class="crm-card-muted" style="margin-top: 12rpx">{{ c.recent || '暂无最近跟进' }}</view>
+          </view>
         </view>
       </scroll-view>
       <view class="fab-col">
@@ -145,3 +133,5 @@ function goVideoFaq() {
     center / contain no-repeat;
 }
 </style>
+
+<style scoped src="@/styles/customer-crm.css"></style>
