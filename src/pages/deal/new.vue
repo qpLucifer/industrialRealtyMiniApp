@@ -1,10 +1,9 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchDealFormDefaults } from '@/api/extra'
 import { postAction } from '@/api/message'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const contractType = ref('')
 const amountWan = ref('')
 const commissionWan = ref('')
@@ -37,15 +36,7 @@ function back() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">新建成交</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar title="新建成交" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="card">
           <view class="form-group">

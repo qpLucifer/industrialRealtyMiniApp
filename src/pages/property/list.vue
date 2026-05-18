@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchPropertyList } from '@/api/property'
 import type { PropertyListItem } from '@/types/property'
@@ -24,7 +25,7 @@ async function reload() {
   }
 }
 
-onMounted(() => {
+onShow(() => {
   reload()
 })
 

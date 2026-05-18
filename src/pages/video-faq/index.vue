@@ -1,11 +1,10 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchVideoFaqList } from '@/api/extra'
 import type { VideoFaqItem } from '@/types/videoFaq'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<VideoFaqItem[]>([])
 const active = ref<VideoFaqItem | null>(null)
 
@@ -51,15 +50,7 @@ function playActiveFullscreen() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">视频话术</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar title="视频话术" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-for="v in list" :key="v.id" class="card" style="margin-bottom: 24rpx" @click="openItem(v)">
           <text style="display: block; font-size: 30rpx; font-weight: 700">{{ v.title }}</text>

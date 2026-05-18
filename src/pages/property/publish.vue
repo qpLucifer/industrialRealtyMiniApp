@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchPropertyEditForm } from '@/api/property'
 import { postAction } from '@/api/message'
 import {
@@ -36,6 +36,29 @@ const MONITOR = ['全厂区', '部分区域'] as const
 const RUSH_HOUR = ['无', '轻度', '严重'] as const
 const FALLBACK_PROPERTY_TYPES = ['标准厂房', '独门独院厂房', '仓库', '工业用地', '写字楼', '产业园商铺']
 
+function isPhone11Cn(phone: string) {
+  return /^1\d{10}$/.test(String(phone || '').trim())
+}
+
+function collectPropertyRequiredMiss(form: PropertyEditForm): string[] {
+  const miss: string[] = []
+  if (!String(form.listTitle || '').trim()) miss.push('列表标题')
+  if (!Array.isArray(form.types) || !form.types.length) miss.push('房源类型')
+  if (!String(form.companyName || '').trim()) miss.push('公司名称')
+  if (!String(form.address || '').trim()) miss.push('详细地址')
+  if (!String(form.lat || '').trim() || !String(form.lng || '').trim()) miss.push('地图坐标（GCJ-02 纬经度）')
+  if (!Array.isArray(form.photoChecklist) || !form.photoChecklist.length) miss.push('现场必拍清单')
+  const hasImg = parseMediaLines(form.mediaImageUrls).length > 0
+  const hasVid = parseMediaLines(form.mediaVideoUrls).length > 0
+  if (!hasImg && !hasVid) miss.push('图片或视频（至少一类）')
+  if (form.landMu == null || Number(form.landMu) <= 0) miss.push('土地（亩）')
+  if (form.powerKva == null || Number(form.powerKva) <= 0) miss.push('电力总容量')
+  if (!String(form.rentSaleType || '').trim()) miss.push('租售类型')
+  if (!String(form.contactName || '').trim()) miss.push('联系人姓名')
+  if (!String(form.contactPhone || '').trim()) miss.push('联系人电话')
+  return miss
+}
+
 function toggleFormArr(arr: string[], v: string, min = 0) {
   const i = arr.indexOf(v)
   if (i >= 0) {
@@ -50,7 +73,6 @@ function pickerIdx(range: readonly string[], val: string) {
   return i >= 0 ? i : 0
 }
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const step = ref(0)
 const title = ref('发布房源')
 const showLeave = ref(false)
@@ -83,33 +105,69 @@ const fireOtherOff = computed(() => !form.fireSystems?.includes('其他'))
 const subsidyDetailOff = computed(() => form.subsidy !== '有')
 const mortgageNoteOff = computed(() => form.mortgageDispute === '无')
 const fireFailOff = computed(() => form.firePass !== '否')
+const coTenantAnnualOff = computed(() => !Number(form.coTenantCount))
 const showRentFields = computed(() => form.rentSaleType === '出租' || form.rentSaleType === '租售皆可')
 
+const auditState = computed(() => {
+  const s = String(form.auditState || '').trim()
+  return s || 'draft'
+})
+const statusDisplay = computed(() => String(form.externalStatus || '草稿').trim() || '草稿')
+const auditStatusClass = computed(() => {
+  const s = auditState.value
+  if (s === 'live') return 'audit-live'
+  if (s === 'pending') return 'audit-pending'
+  if (s === 'rejected') return 'audit-rejected'
+  return 'audit-draft'
+})
+/** Pending: view-only while in audit queue (aligned with mini UX). */
+const formReadonly = computed(() => auditState.value === 'pending')
+/** Live listings are adjusted in admin; mini publish is read-only. */
+const formLocked = computed(() => formReadonly.value || auditState.value === 'live')
+const canPublishForAudit = computed(() => auditState.value === 'draft' || auditState.value === 'rejected')
+const canSaveDraft = computed(() => canPublishForAudit.value || !form.code)
+
+/** Hide generic draft save hint; only show meaningful audit messages on step 0. */
+const showStatusAuditHint = computed(() => {
+  if (auditState.value === 'draft' || auditState.value === 'rejected') return false
+  const hint = String(form.auditHint || '').trim()
+  if (!hint) return false
+  if (hint.includes('未发布') && hint.includes('草稿')) return false
+  return true
+})
+
 function toggleTypes(t: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.types)) form.types = []
   toggleFormArr(form.types, t, 1)
 }
 function togglePhoto(p: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.photoChecklist)) form.photoChecklist = []
   toggleFormArr(form.photoChecklist, p, 0)
 }
 function toggleStructure(s: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.structureTypes)) form.structureTypes = []
   toggleFormArr(form.structureTypes, s, 0)
 }
 function toggleRights(r: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.propertyRights)) form.propertyRights = []
   toggleFormArr(form.propertyRights, r, 0)
 }
 function toggleLandUse(u: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.landUse)) form.landUse = []
   toggleFormArr(form.landUse, u, 0)
 }
 function toggleCert(c: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.certificates)) form.certificates = []
   toggleFormArr(form.certificates, c, 0)
 }
 function toggleFire(f: string) {
+  if (formLocked.value) return
   if (!Array.isArray(form.fireSystems)) form.fireSystems = []
   toggleFormArr(form.fireSystems, f, 0)
 }
@@ -241,6 +299,7 @@ function onPickRushHour(e: PickerChange) {
 }
 
 function chooseMap() {
+  if (formLocked.value) return
   const lat = parseCoord(form.lat)
   const lng = parseCoord(form.lng)
   const opts: UniApp.ChooseLocationOptions = {
@@ -261,6 +320,7 @@ function chooseMap() {
 }
 
 function onMapTap(e: { detail: { latitude: number; longitude: number } }) {
+  if (formLocked.value) return
   const lat = e?.detail?.latitude
   const lng = e?.detail?.longitude
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
@@ -281,11 +341,13 @@ function appendUrl(field: 'mediaImageUrls' | 'mediaVideoUrls', url: string) {
 }
 
 async function pickImages() {
+  if (formLocked.value) return
   uni.chooseMedia({
     count: 9,
     mediaType: ['image'],
     success: async (res) => {
       uploading.value = true
+      uni.showLoading({ title: '图片上传中…', mask: true })
       try {
         for (const f of res.tempFiles) {
           const { url } = await uploadOssFile(f.tempFilePath, uploadFolder())
@@ -296,17 +358,20 @@ async function pickImages() {
         uni.showToast({ title: e instanceof Error ? e.message : '上传失败', icon: 'none' })
       } finally {
         uploading.value = false
+        uni.hideLoading()
       }
     },
   })
 }
 
 async function pickVideos() {
+  if (formLocked.value) return
   uni.chooseMedia({
     count: 1,
     mediaType: ['video'],
     success: async (res) => {
       uploading.value = true
+      uni.showLoading({ title: '视频上传中…', mask: true })
       try {
         for (const f of res.tempFiles) {
           const { url } = await uploadOssFile(f.tempFilePath, uploadFolder())
@@ -317,6 +382,7 @@ async function pickVideos() {
         uni.showToast({ title: e instanceof Error ? e.message : '上传失败', icon: 'none' })
       } finally {
         uploading.value = false
+        uni.hideLoading()
       }
     },
   })
@@ -341,6 +407,18 @@ onLoad(async (q) => {
 
 const isLast = computed(() => step.value >= stepNames.length - 1)
 
+function applySaveDraftMeta(r: {
+  code?: string
+  auditState?: string
+  externalStatus?: string
+  auditHint?: string
+}) {
+  if (r.code) form.code = r.code
+  if (r.auditState != null) form.auditState = String(r.auditState)
+  if (r.externalStatus != null) form.externalStatus = String(r.externalStatus)
+  if (r.auditHint != null) form.auditHint = String(r.auditHint)
+}
+
 function nextStep() {
   if (step.value < stepNames.length - 1) step.value += 1
 }
@@ -350,15 +428,21 @@ function prevStep() {
 }
 
 async function saveDraft() {
-  if (!String(form.companyName || '').trim() || !String(form.address || '').trim()) {
-    uni.showToast({ title: '请填写公司与地址', icon: 'none' })
+  if (!canSaveDraft.value) {
+    uni.showToast({ title: '当前状态不可保存', icon: 'none' })
     return
   }
   saving.value = true
   try {
     const payload = buildPropertySubmitPayload(form)
-    const r = await postAction<{ ok: boolean; code?: string }>('save-draft', payload)
-    if (r?.code) form.code = r.code
+    const r = await postAction<{
+      ok: boolean
+      code?: string
+      auditState?: string
+      externalStatus?: string
+      auditHint?: string
+    }>('save-draft', payload)
+    applySaveDraftMeta(r || {})
     uni.showToast({ title: '草稿已保存', icon: 'none' })
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '保存失败', icon: 'none' })
@@ -368,16 +452,47 @@ async function saveDraft() {
 }
 
 async function submitFinal() {
-  if (!String(form.companyName || '').trim() || !String(form.address || '').trim()) {
-    uni.showToast({ title: '请填写公司与地址', icon: 'none' })
+  if (!canPublishForAudit.value) {
+    uni.showToast({ title: '仅草稿或驳回状态可提交审核', icon: 'none' })
     return
   }
+  const miss = collectPropertyRequiredMiss(form)
+  if (miss.length) {
+    uni.showToast({ title: `发布前请完善：${miss.join('、')}`, icon: 'none' })
+    return
+  }
+  if (String(form.listTitle || '').length > 120) {
+    uni.showToast({ title: '列表标题不超过 120 字', icon: 'none' })
+    return
+  }
+  if (String(form.address || '').length > 200) {
+    uni.showToast({ title: '详细地址不超过 200 字', icon: 'none' })
+    return
+  }
+  if (!isPhone11Cn(String(form.contactPhone || ''))) {
+    uni.showToast({ title: '联系人电话须为 11 位手机号', icon: 'none' })
+    return
+  }
+  const ok = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '确认发布',
+      content: '提交后房源将进入「待审核」，管理员审核通过后为「待租」，驳回需按原因修改后重新发布。',
+      confirmText: '确认发布',
+      cancelText: '取消',
+      success: (res) => resolve(Boolean(res.confirm)),
+      fail: () => resolve(false),
+    })
+  })
+  if (!ok) return
+
   saving.value = true
   try {
     const payload = buildPropertySubmitPayload(form)
     if (!form.code) {
       const draft = await postAction<{ ok: boolean; code?: string }>('save-draft', payload)
       if (draft?.code) form.code = draft.code
+    } else {
+      await postAction('save-draft', { ...payload, code: form.code })
     }
     await postAction('submit-property', { ...payload, code: form.code } as Record<string, unknown>)
     uni.showToast({ title: '已提交审核', icon: 'none' })
@@ -406,20 +521,10 @@ function leaveGo() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="close">关闭</button>
-          </view>
-          <view class="top-bar__nav-mid">{{ title }}</view>
-          <view class="top-bar__nav-right">
-            <button class="btn-ghost" @click="saveDraft">存草稿</button>
-          </view>
-        </view>
-      </view>
+      <NavIconBar :title="title" back-icon="close" @back="close" />
 
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner">
+        <view class="page-scroll__inner" :class="{ 'pf-publish--locked': formLocked }">
           <view class="pf-page-head">
             <text class="wizard-head__title">{{ stepNames[step] }}</text>
             <text class="wizard-head__sub">第 {{ step + 1 }} / {{ stepNames.length }} 步 · 与后台验厂表字段一致</text>
@@ -440,6 +545,22 @@ function leaveGo() {
 
           <!-- Step 0 -->
           <view v-show="step === 0" class="pf-card">
+            <view class="pf-section-h">状态</view>
+            <view class="pf-cell pf-cell--col">
+              <view class="pf-status-readonly">
+                <text>{{ statusDisplay }}</text>
+              </view>
+            </view>
+            <view v-if="auditState === 'rejected' && form.auditHint" class="pf-reject-box">
+              <text class="pf-reject-box__title">驳回原因</text>
+              <text class="pf-reject-box__body">{{ form.auditHint }}</text>
+            </view>
+            <view v-else-if="showStatusAuditHint" class="pf-detail-audit-wrap">
+              <view class="prop-detail-audit-strip" :class="auditStatusClass">
+                <text>{{ form.auditHint }}</text>
+              </view>
+            </view>
+
             <view class="pf-section-h">分类 · 主体</view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">房源类型<text class="req">*</text></text>
@@ -464,7 +585,7 @@ function leaveGo() {
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">业主联系人</text>
-              <input v-model="form.ownerContact" class="pf-input" />
+              <input v-model="form.ownerContact" class="pf-input" placeholder="姓名 · 电话" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">风险标签</text>
@@ -557,8 +678,8 @@ function leaveGo() {
                 </view>
               </view>
               <view class="upload-grid">
-                <view class="upload-tile" @click="pickImages">
-                  <text class="tile-title">上传图片</text>
+                <view class="upload-tile" :class="{ 'upload-tile--busy': uploading }" @click="pickImages">
+                  <text class="tile-title">{{ uploading ? '上传中…' : '上传图片' }}</text>
                   <text class="hint">已 {{ editorImages.length }} 张</text>
                 </view>
               </view>
@@ -579,7 +700,7 @@ function leaveGo() {
                 </view>
               </view>
               <view class="upload-grid">
-                <view class="upload-tile" @click="pickVideos">
+                <view class="upload-tile" :class="{ 'upload-tile--busy': uploading }" @click="pickVideos">
                   <text class="tile-title">上传视频</text>
                   <text class="hint">已 {{ editorVideos.length }} 个</text>
                 </view>
@@ -594,27 +715,27 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">土地（亩）<text class="req">*</text></text>
-                  <input v-model="form.landMu" class="pf-input" type="digit" />
+                  <input v-model="form.landMu" class="pf-input" type="digit" placeholder="亩" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">实际土地（亩）</text>
-                  <input v-model="form.actualLandMu" class="pf-input" type="digit" />
+                  <input v-model="form.actualLandMu" class="pf-input" type="digit" placeholder="亩" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">建筑面积（㎡）</text>
-                  <input v-model="form.buildingArea" class="pf-input" type="number" />
+                  <input v-model="form.buildingArea" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">使用面积（㎡）</text>
-                  <input v-model="form.actualUseArea" class="pf-input" type="number" />
+                  <input v-model="form.actualUseArea" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">总层数</text>
-                  <input v-model="form.floors" class="pf-input" type="number" />
+                  <input v-model="form.floors" class="pf-input" type="number" placeholder="层" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">承重（吨/m²）</text>
-                  <input v-model="form.loadPerSqm" class="pf-input" type="digit" />
+                  <input v-model="form.loadPerSqm" class="pf-input" type="digit" placeholder="吨/m²" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">车间长宽高（米）</text>
@@ -622,7 +743,7 @@ function leaveGo() {
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">承重注明区域</text>
-                  <input v-model="form.loadNote" class="pf-input" />
+                  <input v-model="form.loadNote" class="pf-input" placeholder="承重特殊说明" />
                 </view>
               </view>
             </view>
@@ -640,8 +761,8 @@ function leaveGo() {
               </view>
               <input
                 v-model="form.structureOther"
-                class="pf-input"
-                :class="{ 'pf-input--disabled': structureOtherOff }"
+                class="pf-textarea"
+                :class="{ 'pf-textarea--disabled': structureOtherOff }"
                 :disabled="structureOtherOff"
                 placeholder="选「其他」时填写"
               />
@@ -655,31 +776,31 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">电力总容量（kVA）<text class="req">*</text></text>
-                  <input v-model="form.powerKva" class="pf-input" type="number" />
+                  <input v-model="form.powerKva" class="pf-input" type="number" placeholder="kVA" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">变压器（台）</text>
-                  <input v-model="form.transformers" class="pf-input" type="number" />
+                  <input v-model="form.transformers" class="pf-input" type="number" placeholder="台" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">货梯（台）</text>
-                  <input v-model="form.freightLifts" class="pf-input" type="number" />
+                  <input v-model="form.freightLifts" class="pf-input" type="number" placeholder="台" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">货梯载重（吨）</text>
-                  <input v-model="form.liftLoadT" class="pf-input" type="digit" />
+                  <input v-model="form.liftLoadT" class="pf-input" type="digit" placeholder="吨" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">货梯尺寸（米）</text>
-                  <input v-model="form.liftDims" class="pf-input" />
+                  <input v-model="form.liftDims" class="pf-input" placeholder="长×宽×高（米）" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">装卸平台高度（cm）</text>
-                  <input v-model="form.platformHeightCm" class="pf-input" type="number" />
+                  <input v-model="form.platformHeightCm" class="pf-input" type="number" placeholder="可选" />
                 </view>
                 <view class="pf-field">
-                  <text class="pf-field__label">转弯半径（米）</text>
-                  <input v-model="form.turnRadiusM" class="pf-input" type="digit" />
+                  <text class="pf-field__label">货车转弯半径（米）</text>
+                  <input v-model="form.turnRadiusM" class="pf-input" type="digit" placeholder="可选" />
                 </view>
               </view>
             </view>
@@ -687,12 +808,12 @@ function leaveGo() {
             <view class="pf-cell pf-cell--col">
               <view class="pf-field-grid">
                 <view class="pf-field">
-                  <text class="pf-field__label">宿舍租金（元/房）</text>
-                  <input v-model="form.dormRent" class="pf-input" type="number" />
+                  <text class="pf-field__label">宿舍 · 园区内租金（元/房）</text>
+                  <input v-model="form.dormRent" class="pf-input" type="number" placeholder="可选" />
                 </view>
                 <view class="pf-field">
-                  <text class="pf-field__label">宿舍距离（km）</text>
-                  <input v-model="form.dormDistanceKm" class="pf-input" type="digit" />
+                  <text class="pf-field__label">宿舍 · 周边距离（公里）</text>
+                  <input v-model="form.dormDistanceKm" class="pf-input" type="digit" placeholder="可选" />
                 </view>
               </view>
             </view>
@@ -709,11 +830,11 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">公交 / 地铁站点</text>
-                  <input v-model="form.transitStation" class="pf-input" />
+                  <input v-model="form.transitStation" class="pf-input" placeholder="站点名称" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">站点距离（米）</text>
-                  <input v-model="form.stationDistanceM" class="pf-input" type="number" />
+                  <input v-model="form.stationDistanceM" class="pf-input" type="number" placeholder="米" />
                 </view>
               </view>
             </view>
@@ -722,37 +843,57 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">自用（㎡）</text>
-                  <input v-model="form.selfUseSqm" class="pf-input" type="number" />
+                  <input v-model="form.selfUseSqm" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">租金估算（元/年）</text>
-                  <input v-model="form.rentEstimateYear" class="pf-input" type="number" />
+                  <input v-model="form.rentEstimateYear" class="pf-input" type="number" placeholder="元/年" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">共租（家）</text>
-                  <input v-model="form.coTenantCount" class="pf-input" type="number" />
+                  <input v-model="form.coTenantCount" class="pf-input" type="number" placeholder="0 表示非共租" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">年租金（元/年）</text>
-                  <input v-model="form.annualRent" class="pf-input" type="number" />
+                  <input
+                    v-model="form.annualRent"
+                    class="pf-input"
+                    :class="{ 'pf-input--disabled': coTenantAnnualOff }"
+                    type="number"
+                    placeholder="共租时填写"
+                    :disabled="coTenantAnnualOff"
+                  />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">租客公司</text>
-                  <input v-model="form.tenantCompanies" class="pf-input" placeholder="多家用顿号分隔" />
+                  <input
+                    v-model="form.tenantCompanies"
+                    class="pf-input"
+                    :class="{ 'pf-input--disabled': coTenantAnnualOff }"
+                    placeholder="多家用顿号分隔"
+                    :disabled="coTenantAnnualOff"
+                  />
                 </view>
                 <view class="pf-field">
-                  <text class="pf-field__label">合同剩余（年）</text>
-                  <input v-model="form.contractYearsLeft" class="pf-input" type="digit" />
+                  <text class="pf-field__label">合同还有（年）</text>
+                  <input
+                    v-model="form.contractYearsLeft"
+                    class="pf-input"
+                    :class="{ 'pf-input--disabled': coTenantAnnualOff }"
+                    type="digit"
+                    placeholder="共租时填写"
+                    :disabled="coTenantAnnualOff"
+                  />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">腾空周期（月）</text>
-                  <input v-model="form.vacantMonths" class="pf-input" type="number" />
+                  <input v-model="form.vacantMonths" class="pf-input" type="number" placeholder="月" />
                 </view>
               </view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">使用情况备注</text>
-              <textarea v-model="form.usageRemark" class="pf-textarea" />
+              <textarea v-model="form.usageRemark" class="pf-textarea" placeholder="使用情况说明" />
             </view>
           </view>
 
@@ -773,10 +914,10 @@ function leaveGo() {
               </view>
               <input
                 v-model="form.propertyRightsOther"
-                class="pf-input"
-                :class="{ 'pf-input--disabled': rightsOtherOff }"
+                class="pf-textarea"
+                :class="{ 'pf-textarea--disabled': rightsOtherOff }"
                 :disabled="rightsOtherOff"
-                placeholder="产权 · 其他说明"
+                placeholder="选「其他」时填写"
               />
             </view>
             <view class="pf-cell pf-cell--col">
@@ -793,9 +934,10 @@ function leaveGo() {
               </view>
               <input
                 v-model="form.landUseOther"
-                class="pf-input"
-                :class="{ 'pf-input--disabled': landUseOtherOff }"
+                class="pf-textarea"
+                :class="{ 'pf-textarea--disabled': landUseOtherOff }"
                 :disabled="landUseOtherOff"
+                placeholder="选「其他」时填写"
               />
             </view>
             <view class="pf-cell pf-cell--col">
@@ -825,7 +967,8 @@ function leaveGo() {
               <textarea
                 v-model="form.mortgageNote"
                 class="pf-textarea"
-                :class="{ 'pf-input--disabled': mortgageNoteOff }"
+                :class="{ 'pf-textarea--disabled': mortgageNoteOff }"
+                placeholder="选「有」时填写"
                 :disabled="mortgageNoteOff"
               />
             </view>
@@ -833,12 +976,12 @@ function leaveGo() {
             <view class="pf-cell pf-cell--col">
               <view class="pf-field-grid">
                 <view class="pf-field">
-                  <text class="pf-field__label">房东心理价位（万）</text>
-                  <input v-model="form.landlordPriceWan" class="pf-input" type="digit" />
+                  <text class="pf-field__label">房东心里价位（万）</text>
+                  <input v-model="form.landlordPriceWan" class="pf-input" type="digit" placeholder="可选" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">交易方式</text>
-                  <input v-model="form.tradeMode" class="pf-input" />
+                  <input v-model="form.tradeMode" class="pf-input" placeholder="如：股权转让" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">交易税费说明</text>
@@ -846,13 +989,13 @@ function leaveGo() {
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">允许产业类型</text>
-                  <input v-model="form.allowedIndustries" class="pf-input" />
+                  <input v-model="form.allowedIndustries" class="pf-input" placeholder="允许入驻产业" />
                 </view>
               </view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">特殊限制</text>
-              <textarea v-model="form.specialLimits" class="pf-textarea" />
+              <textarea v-model="form.specialLimits" class="pf-textarea" placeholder="特殊限制说明" />
             </view>
             <view class="pf-section-h">消防 · 物流</view>
             <view class="pf-cell pf-cell--col">
@@ -869,9 +1012,10 @@ function leaveGo() {
               </view>
               <input
                 v-model="form.fireOther"
-                class="pf-input"
-                :class="{ 'pf-input--disabled': fireOtherOff }"
+                class="pf-textarea"
+                :class="{ 'pf-textarea--disabled': fireOtherOff }"
                 :disabled="fireOtherOff"
+                placeholder="选「其他」时填写"
               />
             </view>
             <picker mode="selector" :range="FIRE_PASS" :value="pickerIdx(FIRE_PASS, form.firePass || '是')" @change="onPickFirePass">
@@ -898,6 +1042,7 @@ function leaveGo() {
                 v-model="form.fireFailReason"
                 class="pf-input"
                 :class="{ 'pf-input--disabled': fireFailOff }"
+                placeholder="选「否」时填写"
                 :disabled="fireFailOff"
               />
             </view>
@@ -905,15 +1050,15 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">最近高速口（km）</text>
-                  <input v-model="form.highwayKm" class="pf-input" type="digit" />
+                  <input v-model="form.highwayKm" class="pf-input" type="digit" placeholder="km" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">港口/机场（km）</text>
-                  <input v-model="form.portAirportKm" class="pf-input" type="digit" />
+                  <input v-model="form.portAirportKm" class="pf-input" type="digit" placeholder="km" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">道路限高/限重</text>
-                  <input v-model="form.roadLimits" class="pf-input" />
+                  <input v-model="form.roadLimits" class="pf-input" placeholder="限高/限重说明" />
                 </view>
               </view>
             </view>
@@ -943,19 +1088,19 @@ function leaveGo() {
             <view class="pf-cell pf-cell--col">
               <input
                 v-model="form.subsidyDetail"
-                class="pf-input"
-                :class="{ 'pf-input--disabled': subsidyDetailOff }"
+                class="pf-textarea"
+                :class="{ 'pf-textarea--disabled': subsidyDetailOff }"
                 :disabled="subsidyDetailOff"
-                placeholder="补贴具体说明"
+                placeholder="选「有」时填写补贴说明"
               />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">税收优惠</text>
-              <input v-model="form.taxBenefit" class="pf-input" />
+              <input v-model="form.taxBenefit" class="pf-input" placeholder="税收优惠说明" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">环评等级</text>
-              <input v-model="form.envLevel" class="pf-input" />
+              <input v-model="form.envLevel" class="pf-input" placeholder="如：二类工业用地" />
             </view>
             <picker mode="selector" :range="DISCHARGE" :value="pickerIdx(DISCHARGE, form.dischargePermit || '有')" @change="onPickDischarge">
               <view class="pf-cell">
@@ -978,15 +1123,15 @@ function leaveGo() {
             <view class="pf-section-h">亮点 · 风险 · 评估</view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">厂房亮点</text>
-              <textarea v-model="form.highlights" class="pf-textarea" />
+              <textarea v-model="form.highlights" class="pf-textarea" placeholder="厂房亮点" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">潜在风险</text>
-              <textarea v-model="form.risks" class="pf-textarea" />
+              <textarea v-model="form.risks" class="pf-textarea" placeholder="潜在风险" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">评估建议</text>
-              <textarea v-model="form.assessment" class="pf-textarea" />
+              <textarea v-model="form.assessment" class="pf-textarea" placeholder="评估建议" />
             </view>
           </view>
 
@@ -1005,11 +1150,11 @@ function leaveGo() {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">租金挂牌（元/㎡·月）</text>
-                  <input v-model="form.rentListSqm" class="pf-input" type="digit" />
+                  <input v-model="form.rentListSqm" class="pf-input" type="digit" placeholder="元/㎡·月" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">物业费（元/㎡·月）</text>
-                  <input v-model="form.propertyFee" class="pf-input" type="digit" />
+                  <input v-model="form.propertyFee" class="pf-input" type="digit" placeholder="元/㎡·月" />
                 </view>
               </view>
             </view>
@@ -1027,7 +1172,7 @@ function leaveGo() {
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">看房预约备注</text>
-              <textarea v-model="form.viewingNote" class="pf-textarea" />
+              <textarea v-model="form.viewingNote" class="pf-textarea" placeholder="看房预约备注" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">内部备注</text>
@@ -1039,14 +1184,35 @@ function leaveGo() {
 
       <view class="page-footer">
         <view v-if="form.code" class="hint" style="text-align: center; margin-bottom: 12rpx">编号 {{ form.code }}</view>
+        <view v-if="formReadonly" class="pf-detail-audit-wrap" style="margin-bottom: 12rpx">
+          <view class="prop-detail-audit-strip audit-pending">
+            <text>{{ form.auditHint || '待审核中，暂不可编辑' }}</text>
+          </view>
+        </view>
+        <view v-else-if="auditState === 'live'" class="pf-detail-audit-wrap" style="margin-bottom: 12rpx">
+          <view class="prop-detail-audit-strip audit-live">
+            <text>已上线，租售状态请在后台管理系统调整</text>
+          </view>
+        </view>
         <view class="page-footer__row">
           <button v-if="step > 0" class="btn-secondary" @click="prevStep">上一步</button>
-          <button v-if="!isLast" class="btn-primary" :style="step > 0 ? '' : 'flex: 1'" @click="nextStep">下一步</button>
-          <template v-else>
-            <button class="btn-secondary" :disabled="saving" @click="saveDraft">保存草稿</button>
-            <button class="btn-primary" :disabled="saving" @click="submitFinal">提交审核</button>
-          </template>
+          <button v-if="canSaveDraft" class="btn-secondary" :disabled="saving" @click="saveDraft">保存草稿</button>
+          <button v-if="!isLast" class="btn-primary" @click="nextStep">下一步</button>
+          <button
+            v-else-if="canPublishForAudit"
+            class="btn-primary"
+            :disabled="saving"
+            @click="submitFinal"
+            >提交审核</button
+          >
         </view>
+      </view>
+    </view>
+
+    <view v-if="uploading" class="pf-upload-mask" @touchmove.stop.prevent>
+      <view class="pf-upload-mask__box">
+        <view class="pf-upload-mask__spinner" />
+        <text class="pf-upload-mask__txt">媒体上传中…</text>
       </view>
     </view>
 

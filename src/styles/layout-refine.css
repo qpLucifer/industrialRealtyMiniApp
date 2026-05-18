@@ -370,3 +370,199 @@ button[plain]::after {
   background: rgba(13, 148, 136, 0.08);
   border-radius: 12rpx;
 }
+
+/* Subpage nav icon buttons (replace text 返回/日志) */
+.top-bar__nav-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+  min-width: 72rpx;
+}
+
+.nav-icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+}
+
+.nav-icon-btn:active {
+  background: #e2e8f0;
+}
+
+.ic-nav-back {
+  width: 22rpx;
+  height: 22rpx;
+  border-left: 4rpx solid #334155;
+  border-bottom: 4rpx solid #334155;
+  transform: rotate(45deg);
+  margin-left: 8rpx;
+}
+
+.ic-nav-close {
+  width: 28rpx;
+  height: 28rpx;
+  position: relative;
+}
+
+.ic-nav-close::before,
+.ic-nav-close::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28rpx;
+  height: 4rpx;
+  background: #334155;
+  border-radius: 2rpx;
+}
+
+.ic-nav-close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.ic-nav-close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.ic-nav-log {
+  width: 22rpx;
+  height: 26rpx;
+  border: 3rpx solid #334155;
+  border-radius: 4rpx;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.ic-nav-log::after {
+  content: '';
+  position: absolute;
+  left: 4rpx;
+  right: 4rpx;
+  top: 8rpx;
+  height: 3rpx;
+  background: #334155;
+  box-shadow: 0 6rpx 0 #334155;
+}
+
+.ic-nav-add {
+  width: 28rpx;
+  height: 28rpx;
+  position: relative;
+}
+
+.ic-nav-add::before,
+.ic-nav-add::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #334155;
+  border-radius: 2rpx;
+  transform: translate(-50%, -50%);
+}
+
+.ic-nav-add::before {
+  width: 28rpx;
+  height: 4rpx;
+}
+
+.ic-nav-add::after {
+  width: 4rpx;
+  height: 28rpx;
+}
+
+.ic-nav-more {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 10rpx 0 0 #334155, 20rpx 0 0 #334155;
+}
+
+/* Shared form controls — disabled must read clearly darker than editable */
+.form-control,
+.form-group input,
+.form-group textarea,
+.picker-value,
+.pf-input,
+.pf-textarea,
+.pf-select,
+.dt-field__picker {
+  box-sizing: border-box;
+}
+
+.form-group input,
+.form-group textarea,
+.picker-value {
+  width: 100%;
+  padding: 20rpx 24rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+.form-control--disabled,
+.form-group input:disabled,
+.form-group textarea:disabled,
+.picker-value.form-control--disabled,
+.pf-input--disabled,
+.pf-input[disabled],
+.pf-textarea--disabled,
+.pf-textarea[disabled],
+.dt-field--disabled .dt-field__picker {
+  color: #475569 !important;
+  background: #cbd5e1 !important;
+  border-color: #94a3b8 !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #475569;
+}
+
+.dt-field__label,
+.form-group .label {
+  display: block;
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+}
+
+.dt-field__row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.dt-field__picker {
+  flex: 1;
+  padding: 20rpx 24rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+.dt-field__placeholder {
+  color: #94a3b8;
+}
+
+.dt-field__hint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+
+.form-field-readonly {
+  padding: 20rpx 24rpx;
+  background: #e2e8f0;
+  border: 1rpx solid #94a3b8;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #334155;
+  font-weight: 600;
+}

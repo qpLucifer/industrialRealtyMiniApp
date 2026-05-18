@@ -1,9 +1,8 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchMyPublished } from '@/api/property'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 type Row = {
   code: string
   title: string
@@ -49,17 +48,12 @@ function back() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">我的发布</view>
-          <view class="top-bar__nav-right">
-            <button class="btn-ghost" @click="goPublish()">新建</button>
-          </view>
-        </view>
-      </view>
+      <NavIconBar
+        title="我的发布"
+        :actions="[{ key: 'add', icon: 'add', ariaLabel: '新建房源' }]"
+        @back="back"
+        @action="() => goPublish()"
+      />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-for="p in list" :key="p.code" class="card list-item" @click="goDetail(p.code)">
           <view style="flex: 1; min-width: 0">

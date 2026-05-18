@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchCustomerDetail } from '@/api/customer'
 import type { CustomerDetail } from '@/types/customer'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const id = ref('')
 const d = ref<CustomerDetail | null>(null)
 
@@ -42,15 +41,7 @@ function goFollow() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub cust-detail-frame">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">客户档案</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar title="客户档案" @back="back" />
       <scroll-view v-if="d" scroll-y :show-scrollbar="false" class="page-scroll cust-detail-scroll">
         <view class="page-scroll__inner">
           <view class="card card-glow">

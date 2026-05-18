@@ -1,11 +1,10 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<AnnouncementItem[]>([])
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
@@ -58,15 +57,7 @@ function previewBody(body: string, max = 72) {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">公告</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar title="公告" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
           <view v-if="items.length === 0" class="card">

@@ -1,10 +1,9 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchSecuritySettings, saveSecuritySettings } from '@/api/user'
 import type { SecuritySettings } from '@/types/user'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const s = ref<SecuritySettings | null>(null)
 
 onMounted(async () => {
@@ -31,15 +30,7 @@ function patch<K extends keyof SecuritySettings>(key: K, e: unknown) {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">安全与隐私</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar title="安全与隐私" @back="back" />
       <scroll-view v-if="s" scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
         <view class="card">
           <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0">

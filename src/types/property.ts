@@ -66,6 +66,12 @@ export interface MyPublishedProperty {
 /** Admin wizard JSON — subset used by mini publish; extra keys pass through to server. */
 export interface PropertyEditForm {
   code?: string
+  /** draft | pending | rejected | live — aligned with properties.audit_state */
+  auditState?: string
+  /** List column status_tag: 草稿 | 待审核 | 驳回 | 待租 | … */
+  externalStatus?: string
+  auditHint?: string
+  submitterName?: string
   listTitle?: string
   companyName?: string
   address?: string

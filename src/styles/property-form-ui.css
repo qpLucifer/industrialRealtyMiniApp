@@ -187,9 +187,83 @@
   margin-left: 4rpx;
 }
 
-.pf-input--disabled {
-  opacity: 0.45;
-  background: #f1f5f9;
+.pf-input--disabled,
+.pf-textarea--disabled,
+.pf-input[disabled],
+.pf-textarea[disabled] {
+  opacity: 1 !important;
+  color: #475569 !important;
+  background: #cbd5e1 !important;
+  border: 1rpx solid #94a3b8 !important;
+  -webkit-text-fill-color: #475569;
+}
+
+.pf-input::placeholder,
+.pf-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.pf-select__value.placeholder {
+  color: #94a3b8;
+}
+
+.upload-tile--busy {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.timeline-item--reject {
+  padding: 20rpx 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 16rpx;
+  background: rgba(254, 226, 226, 0.55);
+  border: 1rpx solid rgba(244, 63, 94, 0.35);
+}
+
+.timeline-item--reject .timeline-line {
+  color: #b91c1c;
+}
+
+.pf-upload-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.pf-upload-mask__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  padding: 40rpx 48rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 16rpx 48rpx rgba(15, 23, 42, 0.18);
+}
+
+.pf-upload-mask__spinner {
+  width: 56rpx;
+  height: 56rpx;
+  border: 6rpx solid #e2e8f0;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: pf-spin 0.8s linear infinite;
+}
+
+.pf-upload-mask__txt {
+  font-size: 28rpx;
+  color: #334155;
+  font-weight: 600;
+}
+
+@keyframes pf-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .pf-textarea {
@@ -294,6 +368,25 @@
   font-size: 26rpx;
   line-height: 1.55;
   color: #7f1d1d;
+}
+
+.pf-status-readonly {
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: rgba(241, 245, 249, 0.9);
+  border: 1rpx solid rgba(148, 163, 184, 0.35);
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pf-publish--locked .pf-card input,
+.pf-publish--locked .pf-card textarea,
+.pf-publish--locked .pf-card .pf-chip,
+.pf-publish--locked .pf-card .pf-map-btn,
+.pf-publish--locked .pf-card .pf-select {
+  pointer-events: none;
+  opacity: 0.88;
 }
 
 .pf-detail-loading {

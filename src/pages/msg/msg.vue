@@ -1,5 +1,6 @@
-﻿<script setup lang="ts">
-import { onMounted, ref } from 'vue'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchMessageList } from '@/api/message'
 import type { MessageItem } from '@/types/message'
@@ -8,9 +9,17 @@ const topBarInsetStyle = useTopBarInsetStyle()
 
 const list = ref<MessageItem[]>([])
 
-onMounted(async () => {
-  const r = await fetchMessageList()
-  list.value = r.list
+async function reload() {
+  try {
+    const r = await fetchMessageList()
+    list.value = r.list
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  }
+}
+
+onShow(() => {
+  reload()
 })
 
 function iconStyle(tone: MessageItem['iconTone']) {
@@ -53,6 +62,7 @@ function open(m: MessageItem) {
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
+        <view v-if="!list.length" class="hint" style="padding: 48rpx; text-align: center">暂无消息</view>
         <view
           v-for="m in list"
           :key="m.id"

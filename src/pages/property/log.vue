@@ -1,10 +1,9 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchPropertyLogs } from '@/api/property'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<{ line: string; sub: string }[]>([])
 const code = ref('')
 
@@ -22,6 +21,11 @@ onLoad(async (q) => {
   }
 })
 
+function isRejectLog(t: { line: string; sub: string }) {
+  const text = `${t.line} ${t.sub}`
+  return /驳回/.test(text)
+}
+
 function back() {
   uni.navigateBack()
 }
@@ -30,19 +34,16 @@ function back() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">操作日志{{ code ? ` · ${code}` : '' }}</view>
-          <view class="top-bar__nav-right top-bar__nav-right--spacer"></view>
-        </view>
-      </view>
+      <NavIconBar :title="code ? `操作日志 · ${code}` : '操作日志'" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-if="!list.length" class="hint" style="padding: 48rpx; text-align: center">暂无该房源操作记录</view>
         <view class="timeline">
-          <view v-for="(t, i) in list" :key="i" class="timeline-item">
+          <view
+            v-for="(t, i) in list"
+            :key="i"
+            class="timeline-item"
+            :class="{ 'timeline-item--reject': isRejectLog(t) }"
+          >
             <text class="timeline-line" style="font-weight: 700">{{ t.line }}</text>
             <text class="hint" style="display: block; margin-top: 8rpx">{{ t.sub }}</text>
           </view>

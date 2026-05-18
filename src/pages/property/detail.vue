@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchPropertyDetail, fetchPropertyEditForm } from '@/api/property'
 import type { PropertyDetailPayload } from '@/types/property'
 import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const pid = ref('')
 const detail = ref<PropertyDetailPayload | null>(null)
 const tab = ref(0)
@@ -26,11 +25,17 @@ const auditClass = computed(() => {
 })
 
 const canViewing = computed(() => detail.value?.auditKey === 'live')
+const canEditProperty = computed(() => {
+  const k = detail.value?.auditKey
+  return k === 'draft' || k === 'rejected'
+})
+
+const KV_STATUS_OMIT = new Set(['对外状态', '当前状态', '状态', '审核状态'])
 
 const kvRows = computed(() => {
   const d = detail.value?.kv
   if (!d) return []
-  return d[TAB_KV_KEYS[tab.value]] ?? []
+  return (d[TAB_KV_KEYS[tab.value]] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
 })
 
 const mediaImages = computed(() => (detail.value?.mediaImages ?? []).map((u) => resolveMediaUrl(u)))
@@ -39,6 +44,59 @@ const heroVideo = computed(() => mediaVideos.value[0] || '')
 const propertyTypeLabel = computed(() => detail.value?.propertyType || '')
 const heroImage = computed(() => (heroVideo.value ? '' : mediaImages.value[0] || ''))
 const heroActiveImage = ref(0)
+/** Tab 2: videos already in hero — only list images below */
+const detailTabVideos = computed(() => (heroVideo.value ? [] : mediaVideos.value))
+const showMediaTab = computed(
+  () => mediaImages.value.length > 0 || detailTabVideos.value.length > 0,
+)
+
+const statusChipLabel = computed(() => {
+  const d = detail.value
+  if (!d) return ''
+  const ext = String(d.externalStatus || '').trim()
+  if (ext && ext !== '—') return ext
+  if (d.auditKey === 'draft') return '草稿'
+  if (d.auditKey === 'pending') return '待审核'
+  if (d.auditKey === 'rejected') return '驳回'
+  return d.leaseChip || '—'
+})
+
+const statusChipClass = computed(() => {
+  const k = detail.value?.auditKey
+  if (k === 'draft') return 'chip'
+  if (k === 'pending') return 'chip warn'
+  if (k === 'rejected') return 'chip'
+  if (k === 'live') return 'chip on ok'
+  return 'chip'
+})
+
+const headerChips = computed(() => {
+  const d = detail.value
+  if (!d) return [] as { label: string; cls: string }[]
+  const items: { label: string; cls: string }[] = []
+  const type = propertyTypeLabel.value
+  if (type) items.push({ label: type, cls: 'chip' })
+  const st = statusChipLabel.value
+  if (st && st !== '—') items.push({ label: st, cls: statusChipClass.value })
+  if (d.company) items.push({ label: d.company, cls: 'chip' })
+  const out: { label: string; cls: string }[] = []
+  for (const it of items) {
+    if (out.length && out[out.length - 1].label === it.label) continue
+    out.push(it)
+  }
+  return out
+})
+
+const showAuditHintStrip = computed(() => {
+  const d = detail.value
+  if (!d?.auditHint) return false
+  if (d.auditKey === 'rejected' && d.rejectReason) return false
+  const hint = String(d.auditHint).trim()
+  const st = statusChipLabel.value
+  if (hint.includes(st) && st.length > 0) return false
+  if (d.auditKey === 'draft' && /草稿/.test(hint)) return false
+  return true
+})
 
 function parseCoord(v: unknown) {
   const n = Number.parseFloat(String(v ?? '').trim())
@@ -108,7 +166,7 @@ function goEdit() {
   uni.navigateTo({ url: `/pages/property/publish?editId=${encodeURIComponent(pid.value)}` })
 }
 
-function goLog() {
+function goLog(_key?: string) {
   uni.navigateTo({ url: `/pages/property/log?id=${encodeURIComponent(pid.value)}` })
 }
 
@@ -166,17 +224,12 @@ function openVideoFullscreen(url: string) {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">房源详情</view>
-          <view class="top-bar__nav-right">
-            <button class="btn-ghost sm" @click="goLog">日志</button>
-          </view>
-        </view>
-      </view>
+      <NavIconBar
+        title="房源详情"
+        :actions="[{ key: 'log', icon: 'log', ariaLabel: '操作日志' }]"
+        @back="back"
+        @action="goLog"
+      />
 
       <view v-if="!detail" class="page-scroll pf-detail-loading">
         <text class="hint">加载中…</text>
@@ -222,15 +275,12 @@ function openVideoFullscreen(url: string) {
 
         <view class="pf-detail-sheet">
           <view class="pf-detail-title-card">
-            <text class="detail-header-card__code">{{ detail.id }} · {{ detail.auditBadge }}</text>
+            <text class="detail-header-card__code">{{ detail.id }}</text>
             <text class="detail-header-card__title">{{ detail.detailTitle }}</text>
             <text class="detail-header-card__meta">{{ detail.specLine }}</text>
             <text class="pf-detail-price">{{ detail.priceLine }}</text>
             <view class="chip-row">
-              <text v-if="propertyTypeLabel" class="chip">{{ propertyTypeLabel }}</text>
-              <text class="chip on ok">{{ detail.leaseChip }}</text>
-              <text v-if="detail.company" class="chip">{{ detail.company }}</text>
-              <text v-if="detail.externalStatus" class="chip">{{ detail.externalStatus }}</text>
+              <text v-for="(c, i) in headerChips" :key="i" :class="c.cls">{{ c.label }}</text>
             </view>
           </view>
 
@@ -239,7 +289,7 @@ function openVideoFullscreen(url: string) {
             <text class="pf-reject-box__body">{{ detail.rejectReason }}</text>
           </view>
 
-          <view v-else-if="detail.auditHint" class="pf-detail-audit-wrap">
+          <view v-else-if="showAuditHintStrip" class="pf-detail-audit-wrap">
             <view class="prop-detail-audit-strip" :class="auditClass">
               <text>{{ detail.auditHint }}</text>
             </view>
@@ -296,10 +346,10 @@ function openVideoFullscreen(url: string) {
             </view>
           </view>
 
-          <!-- Tab 2: gallery (hero is preview only; full list here) -->
-          <view v-if="tab === 2 && (mediaImages.length || mediaVideos.length)" class="pf-kv-card">
+          <!-- Tab 2: images only when hero plays video; otherwise images + videos -->
+          <view v-if="tab === 2 && showMediaTab" class="pf-kv-card">
             <view v-if="mediaImages.length" class="pf-detail-media-block">
-              <view class="section-title">全部图片</view>
+              <view class="section-title">{{ heroVideo ? '图片' : '全部图片' }}</view>
               <view class="pf-detail-media-grid">
                 <image
                   v-for="(url, i) in mediaImages"
@@ -311,9 +361,9 @@ function openVideoFullscreen(url: string) {
                 />
               </view>
             </view>
-            <view v-if="mediaVideos.length" class="pf-detail-media-block">
+            <view v-if="detailTabVideos.length" class="pf-detail-media-block">
               <view class="section-title">全部视频</view>
-              <view v-for="(url, i) in mediaVideos" :key="'vid' + i" class="pf-detail-video-item">
+              <view v-for="(url, i) in detailTabVideos" :key="'vid' + i" class="pf-detail-video-item">
                 <video
                   class="prop-media-editor__video-sm"
                   :src="url"
@@ -327,7 +377,7 @@ function openVideoFullscreen(url: string) {
           </view>
 
           <text
-            v-if="!kvRows.length && tab !== 1 && !(tab === 2 && (mediaImages.length || mediaVideos.length))"
+            v-if="!kvRows.length && tab !== 1 && !(tab === 2 && showMediaTab)"
             class="hint pf-detail-empty"
             >暂无数据</text
           >
@@ -342,6 +392,7 @@ function openVideoFullscreen(url: string) {
       <view v-if="detail" class="page-footer">
         <view class="page-footer__row">
           <button
+            v-if="canEditProperty"
             class="btn-secondary"
             :class="{ 'btn-primary': !canViewing }"
             :style="canViewing ? '' : 'flex: 1'"

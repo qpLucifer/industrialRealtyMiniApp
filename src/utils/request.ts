@@ -364,6 +364,9 @@ export function emptyPropertyForm(): PropertyEditForm {
     mediaVideoUrls: '',
     mediaUrls: '',
     photoChecklist: [],
+    auditState: 'draft',
+    externalStatus: '草稿',
+    auditHint: '未发布 · 保存后仍为草稿',
   }
 }
 
@@ -393,6 +396,14 @@ export function applyPropertyApiForm(target: PropertyEditForm, api: PropertyEdit
   if (!Array.isArray(target.landUse)) target.landUse = []
   if (!Array.isArray(target.certificates)) target.certificates = []
   if (!Array.isArray(target.structureTypes)) target.structureTypes = []
+  if (api.auditState != null && String(api.auditState).trim()) {
+    target.auditState = String(api.auditState).trim()
+  }
+  if (api.externalStatus != null && String(api.externalStatus).trim()) {
+    target.externalStatus = String(api.externalStatus).trim()
+  }
+  if (api.auditHint != null) target.auditHint = String(api.auditHint)
+  normalizePropertyFormNumbers(target)
 }
 
 function numOrEmpty(v: unknown): number | '' {
@@ -401,11 +412,58 @@ function numOrEmpty(v: unknown): number | '' {
   return Number.isFinite(n) ? n : ''
 }
 
+function numOrZero(v: unknown): number {
+  if (v === '' || v == null) return 0
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function numOrNull(v: unknown): number | null {
+  if (v === '' || v == null) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Align numeric wizard fields with admin JSON (numbers, not MP input strings). */
+export function normalizePropertyFormNumbers(form: PropertyEditForm) {
+  if (!form || typeof form !== 'object') return
+  const intKeys = [
+    'landMu',
+    'actualLandMu',
+    'buildingArea',
+    'actualUseArea',
+    'floors',
+    'powerKva',
+    'transformers',
+    'freightLifts',
+    'liftLoadT',
+    'platformHeightCm',
+    'dormRent',
+    'stationDistanceM',
+    'selfUseSqm',
+    'rentEstimateYear',
+    'coTenantCount',
+    'vacantMonths',
+    'rentListSqm',
+    'propertyFee',
+  ] as const
+  const decKeys = ['loadPerSqm', 'turnRadiusM', 'dormDistanceKm', 'highwayKm', 'portAirportKm'] as const
+  for (const k of intKeys) {
+    if (k in form) (form as Record<string, unknown>)[k] = numOrZero(form[k])
+  }
+  for (const k of decKeys) {
+    if (k in form) (form as Record<string, unknown>)[k] = numOrZero(form[k])
+  }
+  if ('annualRent' in form) form.annualRent = numOrNull(form.annualRent)
+  if ('contractYearsLeft' in form) form.contractYearsLeft = numOrNull(form.contractYearsLeft)
+  if ('landlordPriceWan' in form) form.landlordPriceWan = numOrNull(form.landlordPriceWan)
+}
+
 export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEditForm {
   const images = joinMediaLines(parseMediaLines(form.mediaImageUrls))
   const videos = joinMediaLines(parseMediaLines(form.mediaVideoUrls))
   const types = Array.isArray(form.types) ? form.types.filter(Boolean) : ['标准厂房']
-  return {
+  const payload: PropertyEditForm = {
     ...form,
     code: form.code,
     listTitle: String(form.listTitle || '').trim() || `${form.companyName || '房源'} · ${types[0]}`,
@@ -425,6 +483,19 @@ export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEdit
     transformers: numOrEmpty(form.transformers),
     freightLifts: numOrEmpty(form.freightLifts),
     liftLoadT: numOrEmpty(form.liftLoadT),
+    platformHeightCm: numOrZero(form.platformHeightCm),
+    turnRadiusM: numOrZero(form.turnRadiusM),
+    dormRent: numOrZero(form.dormRent),
+    dormDistanceKm: numOrZero(form.dormDistanceKm),
+    stationDistanceM: numOrZero(form.stationDistanceM),
+    selfUseSqm: numOrZero(form.selfUseSqm),
+    rentEstimateYear: numOrZero(form.rentEstimateYear),
+    coTenantCount: numOrZero(form.coTenantCount),
+    annualRent: numOrNull(form.annualRent),
+    contractYearsLeft: numOrNull(form.contractYearsLeft),
+    landlordPriceWan: numOrNull(form.landlordPriceWan),
+    highwayKm: numOrZero(form.highwayKm),
+    portAirportKm: numOrZero(form.portAirportKm),
     vacantMonths: numOrEmpty(form.vacantMonths),
     rentListSqm: numOrEmpty(form.rentListSqm),
     propertyFee: numOrEmpty(form.propertyFee),
@@ -432,6 +503,8 @@ export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEdit
     mediaVideoUrls: videos,
     mediaUrls: [images, videos].filter(Boolean).join('\n'),
   }
+  normalizePropertyFormNumbers(payload)
+  return payload
 }
 
 export function chipListFromJoined(raw: string): string[] {

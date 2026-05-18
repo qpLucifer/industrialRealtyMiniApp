@@ -1,9 +1,8 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchViewingList } from '@/api/extra'
 
-const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<{ start: string; end: string; prop: string; customer: string; staff: string; grade: string }[]>([])
 
 onMounted(async () => {
@@ -23,17 +22,12 @@ function back() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <view class="top-bar top-bar--nav" :style="topBarInsetStyle">
-        <view class="top-bar__navrow">
-          <view class="top-bar__nav-left">
-            <button class="btn-ghost" @click="back">返回</button>
-          </view>
-          <view class="top-bar__nav-mid">带看记录</view>
-          <view class="top-bar__nav-right">
-            <button class="btn-ghost" @click="goNew">新建</button>
-          </view>
-        </view>
-      </view>
+      <NavIconBar
+        title="带看记录"
+        :actions="[{ key: 'add', icon: 'add', ariaLabel: '新建带看' }]"
+        @back="back"
+        @action="goNew"
+      />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view v-for="(v, i) in list" :key="i" class="card" style="margin-bottom: 24rpx">
           <view style="display: flex; justify-content: space-between; align-items: center">
