@@ -6,6 +6,7 @@ import {
   mockMyPublishedProperties,
   mockPropertyList,
   mockPropertyLogs,
+  resolvePropertyDetailKey,
 } from '@/mock/data/properties'
 import type { PropertyEditForm } from '@/types/property'
 import { buildPropertyDetailKvFromForm } from '@/utils/propertyDetailKv'
@@ -32,6 +33,56 @@ function buildMockAnnouncementList() {
     }
   })
   return { list, unreadCount: list.filter((x) => !x.read).length }
+}
+
+function parseMockBuildingArea(p: { buildingArea?: number; metaLine?: string }) {
+  if (p.buildingArea != null && Number.isFinite(Number(p.buildingArea))) return Number(p.buildingArea)
+  const m = String(p.metaLine || '').match(/(\d+(?:\.\d+)?)\s*㎡/)
+  return m ? Number(m[1]) : 0
+}
+
+function filterMockPropertyList(query: Record<string, string>) {
+  let rows = [...mockPropertyList]
+  const q = (query.q || '').trim().toLowerCase()
+  if (q) {
+    rows = rows.filter((p) =>
+      [p.title, p.code, p.id, p.metaLine].some((s) => String(s).toLowerCase().includes(q)),
+    )
+  }
+  const status = (query.status || '').trim()
+  if (status) rows = rows.filter((p) => p.status === status)
+  const regionId = query.districtRegionId != null && String(query.districtRegionId).trim() !== ''
+    ? Number(query.districtRegionId)
+    : NaN
+  if (Number.isFinite(regionId)) {
+    rows = rows.filter((p) => p.districtRegionId === regionId)
+  }
+  const minArea = query.minArea != null && String(query.minArea).trim() !== '' ? Number(query.minArea) : NaN
+  const maxArea = query.maxArea != null && String(query.maxArea).trim() !== '' ? Number(query.maxArea) : NaN
+  if (Number.isFinite(minArea)) {
+    rows = rows.filter((p) => parseMockBuildingArea(p) >= minArea)
+  }
+  if (Number.isFinite(maxArea)) {
+    rows = rows.filter((p) => {
+      const a = parseMockBuildingArea(p)
+      return a > 0 && a <= maxArea
+    })
+  }
+  return rows
+}
+
+function filterMockCustomerList(query: Record<string, string>) {
+  let rows = [...mockCustomerList]
+  const scope = (query.scope || '').trim()
+  if (scope === 'mine') rows = rows.filter((c) => c.scope === '私有')
+  else if (scope === 'public') rows = rows.filter((c) => c.scope === '公有')
+  const q = (query.q || '').trim().toLowerCase()
+  if (q) {
+    rows = rows.filter((c) =>
+      [c.company, c.contactName, c.titleLine, c.id].some((s) => String(s).toLowerCase().includes(q)),
+    )
+  }
+  return rows
 }
 
 function parseQuery(url: string): Record<string, string> {
@@ -86,9 +137,10 @@ function mockEditFormForDetail(id: string): PropertyEditForm {
   }
 }
 
-function buildPropertyDetailPayload(id: string) {
-  const d = getPropertyDetail(id)
-  const form = mockEditFormForDetail(id)
+function buildPropertyDetailPayload(key: string) {
+  const resolved = resolvePropertyDetailKey(key)
+  const d = getPropertyDetail(resolved)
+  const form = mockEditFormForDetail(resolved)
   const kv = buildPropertyDetailKvFromForm(form, {
     type: d.propertyType,
     district: d.district,
@@ -154,10 +206,21 @@ export async function dispatchMock(
   if (method === 'GET' && path === '/api/meta/regions') {
     return okResult({
       list: [
-        { id: 'r1', name: '黄埔区' },
-        { id: 'r2', name: '南沙区' },
-        { id: 'r3', name: '增城区' },
+        { id: 1, name: '黄埔区' },
+        { id: 2, name: '南沙区' },
+        { id: 3, name: '增城区' },
       ],
+    })
+  }
+
+  if (method === 'GET' && path === '/api/mini/staff-peers') {
+    return okResult({
+      list: [
+        { id: 'mock-peer-1', name: '王莉' },
+        { id: 'mock-peer-2', name: '刘洋' },
+      ],
+      selfId: 'mock-self',
+      selfName: mockUserProfile.name || '陈思远',
     })
   }
 
@@ -168,17 +231,17 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/property/list') {
-    return okResult({ list: mockPropertyList })
+    return okResult({ list: filterMockPropertyList(query) })
   }
 
   if (method === 'GET' && path === '/api/property/detail') {
-    const id = query.id || 'P-8821'
-    return okResult(buildPropertyDetailPayload(id))
+    const key = query.key || query.id || query.code || 'P-8821'
+    return okResult(buildPropertyDetailPayload(key))
   }
 
   if (method === 'GET' && path === '/api/property/edit-form') {
-    const code = query.code || query.id || 'P-8821'
-    return okResult(mockEditFormForDetail(code))
+    const key = query.key || query.code || query.id || 'P-8821'
+    return okResult(mockEditFormForDetail(resolvePropertyDetailKey(key)))
   }
 
   if (method === 'GET' && path === '/api/property/logs') {
@@ -190,7 +253,7 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/customer/list') {
-    return okResult({ list: mockCustomerList })
+    return okResult({ list: filterMockCustomerList(query) })
   }
 
   if (method === 'GET' && path === '/api/customer/detail') {
@@ -260,6 +323,29 @@ export async function dispatchMock(
   }
 
   if (method === 'POST' && path.startsWith('/api/action/')) {
+    const actionKey = path.replace('/api/action/', '')
+    const payload = (body || {}) as Record<string, unknown>
+    const existingCode = String(payload.code || '').trim()
+    const generatedCode = existingCode || `P-MOCK-${Date.now()}`
+
+    if (actionKey === 'save-draft') {
+      return okResult({
+        ok: true,
+        code: generatedCode,
+        auditState: 'draft',
+        externalStatus: '草稿',
+        auditHint: '未发布 · 保存后仍为草稿',
+      })
+    }
+    if (actionKey === 'submit-property') {
+      return okResult({
+        ok: true,
+        code: generatedCode,
+        auditState: 'pending',
+        externalStatus: '待审核',
+        auditHint: '已提交发布 · 等待管理员审核',
+      })
+    }
     return okResult({ ok: true })
   }
 

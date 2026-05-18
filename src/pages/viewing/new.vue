@@ -4,9 +4,11 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import DateTimeField from '@/components/DateTimeField.vue'
 import { fetchCustomerList } from '@/api/customer'
-import { fetchPropertyList } from '@/api/property'
+import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
+import { markListStale } from '@/utils/listStale'
+import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 
@@ -34,7 +36,7 @@ const customerLabel = computed(() => {
 const propertyLabel = computed(() => {
   if (propLocked.value && propertyTitle.value) return propertyTitle.value
   const p = properties.value[propertyIdx.value]
-  return p ? `${p.id} · ${p.title}` : '请选择房源'
+  return p ? `${p.code || p.id} · ${p.title}` : '请选择房源'
 })
 
 const companionsDisplay = computed(() => {
@@ -58,10 +60,10 @@ function defaultSlot() {
 function syncPickersFromCode() {
   if (propertyId.value) {
     const p = properties.value.find((x) => x.id === propertyId.value || x.code === propertyId.value)
-    if (p) propertyId.value = p.id
     if (p) {
+      propertyId.value = propertyNavKey(p)
       propertyTitle.value = `${p.code || p.id} · ${p.title}`
-      const i = properties.value.findIndex((x) => x.id === propertyId.value)
+      const i = properties.value.findIndex((x) => x.id === p.id)
       if (i >= 0) propertyIdx.value = i
     }
   }
@@ -88,9 +90,9 @@ function toggleStaff(id: string) {
 
 onLoad(async (q) => {
   defaultSlot()
-  if (q?.propId) {
-    const hint = String(q.propId)
-    propertyId.value = hint
+  const routeKey = parsePropertyRouteKey(q)
+  if (routeKey) {
+    propertyId.value = routeKey
     propLocked.value = true
   }
   if (q?.customerId) customerSlug.value = String(q.customerId)
@@ -117,7 +119,7 @@ function onCustomerPick(e: { detail: { value: string } }) {
 function onPropertyPick(e: { detail: { value: string } }) {
   propertyIdx.value = Number(e.detail.value)
   const p = properties.value[propertyIdx.value]
-  propertyId.value = p?.id || ''
+  propertyId.value = p ? propertyNavKey(p) : ''
   propertyTitle.value = p ? `${p.code || p.id} · ${p.title}` : ''
 }
 
@@ -131,6 +133,8 @@ async function submit() {
     return
   }
   try {
+    markListStale('viewing-list')
+    markWorkbenchStale()
     await postAction('viewing-create', {
       start: start.value,
       end: end.value,

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
-import { fetchMyPublished } from '@/api/property'
+import { fetchMyPublished, navigateToPropertyDetail, navigateToPropertyPublish } from '@/api/property'
+import { consumeListStale } from '@/utils/listStale'
 
 type Row = {
   code: string
@@ -12,10 +14,37 @@ type Row = {
 }
 
 const list = ref<Row[]>([])
+const loading = ref(false)
+const loadError = ref('')
+const skipNextShow = ref(false)
 
-onMounted(async () => {
-  const r = await fetchMyPublished()
-  list.value = r.list as Row[]
+async function load() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    const r = await fetchMyPublished()
+    list.value = r.list as Row[]
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad(async () => {
+  skipNextShow.value = true
+  await load()
+})
+
+onShow(() => {
+  if (skipNextShow.value) {
+    skipNextShow.value = false
+    return
+  }
+  if (consumeListStale('my-published')) {
+    void load()
+  }
 })
 
 function chipStyle(tone: Row['statusTone']) {
@@ -32,12 +61,11 @@ function chipClass(tone: Row['statusTone']) {
 }
 
 function goDetail(code: string) {
-  uni.navigateTo({ url: `/pages/property/detail?id=${encodeURIComponent(code)}` })
+  navigateToPropertyDetail(code)
 }
 
 function goPublish(code?: string) {
-  if (code) uni.navigateTo({ url: `/pages/property/publish?editId=${encodeURIComponent(code)}` })
-  else uni.navigateTo({ url: '/pages/property/publish?clear=1' })
+  navigateToPropertyPublish(code, { clear: !code })
 }
 
 function back() {
@@ -50,18 +78,34 @@ function back() {
     <view class="page-frame screen active screen--sub">
       <NavIconBar
         title="我的发布"
-        :actions="[{ key: 'add', icon: 'add', ariaLabel: '新建房源' }]"
+        :actions="[{ key: 'add', icon: 'add', ariaLabel: '发布房源' }]"
         @back="back"
-        @action="() => goPublish()"
+        @action="goPublish()"
       />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-for="p in list" :key="p.code" class="card list-item" @click="goDetail(p.code)">
+        <view v-if="loading && !list.length" class="card" style="margin-bottom: 24rpx">
+          <text class="hint">加载中…</text>
+        </view>
+        <view v-else-if="loadError && !list.length" class="card" style="margin-bottom: 24rpx">
+          <text class="hint">{{ loadError }}</text>
+          <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
+        </view>
+        <view v-else-if="!list.length" class="card" style="margin-bottom: 24rpx">
+          <text class="hint">暂无发布记录</text>
+        </view>
+        <view
+          v-for="p in list"
+          :key="p.code"
+          class="prop-list-card"
+          @click="goDetail(p.code)"
+        >
+          <view class="thumb" />
           <view style="flex: 1; min-width: 0">
-            <view style="display: flex; justify-content: space-between; gap: 16rpx; align-items: center">
-              <text style="font-size: 28rpx; font-weight: 700">#{{ p.code }} {{ p.title }}</text>
-              <text :class="chipClass(p.statusTone)" :style="chipStyle(p.statusTone)">{{ p.status }}</text>
+            <view style="display: flex; justify-content: space-between; gap: 8px">
+              <view class="list-title-strong" style="flex: 1">{{ p.title }}</view>
+              <view :class="chipClass(p.statusTone)" :style="chipStyle(p.statusTone)">{{ p.status }}</view>
             </view>
-            <text class="hint" style="display: block; margin-top: 12rpx">{{ p.meta }}</text>
+            <text class="hint" style="display: block; margin-top: 8rpx">{{ p.meta }}</text>
           </view>
         </view>
       </scroll-view>

@@ -1,6 +1,14 @@
 /** Clear stored mini session and return user to login (avoid duplicate redirects). */
 let redirecting = false
 
+/** Tab pages: require mini_token before loading data. */
+export function ensureMiniSession(): boolean {
+  const token = uni.getStorageSync('mini_token')
+  if (token) return true
+  clearMiniSessionAndGoLogin('请先登录')
+  return false
+}
+
 export function clearMiniSessionAndGoLogin(reason?: string) {
   uni.removeStorageSync('mini_token')
   uni.removeStorageSync('mini_session_expires_at')

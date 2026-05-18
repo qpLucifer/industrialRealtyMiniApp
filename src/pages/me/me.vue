@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchUserProfile, updateUserProfile } from '@/api/user'
 import type { UserProfile } from '@/types/user'
 import { uploadOssFile } from '@/utils/request'
@@ -8,6 +9,7 @@ import { uploadOssFile } from '@/utils/request'
 const topBarInsetStyle = useTopBarInsetStyle()
 
 const profile = ref<UserProfile | null>(null)
+const profileLoading = ref(false)
 const avatarUploading = ref(false)
 
 const menuItems = [
@@ -17,9 +19,18 @@ const menuItems = [
   { title: '安全与隐私', hint: '脱敏 · 复制 · 审核', path: '/pages/settings/settings', tone: 'slate' as const },
 ]
 
-onMounted(async () => {
-  profile.value = await fetchUserProfile()
-})
+async function loadProfile() {
+  profileLoading.value = true
+  try {
+    profile.value = await fetchUserProfile()
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  } finally {
+    profileLoading.value = false
+  }
+}
+
+useTabPageShow(() => loadProfile(), { requireAuth: true })
 
 function go(path: string) {
   uni.navigateTo({ url: path })
@@ -55,7 +66,10 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll me-scroll">
-        <view v-if="profile" class="card card-glow me-hero">
+        <view v-if="profileLoading && !profile" class="card">
+          <text class="hint">加载中…</text>
+        </view>
+        <view v-else-if="profile" class="card card-glow me-hero">
           <view class="me-hero__accent" />
           <view class="me-hero__body">
             <view class="me-avatar-wrap">

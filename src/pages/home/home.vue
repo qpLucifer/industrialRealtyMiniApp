@@ -3,6 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchWorkbench } from '@/api/home'
+import { shouldRefreshWorkbench, touchWorkbenchFetched } from '@/utils/workbenchRefresh'
+import { ensureMiniSession } from '@/utils/session'
+import { navigateToPropertyPublish } from '@/api/property'
 import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
@@ -96,18 +99,36 @@ const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
 const popupQueue = ref<AnnouncementItem[]>([])
 
-onMounted(async () => {
+const skipAnnounceOnNextShow = ref(false)
+
+async function loadWorkbench(force = false) {
+  if (!ensureMiniSession()) return
+  if (!force && !shouldRefreshWorkbench() && data.value) return
   try {
     const raw = await fetchWorkbench()
     data.value = normalizeWorkbenchSummary(raw)
+    loadError.value = ''
+    touchWorkbenchFetched()
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
-    uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
+    if (!data.value) {
+      uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
+    }
   }
+}
+
+onMounted(async () => {
+  skipAnnounceOnNextShow.value = true
+  await loadWorkbench(true)
   await refreshAnnouncements()
 })
 
 onShow(() => {
+  void loadWorkbench()
+  if (skipAnnounceOnNextShow.value) {
+    skipAnnounceOnNextShow.value = false
+    return
+  }
   void refreshAnnouncements()
 })
 
@@ -189,8 +210,7 @@ function goCustomer(id: string) {
 }
 
 function goPublish(clear?: boolean) {
-  const q = clear ? '?clear=1' : ''
-  uni.navigateTo({ url: `/pages/property/publish${q}` })
+  navigateToPropertyPublish(undefined, { clear: !!clear })
 }
 
 function goCustomerNew() {

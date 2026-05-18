@@ -1,26 +1,29 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import { useTabPageShow } from '@/composables/useTabPageShow'
+import { navigateToPropertyDetail } from '@/api/property'
 import { fetchMessageList } from '@/api/message'
 import type { MessageItem } from '@/types/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
 const list = ref<MessageItem[]>([])
+const loading = ref(false)
 
 async function reload() {
+  loading.value = true
   try {
     const r = await fetchMessageList()
     list.value = r.list
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 
-onShow(() => {
-  reload()
-})
+useTabPageShow(() => reload(), { requireAuth: true })
 
 function iconStyle(tone: MessageItem['iconTone']) {
   const map: Record<MessageItem['iconTone'], string> = {
@@ -35,7 +38,7 @@ function iconStyle(tone: MessageItem['iconTone']) {
 
 function open(m: MessageItem) {
   if (m.nav === 'property-detail' && m.propId) {
-    uni.navigateTo({ url: `/pages/property/detail?id=${encodeURIComponent(m.propId)}` })
+    navigateToPropertyDetail(m.propId)
     return
   }
   if (m.nav === 'customer-detail' && m.customerId) {
@@ -48,7 +51,9 @@ function open(m: MessageItem) {
   }
   if (m.nav === 'settings') {
     uni.navigateTo({ url: '/pages/settings/settings' })
+    return
   }
+  uni.showToast({ title: '暂不支持该消息类型', icon: 'none' })
 }
 </script>
 
@@ -62,7 +67,8 @@ function open(m: MessageItem) {
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-if="!list.length" class="hint" style="padding: 48rpx; text-align: center">暂无消息</view>
+        <view v-if="loading && !list.length" class="hint" style="padding: 48rpx; text-align: center">加载中…</view>
+        <view v-else-if="!list.length" class="hint" style="padding: 48rpx; text-align: center">暂无消息</view>
         <view
           v-for="m in list"
           :key="m.id"

@@ -2,13 +2,23 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
-import { fetchPropertyDetail, fetchPropertyEditForm } from '@/api/property'
+import {
+  consumePropertyDetailRefresh,
+  fetchPropertyDetail,
+  fetchPropertyEditForm,
+  navigateToPropertyLog,
+  navigateToPropertyPublish,
+  navigateToViewingNew,
+  parsePropertyRouteKey,
+} from '@/api/property'
 import type { PropertyDetailPayload } from '@/types/property'
 import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
-const pid = ref('')
+const routeKey = ref('')
 const detail = ref<PropertyDetailPayload | null>(null)
+const loading = ref(false)
+const loadError = ref('')
 const tab = ref(0)
 
 /** Same order as publish wizard */
@@ -128,15 +138,22 @@ const mapMarkers = computed(() => {
 })
 
 onLoad((q) => {
-  if (q?.id) pid.value = String(q.id)
+  routeKey.value = parsePropertyRouteKey(q)
+  if (routeKey.value) void load()
 })
 
 async function load() {
-  if (!pid.value) return
+  if (!routeKey.value) {
+    loadError.value = '缺少房源标识'
+    return
+  }
+  loading.value = true
+  loadError.value = ''
+  detail.value = null
   try {
     const [payload, form] = await Promise.all([
-      fetchPropertyDetail(pid.value),
-      fetchPropertyEditForm(pid.value).catch(() => null),
+      fetchPropertyDetail(routeKey.value),
+      fetchPropertyEditForm(routeKey.value).catch(() => null),
     ])
     if (form) {
       payload.kv = buildPropertyDetailKvFromForm(form, {
@@ -152,34 +169,41 @@ async function load() {
     }
     detail.value = payload
   } catch (e) {
-    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 
-onShow(() => load())
+onShow(() => {
+  if (routeKey.value && consumePropertyDetailRefresh(routeKey.value)) {
+    void load()
+  }
+})
 
 function back() {
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/property/list' }) })
 }
 
 function goEdit() {
-  uni.navigateTo({ url: `/pages/property/publish?editId=${encodeURIComponent(pid.value)}` })
+  navigateToPropertyPublish(routeKey.value)
 }
 
 function goLog(_key?: string) {
-  uni.navigateTo({ url: `/pages/property/log?id=${encodeURIComponent(pid.value)}` })
+  navigateToPropertyLog(routeKey.value)
 }
 
 function goViewing() {
-  uni.navigateTo({ url: `/pages/viewing/new?propId=${encodeURIComponent(pid.value)}` })
+  navigateToViewingNew(routeKey.value)
 }
 
 function openMap() {
   const d = detail.value
   if (!d) return
-  const lat = Number(d.lat)
-  const lng = Number(d.lng)
-  if (!lat || !lng) {
+  const lat = parseCoord(d.lat)
+  const lng = parseCoord(d.lng)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     uni.showToast({ title: '暂无坐标', icon: 'none' })
     return
   }
@@ -231,8 +255,13 @@ function openVideoFullscreen(url: string) {
         @action="goLog"
       />
 
-      <view v-if="!detail" class="page-scroll pf-detail-loading">
+      <view v-if="loading" class="page-scroll pf-detail-loading">
         <text class="hint">加载中…</text>
+      </view>
+
+      <view v-else-if="loadError && !detail" class="page-scroll pf-detail-loading">
+        <text class="hint" style="margin-bottom: 24rpx">{{ loadError }}</text>
+        <button class="btn-secondary" @click="load">重试</button>
       </view>
 
       <scroll-view v-else scroll-y :show-scrollbar="false" class="page-scroll">

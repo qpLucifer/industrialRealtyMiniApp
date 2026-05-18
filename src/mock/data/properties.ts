@@ -9,12 +9,16 @@ export interface PropertyListItem {
   status: string
   statusTone: 'draft' | 'ok' | 'warn' | 'neutral'
   draftHint?: string
+  districtRegionId?: number
+  buildingArea?: number
 }
 
 export const mockPropertyList: PropertyListItem[] = [
   {
     id: 'P-DRAFT-001',
     code: 'P-DRAFT-001',
+    districtRegionId: 3,
+    buildingArea: 0,
     title: '南沙万顷沙 · 单层仓（草稿）',
     metaLine: 'P-DRAFT-001 · 未提交审核 · 上次保存 今天 09:12',
     priceLine: '',
@@ -25,6 +29,8 @@ export const mockPropertyList: PropertyListItem[] = [
   {
     id: 'P-8821',
     code: 'P-8821',
+    districtRegionId: 1,
+    buildingArea: 4200,
     title: '标准厂房 · 黄埔科学城',
     metaLine: 'P-8821 · 4200㎡ · 层高 9m · 配电 800kVA · 丙二类',
     priceLine: '¥38/㎡·月',
@@ -34,6 +40,8 @@ export const mockPropertyList: PropertyListItem[] = [
   {
     id: 'P-7730',
     code: 'P-7730',
+    districtRegionId: 2,
+    buildingArea: 8600,
     title: '独门独院 · 花都汽车城',
     metaLine: 'P-7730 · 8600㎡ · 空地 15 亩 · 环评已通过',
     priceLine: '售价面议',
@@ -140,8 +148,23 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
   },
 }
 
+/** Resolve mock detail key from list id/code or DETAIL_MAP key. */
+export function resolvePropertyDetailKey(key: string): string {
+  const k = String(key || '').trim()
+  if (!k) return 'P-8821'
+  if (DETAIL_MAP[k]) return k
+  const row = mockPropertyList.find((p) => p.id === k || p.code === k)
+  if (row) {
+    if (DETAIL_MAP[row.code]) return row.code
+    if (DETAIL_MAP[row.id]) return row.id
+    return row.code || row.id
+  }
+  return 'P-8821'
+}
+
 export function getPropertyDetail(id: string): PropertyDetailMock {
-  return DETAIL_MAP[id] || DETAIL_MAP['P-8821']
+  const resolved = resolvePropertyDetailKey(id)
+  return DETAIL_MAP[resolved] || DETAIL_MAP['P-8821']
 }
 
 /** KV blocks — 8 tabs aligned with publish.vue (header/hero fields omitted) */

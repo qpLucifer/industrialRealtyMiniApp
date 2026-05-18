@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchCustomerDetail, updateCustomer } from '@/api/customer'
+import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
 
 const id = ref('')
@@ -27,21 +28,26 @@ const scopes: CustomerScope[] = ['私有', '公有']
 onLoad(async (q) => {
   if (q?.id) id.value = String(q.id)
   if (!id.value) return
-  const d = await fetchCustomerDetail(id.value)
-  if (!d.canEdit) {
-    uni.showToast({ title: '无权编辑', icon: 'none' })
+  try {
+    const d = await fetchCustomerDetail(id.value)
+    if (!d.canEdit) {
+      uni.showToast({ title: '无权编辑', icon: 'none' })
+      setTimeout(() => uni.navigateBack(), 400)
+      return
+    }
+    form.company = d.company
+    form.contactName = d.contactName
+    form.titleLine = d.titleLine
+    form.phone = d.phone
+    form.grade = (d.grade as CustomerGrade) || 'B 类'
+    form.dealStatus = (d.dealStatus as CustomerDealStatus) || '洽谈中'
+    form.demandSummary = d.demandSummary
+    form.addressHint = d.addressHint
+    form.scope = d.scope
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 400)
-    return
   }
-  form.company = d.company
-  form.contactName = d.contactName
-  form.titleLine = d.titleLine
-  form.phone = d.phone
-  form.grade = (d.grade as CustomerGrade) || 'B 类'
-  form.dealStatus = (d.dealStatus as CustomerDealStatus) || '洽谈中'
-  form.demandSummary = d.demandSummary
-  form.addressHint = d.addressHint
-  form.scope = d.scope
 })
 
 function onGradePick(e: { detail: { value: string | number } }) {
@@ -74,6 +80,8 @@ async function submit() {
       addressHint: form.addressHint.trim(),
       scope: form.scope,
     })
+    markCustomerDetailStale(id.value)
+    markCustomerListStale()
     uni.showToast({ title: '已保存', icon: 'none' })
     uni.navigateBack()
   } catch (e) {

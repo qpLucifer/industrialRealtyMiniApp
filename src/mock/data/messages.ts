@@ -34,7 +34,7 @@ export const mockMessages: MockMessage[] = [
     hint: '黄埔 · 科学城厂房 A 栋',
     time: '10 分钟前',
     nav: 'property-detail',
-    propId: 'p1',
+    propId: 'P-8821',
   },
   {
     id: 'm2',

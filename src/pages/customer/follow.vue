@@ -4,6 +4,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import DateTimeField from '@/components/DateTimeField.vue'
 import { postCustomerFollowUp } from '@/api/customer'
+import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
+import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerGrade } from '@/types/customer'
 
 const id = ref('')
@@ -55,6 +57,9 @@ async function onSaveFollow() {
     if (followGrade.value) payload.grade = followGrade.value
     if (followNextAt.value) payload.nextReminderAt = followNextAt.value
     await postCustomerFollowUp(payload as Parameters<typeof postCustomerFollowUp>[0])
+    markCustomerDetailStale(id.value)
+    markCustomerListStale()
+    markWorkbenchStale()
     uni.showToast({ title: '跟进已保存', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 400)
   } catch (e) {

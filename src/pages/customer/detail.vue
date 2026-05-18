@@ -3,10 +3,13 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchCustomerDetail } from '@/api/customer'
+import { consumeCustomerDetailRefresh } from '@/utils/customerNav'
 import type { CustomerDetail } from '@/types/customer'
 
 const id = ref('')
 const d = ref<CustomerDetail | null>(null)
+const loading = ref(false)
+const loadError = ref('')
 
 const displayTitle = computed(() => {
   if (!d.value) return ''
@@ -15,15 +18,32 @@ const displayTitle = computed(() => {
 
 onLoad((q) => {
   if (q?.id) id.value = String(q.id)
+  if (id.value) void load()
+})
+
+onShow(() => {
+  if (id.value && consumeCustomerDetailRefresh(id.value)) {
+    void load()
+  }
 })
 
 async function load() {
-  d.value = await fetchCustomerDetail(id.value)
+  if (!id.value) {
+    loadError.value = '缺少客户标识'
+    return
+  }
+  loading.value = true
+  loadError.value = ''
+  d.value = null
+  try {
+    d.value = await fetchCustomerDetail(id.value)
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 }
-
-onShow(() => {
-  void load()
-})
 
 function back() {
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/customer/list' }) })
@@ -42,7 +62,17 @@ function goFollow() {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub cust-detail-frame">
       <NavIconBar title="客户档案" @back="back" />
-      <scroll-view v-if="d" scroll-y :show-scrollbar="false" class="page-scroll cust-detail-scroll">
+
+      <view v-if="loading" class="page-scroll cust-detail-state">
+        <text class="hint">加载中…</text>
+      </view>
+
+      <view v-else-if="loadError && !d" class="page-scroll cust-detail-state">
+        <text class="hint" style="margin-bottom: 24rpx">{{ loadError }}</text>
+        <button class="btn-secondary" @click="load">重试</button>
+      </view>
+
+      <scroll-view v-else-if="d" scroll-y :show-scrollbar="false" class="page-scroll cust-detail-scroll">
         <view class="page-scroll__inner">
           <view class="card card-glow">
             <text class="cust-head-title">{{ displayTitle }}</text>
@@ -90,6 +120,16 @@ function goFollow() {
 .cust-detail-frame {
   display: flex;
   flex-direction: column;
+}
+
+.cust-detail-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 32rpx;
+  box-sizing: border-box;
 }
 
 .cust-detail-scroll {

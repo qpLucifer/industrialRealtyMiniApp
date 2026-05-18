@@ -5,15 +5,34 @@ import { fetchSecuritySettings, saveSecuritySettings } from '@/api/user'
 import type { SecuritySettings } from '@/types/user'
 
 const s = ref<SecuritySettings | null>(null)
+const loading = ref(false)
+const loadError = ref('')
 
-onMounted(async () => {
-  s.value = await fetchSecuritySettings()
+onMounted(() => {
+  void load()
 })
+
+async function load() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    s.value = await fetchSecuritySettings()
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
 
 async function save() {
   if (!s.value) return
-  await saveSecuritySettings(s.value)
-  uni.showToast({ title: '已保存', icon: 'none' })
+  try {
+    await saveSecuritySettings(s.value)
+    uni.showToast({ title: '已保存', icon: 'none' })
+  } catch (e) {
+    uni.showToast({ title: e instanceof Error ? e.message : '保存失败', icon: 'none' })
+  }
 }
 
 function back() {
@@ -31,7 +50,16 @@ function patch<K extends keyof SecuritySettings>(key: K, e: unknown) {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="安全与隐私" @back="back" />
-      <scroll-view v-if="s" scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
+      <scroll-view v-if="loading" scroll-y class="scroll" style="flex: 1; min-height: 0">
+        <view class="card"><text class="hint">加载中…</text></view>
+      </scroll-view>
+      <scroll-view v-else-if="loadError" scroll-y class="scroll" style="flex: 1; min-height: 0">
+        <view class="card">
+          <text class="hint">{{ loadError }}</text>
+          <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
+        </view>
+      </scroll-view>
+      <scroll-view v-else-if="s" scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
         <view class="card">
           <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0">
             <view style="flex: 1">

@@ -2,6 +2,8 @@
 import { reactive, ref } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { createCustomer } from '@/api/customer'
+import { markCustomerListStale } from '@/utils/customerNav'
+import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
 
 const saving = ref(false)
@@ -52,6 +54,8 @@ async function submit() {
       addressHint: form.addressHint.trim(),
       scope: form.scope,
     })
+    markCustomerListStale()
+    markWorkbenchStale()
     uni.showToast({ title: '客户已创建', icon: 'none' })
     const slug = r.slug || r.id
     if (slug) {

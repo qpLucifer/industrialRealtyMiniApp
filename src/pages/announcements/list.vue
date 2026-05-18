@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { computed, ref } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
+import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 
 const list = ref<AnnouncementItem[]>([])
+const loading = ref(false)
+const loadError = ref('')
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
 
 const items = computed(() => list.value)
 
-onMounted(() => {
-  void loadList()
-})
-
-onShow(() => {
-  void loadList()
-})
+useTabPageShow(() => loadList())
 
 async function loadList() {
-  const r = await fetchAnnouncementList()
-  list.value = Array.isArray(r.list) ? r.list : []
+  loading.value = true
+  loadError.value = ''
+  try {
+    const r = await fetchAnnouncementList()
+    list.value = Array.isArray(r.list) ? r.list : []
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 }
 
 function back() {

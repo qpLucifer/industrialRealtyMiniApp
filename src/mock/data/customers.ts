@@ -33,6 +33,21 @@ export const mockCustomerList: CustomerListItem[] = [
     ownerName: '王莉',
     scope: '私有',
   },
+  {
+    id: 'linuo',
+    company: '深圳××智能制造有限公司',
+    contactName: '李诺',
+    titleLine: '李诺 · 求购',
+    grade: 'B 类',
+    gradeTone: 'neutral',
+    gradeTag: 'slate',
+    dealStatus: '洽谈中',
+    recent: '最近：关注增城地块，预算面议。',
+    nextLine: '下次沟通 2026-05-20 09:30',
+    nextReminder: '2026-05-20 09:30',
+    ownerName: '公海',
+    scope: '公有',
+  },
 ]
 
 function buildDetail(id: string): CustomerDetail {

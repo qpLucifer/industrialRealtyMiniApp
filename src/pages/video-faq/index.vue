@@ -6,6 +6,8 @@ import type { VideoFaqItem } from '@/types/videoFaq'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
 const list = ref<VideoFaqItem[]>([])
+const loading = ref(false)
+const loadError = ref('')
 const active = ref<VideoFaqItem | null>(null)
 
 const activePlayUrl = computed(() => {
@@ -15,8 +17,17 @@ const activePlayUrl = computed(() => {
 })
 
 onMounted(async () => {
-  const r = await fetchVideoFaqList()
-  list.value = r.list
+  loading.value = true
+  loadError.value = ''
+  try {
+    const r = await fetchVideoFaqList()
+    list.value = r.list
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '加载失败'
+    uni.showToast({ title: loadError.value, icon: 'none' })
+  } finally {
+    loading.value = false
+  }
 })
 
 function back() {
@@ -52,6 +63,12 @@ function playActiveFullscreen() {
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="视频话术" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
+        <view v-if="loading && !list.length" class="card" style="margin-bottom: 24rpx">
+          <text class="hint">加载中…</text>
+        </view>
+        <view v-else-if="loadError && !list.length" class="card" style="margin-bottom: 24rpx">
+          <text class="hint">{{ loadError }}</text>
+        </view>
         <view v-for="v in list" :key="v.id" class="card" style="margin-bottom: 24rpx" @click="openItem(v)">
           <text style="display: block; font-size: 30rpx; font-weight: 700">{{ v.title }}</text>
           <text class="hint" style="display: block; margin-top: 12rpx; line-height: 1.55">{{ v.summary }}</text>

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
+import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchCustomerList } from '@/api/customer'
+import { consumeCustomerListStale } from '@/utils/customerNav'
 import type { CustomerListItem } from '@/types/customer'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
 const list = ref<CustomerListItem[]>([])
+const loading = ref(false)
 const seg = ref(0)
 const keyword = ref('')
 
@@ -30,6 +32,7 @@ function avatarStyle(c: CustomerListItem) {
 }
 
 async function reload() {
+  loading.value = true
   try {
     const scope = seg.value === 0 ? 'mine' : 'public'
     const r = await fetchCustomerList({
@@ -39,16 +42,17 @@ async function reload() {
     list.value = r.list
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
   }
 }
 
-onMounted(() => {
-  void reload()
-})
-
-onShow(() => {
-  void reload()
-})
+useTabPageShow(() => {
+  if (consumeCustomerListStale()) {
+    /* explicit stale after create/edit */
+  }
+  return reload()
+}, { requireAuth: true })
 
 function onSeg(i: number) {
   seg.value = i
@@ -92,7 +96,10 @@ function goVideoFaq() {
               @confirm="reload"
             />
           </view>
-          <view v-if="list.length === 0" class="card">
+          <view v-if="loading && !list.length" class="card">
+            <text class="hint">加载中…</text>
+          </view>
+          <view v-else-if="!list.length" class="card">
             <text class="hint">暂无客户</text>
           </view>
           <view
