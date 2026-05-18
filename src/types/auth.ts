@@ -8,6 +8,9 @@ export interface MiniStaffProfile {
   title?: string
   roleLine?: string
   regionLine?: string
+  avatarUrl?: string
+  wechatNickname?: string
+  miniProgramOpenId?: string
 }
 
 export interface MiniLoginResult {
@@ -15,4 +18,10 @@ export interface MiniLoginResult {
   expiresAt: string
   expiresIn: number
   profile: MiniStaffProfile
+}
+
+export interface MiniLoginWechatExtras {
+  loginCode?: string
+  nickName?: string
+  avatarUrl?: string
 }

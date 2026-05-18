@@ -1,8 +1,15 @@
-import { get, post } from '@/utils/request'
+import { get, patch, post } from '@/utils/request'
 import type { SecuritySettings, UserProfile } from '@/types/user'
 
 export function fetchUserProfile() {
   return get<UserProfile>('/api/user/profile')
+}
+
+export function updateUserProfile(body: {
+  nickName?: string
+  avatarUrl?: string
+}) {
+  return patch<UserProfile>('/api/user/profile', body)
 }
 
 export function fetchSecuritySettings() {

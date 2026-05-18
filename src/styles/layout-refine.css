@@ -176,8 +176,8 @@ button[plain]::after {
 .form-group textarea,
 .screen input,
 .screen textarea {
-  border: none;
-  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  background: #f8fafc;
   border-radius: 16rpx;
 }
 
@@ -190,10 +190,15 @@ button[plain]::after {
 }
 
 .picker-like {
-  padding: 20rpx;
-  border: none;
-  border-radius: 20rpx;
-  background: #f1f5f9;
+  padding: 20rpx 24rpx;
+  min-height: 88rpx;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  background: #f8fafc;
   font-size: 28rpx;
   color: var(--text);
 }
@@ -499,12 +504,20 @@ button[plain]::after {
 .form-group textarea,
 .picker-value {
   width: 100%;
+  box-sizing: border-box;
+  min-height: 88rpx;
+  line-height: 1.5;
   padding: 20rpx 24rpx;
   background: #f8fafc;
   border: 1rpx solid #e2e8f0;
   border-radius: 16rpx;
   font-size: 28rpx;
   color: #0f172a;
+}
+
+.form-group textarea {
+  min-height: 180rpx;
+  line-height: 1.5;
 }
 
 .form-control--disabled,

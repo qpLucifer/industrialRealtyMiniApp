@@ -8,8 +8,6 @@ const loading = ref(false)
 const manualPhone = ref('')
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-
-/** DevTools / H5: type phone when WeChat phone API unavailable */
 const phoneFallbackEnabled = (import.meta.env.VITE_MINI_LOGIN_PHONE_FALLBACK ?? 'false') === 'true'
 
 function persistSession(r: MiniLoginResult) {
@@ -36,6 +34,21 @@ function toastAfterLogin(r: MiniLoginResult) {
   uni.showToast({ title: `已登录 · ${short}`, icon: 'none', duration: 2200 })
 }
 
+/** wx.login code for openid binding on server */
+function wxLoginCode(): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    uni.login({
+      success: (res) => resolve(res.code || undefined),
+      fail: () => resolve(undefined),
+    })
+  })
+}
+
+async function wechatLoginExtras(): Promise<{ loginCode?: string; nickName?: string; avatarUrl?: string }> {
+  const loginCode = await wxLoginCode()
+  return { loginCode }
+}
+
 async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
   const detail = (e.detail || {}) as { errMsg?: string; code?: string; errno?: number }
   if (detail.errMsg !== 'getPhoneNumber:ok') {
@@ -54,7 +67,8 @@ async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
   }
   loading.value = true
   try {
-    const r = await miniLoginByWechatPhoneCode(code)
+    const extras = await wechatLoginExtras()
+    const r = await miniLoginByWechatPhoneCode(code, extras)
     persistSession(r)
     toastAfterLogin(r)
     uni.reLaunch({ url: '/pages/home/home' })
@@ -74,7 +88,8 @@ async function onManualPhoneLogin() {
   }
   loading.value = true
   try {
-    const r = await miniLoginByPhoneDigits(d)
+    const extras = await wechatLoginExtras()
+    const r = await miniLoginByPhoneDigits(d, extras)
     persistSession(r)
     toastAfterLogin(r)
     uni.reLaunch({ url: '/pages/home/home' })
@@ -120,34 +135,31 @@ onMounted(() => {
         <!-- #ifdef MP-WEIXIN -->
         <button
           class="btn-primary"
+          style="width: 100%"
           open-type="getPhoneNumber"
           :disabled="loading"
           @getphonenumber="onGetPhoneNumber"
         >
-          {{ loading ? '登录中…' : '授权手机号并登录' }}
+          {{ loading ? '登录中…' : '微信手机号快捷登录' }}
         </button>
         <!-- #endif -->
         <!-- #ifndef MP-WEIXIN -->
-        <view class="hint" style="text-align: center; margin-bottom: 12px">
-          当前不是微信小程序运行时，无法拉起手机号授权。请在微信开发者工具/真机预览中使用小程序；或在下方开启回落用手机号（仅开发）。
-        </view>
+        <view class="hint" style="text-align: center; margin-bottom: 12px"
+          >当前不是微信小程序运行时，无法拉起手机号授权。请在微信开发者工具/真机预览中使用小程序；或在下方开启回落用手机号（仅开发）。</view
+        >
         <!-- #endif -->
-
-        <view v-if="phoneFallbackEnabled" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(15, 23, 42, 0.08)">
-          <view class="hint" style="margin-bottom: 8px">开发回落 · 直传手机号（勿用于正式发布）</view>
+        <view v-if="phoneFallbackEnabled" style="margin-top: 20px">
           <input
             v-model="manualPhone"
             type="number"
             maxlength="11"
-            placeholder="11 位手机号"
-            style="padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(15, 23, 42, 0.12); margin-bottom: 10px"
+            placeholder="开发：11 位手机号"
+            style="width: 100%; margin-bottom: 12px; box-sizing: border-box; min-height: 44px; padding: 10px 12px"
           />
-          <button class="btn" :disabled="loading" @click="onManualPhoneLogin">用手动手机号登录</button>
+          <button class="btn-secondary" style="width: 100%" :disabled="loading" @click="onManualPhoneLogin">
+            开发模式登录
+          </button>
         </view>
-
-        <view class="hint" style="text-align: center; font-size: 11px; margin-top: 14px"
-          >登录即同意《保密协议》《内部数据安全规范》</view
-        >
       </view>
     </view>
   </view>

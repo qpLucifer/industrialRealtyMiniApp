@@ -97,19 +97,19 @@ function back() {
           <view class="card">
             <view class="form-group">
               <text class="label">公司 / 主体<text class="req">*</text></text>
-              <input v-model="form.company" placeholder="营业执照名称" />
+              <input v-model="form.company" type="text" class="field-input" placeholder="营业执照名称" />
             </view>
             <view class="form-group">
               <text class="label">主题（列表摘要）</text>
-              <input v-model="form.titleLine" placeholder="例：张晨 · 某某公司" />
+              <input v-model="form.titleLine" type="text" class="field-input" placeholder="例：张晨 · 某某公司" />
             </view>
             <view class="form-group">
               <text class="label">联系人<text class="req">*</text></text>
-              <input v-model="form.contactName" placeholder="姓名" />
+              <input v-model="form.contactName" type="text" class="field-input" placeholder="姓名" />
             </view>
             <view class="form-group">
               <text class="label">手机<text class="req">*</text></text>
-              <input v-model="form.phone" type="number" maxlength="11" placeholder="11 位手机号" />
+              <input v-model="form.phone" type="number" maxlength="11" class="field-input" placeholder="11 位手机号" />
             </view>
             <view class="form-group">
               <text class="label">等级</text>
@@ -131,11 +131,11 @@ function back() {
             </view>
             <view class="form-group">
               <text class="label">地址 / 区域</text>
-              <input v-model="form.addressHint" placeholder="意向区域、地址提示" />
+              <input v-model="form.addressHint" type="text" class="field-input" placeholder="意向区域、地址提示" />
             </view>
             <view class="form-group">
               <text class="label">需求摘要</text>
-              <textarea v-model="form.demandSummary" placeholder="面积、预算、行业偏好…" />
+              <textarea v-model="form.demandSummary" class="field-textarea" placeholder="面积、预算、行业偏好…" />
             </view>
             <button class="btn-primary" style="width: 100%; margin-top: 24rpx" :disabled="saving" @click="submit">
               {{ saving ? '保存中…' : '保存' }}
@@ -146,3 +146,23 @@ function back() {
     </view>
   </view>
 </template>
+
+<style scoped>
+.field-input,
+.field-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.5;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+.field-input {
+  min-height: 88rpx;
+}
+
+.field-textarea {
+  min-height: 180rpx;
+}
+</style>
