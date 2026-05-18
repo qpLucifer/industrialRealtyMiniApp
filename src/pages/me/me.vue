@@ -10,6 +10,13 @@ const topBarInsetStyle = useTopBarInsetStyle()
 const profile = ref<UserProfile | null>(null)
 const avatarUploading = ref(false)
 
+const menuItems = [
+  { title: '我的发布', hint: '草稿 / 待审 / 已上架', path: '/pages/me/my-properties', tone: 'mint' as const },
+  { title: '带看记录', hint: '日程与纪要', path: '/pages/viewing/list', tone: 'slate' as const },
+  { title: '视频话术库', hint: '验厂高频问答', path: '/pages/video-faq/index', tone: 'cyan' as const },
+  { title: '安全与隐私', hint: '脱敏 · 复制 · 审核', path: '/pages/settings/settings', tone: 'slate' as const },
+]
+
 onMounted(async () => {
   profile.value = await fetchUserProfile()
 })
@@ -36,101 +43,81 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
     avatarUploading.value = false
   }
 }
-
-async function onNicknameBlur(e: { detail?: { value?: string } }) {
-  const nick = String(e.detail?.value || '').trim()
-  if (!nick || !profile.value || nick === profile.value.wechatNickname) return
-  try {
-    const updated = await updateUserProfile({ nickName: nick })
-    profile.value = updated
-    uni.showToast({ title: '昵称已保存', icon: 'none' })
-  } catch (err) {
-    uni.showToast({
-      title: err instanceof Error ? err.message : '保存失败',
-      icon: 'none',
-    })
-  }
-}
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="page-frame screen active screen--tab">
+    <view class="page-frame screen active screen--tab me-screen">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">我的</view>
           <view class="sub">账号 · 资产 · 安全</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-if="profile" class="card me-profile-card">
-          <!-- #ifdef MP-WEIXIN -->
-          <button class="me-avatar-btn" open-type="chooseAvatar" :disabled="avatarUploading" @chooseavatar="onChooseAvatar">
-            <image
-              v-if="profile.avatarUrl"
-              class="me-avatar-img"
-              :src="profile.avatarUrl"
-              mode="aspectFill"
-            />
-            <view v-else class="me-avatar-placeholder">{{ (profile.name || '?').slice(0, 1) }}</view>
-          </button>
-          <!-- #endif -->
-          <!-- #ifndef MP-WEIXIN -->
-          <view class="me-avatar-btn">
-            <image
-              v-if="profile.avatarUrl"
-              class="me-avatar-img"
-              :src="profile.avatarUrl"
-              mode="aspectFill"
-            />
-            <view v-else class="me-avatar-placeholder">{{ (profile.name || '?').slice(0, 1) }}</view>
-          </view>
-          <!-- #endif -->
-          <view class="me-profile-meta">
-            <text class="me-profile-name">{{ profile.name }}</text>
-            <text class="hint me-profile-line">{{ profile.roleLine }}</text>
-            <text class="hint me-profile-line">{{ profile.regionLine }}</text>
-            <view class="form-group me-nick-group">
-              <text class="label">微信昵称（后台回显）</text>
-              <input
-                type="nickname"
-                class="me-nick-input"
-                :value="profile.wechatNickname || ''"
-                placeholder="点击使用微信昵称"
-                @blur="onNicknameBlur"
-              />
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll me-scroll">
+        <view v-if="profile" class="card card-glow me-hero">
+          <view class="me-hero__accent" />
+          <view class="me-hero__body">
+            <view class="me-avatar-wrap">
+              <!-- #ifdef MP-WEIXIN -->
+              <button
+                class="me-avatar-btn"
+                open-type="chooseAvatar"
+                :disabled="avatarUploading"
+                @chooseavatar="onChooseAvatar"
+              >
+                <view class="me-avatar-ring">
+                  <image
+                    v-if="profile.avatarUrl"
+                    class="me-avatar-img"
+                    :src="profile.avatarUrl"
+                    mode="aspectFill"
+                  />
+                  <view v-else class="me-avatar-placeholder">{{ (profile.name || '?').slice(0, 1) }}</view>
+                </view>
+              </button>
+              <!-- #endif -->
+              <!-- #ifndef MP-WEIXIN -->
+              <view class="me-avatar-btn me-avatar-btn--static">
+                <view class="me-avatar-ring">
+                  <image
+                    v-if="profile.avatarUrl"
+                    class="me-avatar-img"
+                    :src="profile.avatarUrl"
+                    mode="aspectFill"
+                  />
+                  <view v-else class="me-avatar-placeholder">{{ (profile.name || '?').slice(0, 1) }}</view>
+                </view>
+              </view>
+              <!-- #endif -->
+              <!-- #ifdef MP-WEIXIN -->
+              <text class="me-avatar-tip">{{ avatarUploading ? '上传中…' : '点击更换头像' }}</text>
+              <!-- #endif -->
             </view>
-            <text v-if="profile.miniProgramOpenId" class="hint me-openid-line">OpenID 已绑定</text>
+            <view class="me-hero__meta">
+              <text class="me-hero__name">{{ profile.name }}</text>
+              <view v-if="profile.roleLine" class="chip me-role-chip">{{ profile.roleLine }}</view>
+              <text v-if="profile.employeeNo" class="hint me-hero__line">工号 {{ profile.employeeNo }}</text>
+              <text class="hint me-hero__line me-region">{{ profile.regionLine }}</text>
+            </view>
           </view>
         </view>
+
         <view class="section-title">常用入口</view>
-        <view class="card list-item" @click="go('/pages/me/my-properties')">
-          <view style="flex: 1">
-            <text style="font-weight: 700">我的发布</text>
-            <text class="hint" style="display: block; margin-top: 8rpx">草稿 / 待审 / 已上架</text>
+        <view class="me-menu">
+          <view
+            v-for="item in menuItems"
+            :key="item.path"
+            class="card list-item me-menu-item"
+            @click="go(item.path)"
+          >
+            <view class="me-menu-icon" :class="`me-menu-icon--${item.tone}`" />
+            <view class="me-menu-text">
+              <text class="me-menu-title">{{ item.title }}</text>
+              <text class="hint me-menu-hint">{{ item.hint }}</text>
+            </view>
+            <text class="me-menu-chevron">›</text>
           </view>
-          <text style="color: var(--muted)">›</text>
-        </view>
-        <view class="card list-item" @click="go('/pages/viewing/list')">
-          <view style="flex: 1">
-            <text style="font-weight: 700">带看记录</text>
-            <text class="hint" style="display: block; margin-top: 8rpx">日程与纪要</text>
-          </view>
-          <text style="color: var(--muted)">›</text>
-        </view>
-        <view class="card list-item" @click="go('/pages/video-faq/index')">
-          <view style="flex: 1">
-            <text style="font-weight: 700">视频话术库</text>
-            <text class="hint" style="display: block; margin-top: 8rpx">验厂高频问答</text>
-          </view>
-          <text style="color: var(--muted)">›</text>
-        </view>
-        <view class="card list-item" @click="go('/pages/settings/settings')">
-          <view style="flex: 1">
-            <text style="font-weight: 700">安全与隐私</text>
-            <text class="hint" style="display: block; margin-top: 8rpx">脱敏 · 复制 · 审核</text>
-          </view>
-          <text style="color: var(--muted)">›</text>
         </view>
       </scroll-view>
     </view>
@@ -138,22 +125,53 @@ async function onNicknameBlur(e: { detail?: { value?: string } }) {
 </template>
 
 <style scoped>
-.me-profile-card {
+.me-screen {
   display: flex;
-  gap: 28rpx;
-  align-items: flex-start;
+  flex-direction: column;
+}
+
+.me-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 0 32rpx 48rpx;
+  box-sizing: border-box;
+}
+
+.me-hero {
+  position: relative;
+  overflow: hidden;
+  margin-top: 8rpx;
+  margin-bottom: 32rpx;
+  padding: 0;
+}
+
+.me-hero__accent {
+  height: 8rpx;
+  background: linear-gradient(90deg, #0d9488 0%, #34d399 55%, #99f6e4 100%);
+}
+
+.me-hero__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 32rpx 36rpx;
+  text-align: center;
+}
+
+.me-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24rpx;
 }
 
 .me-avatar-btn {
-  width: 120rpx;
-  height: 120rpx;
+  width: auto;
+  height: auto;
   padding: 0;
   margin: 0;
   border: none;
-  border-radius: 36rpx;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #e2e8f0;
+  background: transparent;
   line-height: 1;
 }
 
@@ -161,57 +179,135 @@ async function onNicknameBlur(e: { detail?: { value?: string } }) {
   border: none;
 }
 
+.me-avatar-ring {
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 50%;
+  padding: 6rpx;
+  background: linear-gradient(135deg, #0d9488, #34d399, #a7f3d0);
+  box-shadow: 0 12rpx 32rpx rgba(13, 148, 136, 0.22);
+}
+
 .me-avatar-img,
 .me-avatar-placeholder {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 36rpx;
+  width: 156rpx;
+  height: 156rpx;
+  border-radius: 50%;
+  display: block;
 }
 
 .me-avatar-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44rpx;
+  font-size: 56rpx;
   font-weight: 700;
   color: #0f766e;
-  background: #ccfbf1;
+  background: #ecfdf5;
 }
 
-.me-profile-meta {
+.me-avatar-tip {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.me-hero__meta {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.me-hero__name {
+  font-family: var(--display);
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.me-role-chip {
+  max-width: 100%;
+  font-size: 22rpx;
+  padding: 8rpx 20rpx;
+}
+
+.me-hero__line {
+  font-size: 24rpx;
+  line-height: 1.5;
+  max-width: 100%;
+}
+
+.me-region {
+  padding: 0 12rpx;
+}
+
+.me-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.me-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx 28rpx !important;
+  margin-bottom: 0 !important;
+}
+
+.me-menu-item:active {
+  opacity: 0.92;
+  transform: scale(0.995);
+}
+
+.me-menu-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+.me-menu-icon--mint {
+  background: linear-gradient(145deg, #ccfbf1, #5eead4);
+  box-shadow: 0 4rpx 12rpx rgba(13, 148, 136, 0.15);
+}
+
+.me-menu-icon--slate {
+  background: linear-gradient(145deg, #e2e8f0, #cbd5e1);
+  box-shadow: 0 4rpx 12rpx rgba(71, 85, 105, 0.12);
+}
+
+.me-menu-icon--cyan {
+  background: linear-gradient(145deg, #cffafe, #67e8f9);
+  box-shadow: 0 4rpx 12rpx rgba(6, 182, 212, 0.15);
+}
+
+.me-menu-text {
   flex: 1;
   min-width: 0;
+  text-align: left;
 }
 
-.me-profile-name {
-  font-size: 34rpx;
-  font-weight: 700;
+.me-menu-title {
   display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
 }
 
-.me-profile-line {
+.me-menu-hint {
   display: block;
   margin-top: 8rpx;
   font-size: 24rpx;
 }
 
-.me-nick-group {
-  margin-top: 16rpx;
-  margin-bottom: 0;
-}
-
-.me-nick-input {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 72rpx;
-  line-height: 1.5;
-  padding: 16rpx 20rpx;
-  font-size: 28rpx;
-}
-
-.me-openid-line {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 22rpx;
+.me-menu-chevron {
+  flex-shrink: 0;
+  font-size: 36rpx;
+  color: var(--muted);
+  line-height: 1;
 }
 </style>

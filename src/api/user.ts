@@ -5,10 +5,7 @@ export function fetchUserProfile() {
   return get<UserProfile>('/api/user/profile')
 }
 
-export function updateUserProfile(body: {
-  nickName?: string
-  avatarUrl?: string
-}) {
+export function updateUserProfile(body: { avatarUrl?: string }) {
   return patch<UserProfile>('/api/user/profile', body)
 }
 

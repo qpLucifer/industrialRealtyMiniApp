@@ -34,21 +34,6 @@ function toastAfterLogin(r: MiniLoginResult) {
   uni.showToast({ title: `已登录 · ${short}`, icon: 'none', duration: 2200 })
 }
 
-/** wx.login code for openid binding on server */
-function wxLoginCode(): Promise<string | undefined> {
-  return new Promise((resolve) => {
-    uni.login({
-      success: (res) => resolve(res.code || undefined),
-      fail: () => resolve(undefined),
-    })
-  })
-}
-
-async function wechatLoginExtras(): Promise<{ loginCode?: string; nickName?: string; avatarUrl?: string }> {
-  const loginCode = await wxLoginCode()
-  return { loginCode }
-}
-
 async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
   const detail = (e.detail || {}) as { errMsg?: string; code?: string; errno?: number }
   if (detail.errMsg !== 'getPhoneNumber:ok') {
@@ -67,8 +52,7 @@ async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
   }
   loading.value = true
   try {
-    const extras = await wechatLoginExtras()
-    const r = await miniLoginByWechatPhoneCode(code, extras)
+    const r = await miniLoginByWechatPhoneCode(code)
     persistSession(r)
     toastAfterLogin(r)
     uni.reLaunch({ url: '/pages/home/home' })
@@ -88,8 +72,7 @@ async function onManualPhoneLogin() {
   }
   loading.value = true
   try {
-    const extras = await wechatLoginExtras()
-    const r = await miniLoginByPhoneDigits(d, extras)
+    const r = await miniLoginByPhoneDigits(d)
     persistSession(r)
     toastAfterLogin(r)
     uni.reLaunch({ url: '/pages/home/home' })

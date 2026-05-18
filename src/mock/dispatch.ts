@@ -219,6 +219,12 @@ export async function dispatchMock(
     return okResult(mockUserProfile)
   }
 
+  if (method === 'PATCH' && path === '/api/user/profile') {
+    const avatarUrl = typeof body?.avatarUrl === 'string' ? body.avatarUrl : mockUserProfile.avatarUrl
+    Object.assign(mockUserProfile, { avatarUrl })
+    return okResult({ ...mockUserProfile })
+  }
+
   if (method === 'GET' && path === '/api/announcement/list') {
     return okResult(buildMockAnnouncementList())
   }

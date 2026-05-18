@@ -3,9 +3,8 @@ export interface UserProfile {
   roleLine: string
   regionLine: string
   avatarUrl?: string
-  wechatNickname?: string
-  miniProgramOpenId?: string
   staffId?: string
+  employeeNo?: string
 }
 
 export interface SecuritySettings {

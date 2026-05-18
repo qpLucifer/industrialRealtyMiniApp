@@ -4,12 +4,18 @@ export interface UserProfile {
   name: string
   roleLine: string
   regionLine: string
+  avatarUrl?: string
+  employeeNo?: string
+  staffId?: string
 }
 
 export const mockUserProfile: UserProfile = {
   name: '陈思远',
-  roleLine: '业务员 · 华东事业部',
+  roleLine: '高级业务员',
   regionLine: '负责区域：黄埔区、增城区（不可跨区导出）',
+  employeeNo: 'E-900218',
+  staffId: 's1',
+  avatarUrl: '',
 }
 
 export interface SecuritySettings {
