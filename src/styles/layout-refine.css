@@ -130,6 +130,20 @@ button[plain]::after {
   margin-bottom: 0;
 }
 
+/* Home — system-reminder customer row (must override .card { border: none } above) */
+.card.list-item.home-todo-item--highlight {
+  border: 2rpx solid #34d399 !important;
+  background-color: #ecfdf5 !important;
+  box-shadow:
+    0 0 0 4rpx rgba(52, 211, 153, 0.16),
+    0 6rpx 20rpx rgba(13, 148, 136, 0.12) !important;
+}
+
+.card.list-item.home-todo-item--highlight .home-todo-avatar--mint,
+.card.list-item.home-todo-item--highlight .home-todo-avatar--slate {
+  box-shadow: 0 0 0 4rpx rgba(52, 211, 153, 0.45);
+}
+
 .prop-list-card {
   display: flex;
   gap: 24rpx;

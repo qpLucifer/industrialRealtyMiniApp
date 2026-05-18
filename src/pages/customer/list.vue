@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
@@ -74,7 +74,7 @@ function goVideoFaq() {
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">客户池</view>
-          <view class="sub">私有 / 公有 · ABC 分级 · 下次提醒</view>
+          <view class="sub">ABC 分级 · 成交状态 · 下次提醒</view>
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
@@ -124,10 +124,10 @@ function goVideoFaq() {
                 </view>
               </view>
               <view class="list-meta-muted" style="margin-top: 6px">
-                {{ c.dealStatus }} · {{ c.scope }}
+                {{ c.dealStatus }}
                 <text v-if="c.ownerName"> · {{ c.ownerName }}</text>
               </view>
-              <view class="list-meta-muted" style="margin-top: 4px">{{ c.recent || '暂无最近跟进' }}</view>
+              <view class="list-meta-muted" style="margin-top: 4px">{{ c.recent ? c.recent : '暂无最近跟进' }}</view>
               <view
                 v-if="c.nextReminder && c.nextReminder !== '—'"
                 style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45"

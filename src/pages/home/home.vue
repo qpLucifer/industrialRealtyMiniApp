@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
@@ -6,9 +6,7 @@ import { fetchWorkbench } from '@/api/home'
 import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
-import {
-  pickActivePopupAnnouncements,
-} from '@/utils/announcement'
+import { pickActivePopupAnnouncements } from '@/utils/announcement'
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v != null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
@@ -24,17 +22,19 @@ function str(v: unknown, fallback = ''): string {
   return String(v).trim() || fallback
 }
 
-function normalizeTodo(raw: unknown): WorkbenchTodo | null {
+function normalizeTodo(raw: unknown, remindCustomerId: string): WorkbenchTodo | null {
   const o = asRecord(raw)
   if (!o) return null
   const id = str(o.id)
   if (!id) return null
   const tone = o.tone === 'mint' || o.tone === 'slate' ? o.tone : 'slate'
+  const highlight = o.highlight === true || (!!remindCustomerId && id === remindCustomerId)
   return {
     id,
-    title: str(o.title, '待跟进'),
+    title: str(o.title, '洽谈中'),
     hint: str(o.hint, '—'),
     tone,
+    highlight,
   }
 }
 
@@ -49,14 +49,25 @@ function normalizeStat(raw: unknown): WorkbenchStat | null {
 /** Coerce API / partial JSON into a safe WorkbenchSummary for the home UI. */
 function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
   const o = asRecord(raw) ?? {}
+  const remindCustomerId = str(o.remindCustomerId)
   const todosIn = Array.isArray(o.todos) ? o.todos : []
-  const todos: WorkbenchTodo[] = todosIn.map(normalizeTodo).filter(Boolean) as WorkbenchTodo[]
+  const todos: WorkbenchTodo[] = todosIn
+    .map((t) => normalizeTodo(t, remindCustomerId))
+    .filter(Boolean) as WorkbenchTodo[]
+
+  if (remindCustomerId) {
+    todos.sort((a, b) => {
+      if (a.highlight && !b.highlight) return -1
+      if (!a.highlight && b.highlight) return 1
+      return 0
+    })
+  }
 
   const statsIn = Array.isArray(o.stats) ? o.stats : []
   const statsParsed = statsIn.map(normalizeStat).filter(Boolean) as WorkbenchStat[]
   const defaultStats: WorkbenchStat[] = [
     { value: '0', label: '可租房源' },
-    { value: '0', label: '意向客户' },
+    { value: '0', label: '客户总数' },
     { value: '0', label: '本周带看' },
   ]
   const stats =
@@ -66,9 +77,10 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
 
   return {
     regionLine: str(o.regionLine, '工作台'),
-    followCount: num(o.followCount, 0),
+    followCount: num(o.followCount, todos.length),
     pendingAudit: num(o.pendingAudit, 0),
     remindHtml: str(o.remindHtml, ''),
+    remindCustomerId: remindCustomerId || null,
     todos,
     stats,
   }
@@ -99,9 +111,14 @@ onShow(() => {
   void refreshAnnouncements()
 })
 
-/** Match prototype: amber lead "系统提醒" + body */
+const EMPTY_FOLLOW_REMIND = '系统提醒 · 近期暂无需要跟进'
+
 const remindParts = computed(() => {
-  const raw = data.value?.remindHtml || ''
+  const d = data.value
+  let raw = d?.remindHtml || ''
+  if (!raw && d && d.todos.length === 0) {
+    raw = EMPTY_FOLLOW_REMIND
+  }
   const m = raw.match(/^系统提醒\s*·\s*(.*)$/)
   if (m) return { lead: '系统提醒', body: m[1] || '' }
   return { lead: '', body: raw }
@@ -180,14 +197,22 @@ function goCustomerNew() {
   uni.navigateTo({ url: '/pages/customer/new' })
 }
 
-function todoCardStyle(i: number) {
-  return i === 0 ? 'margin-top:12px' : 'margin-top:8px'
+/** Inline fallback — WeChat MP often ignores scoped/global border on nested .card */
+function todoHighlightStyle(highlight: boolean | undefined) {
+  if (!highlight) return {}
+  return {
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: '#34d399',
+    backgroundColor: '#ecfdf5',
+    boxShadow: '0 0 0 3px rgba(52, 211, 153, 0.18)',
+  }
 }
 </script>
 
 <template>
   <view class="app-shell">
-    <view class="page-frame screen active screen--tab">
+    <view class="page-frame screen active screen--tab home-screen">
       <view class="top-bar" :style="topBarInsetStyle">
         <view class="top-bar__home-row">
           <view class="top-bar__titles">
@@ -200,14 +225,14 @@ function todoCardStyle(i: number) {
           </view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner">
-        <view v-if="loadError" class="card" style="margin-bottom: 12px">
-          <view style="font-weight: 700; margin-bottom: 8px">数据加载失败</view>
-          <view class="hint">{{ loadError }}</view>
-          <view class="hint" style="margin-top: 8px">请检查网络、登录状态与 VITE_API_BASE；或查看开发者工具控制台。</view>
-        </view>
-        <view v-if="data" class="card card-glow">
+
+      <view v-if="loadError" class="home-load-error card">
+        <view style="font-weight: 700; margin-bottom: 8px">数据加载失败</view>
+        <view class="hint">{{ loadError }}</view>
+      </view>
+
+      <view v-if="data" class="home-body">
+        <view class="card card-glow home-summary">
           <view style="display: flex; justify-content: space-between; align-items: flex-start">
             <view>
               <view style="font-size: 11px; color: var(--cyan); letter-spacing: 0.12em">TODAY</view>
@@ -224,52 +249,46 @@ function todoCardStyle(i: number) {
             </template>
             <text v-else>{{ remindParts.body }}</text>
           </view>
-          <view v-if="data.todos.length === 0" class="hint" style="margin-top: 12px">
-            暂无待跟进（需设置「下次沟通提醒」且时间晚于当前）
-          </view>
-          <view
-            v-for="(t, i) in data.todos"
-            :key="t.id"
-            class="card list-item"
-            :style="todoCardStyle(i)"
-            @click="goCustomer(t.id)"
-          >
-            <view
-              :style="{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                flexShrink: 0,
-                background: t.tone === 'mint' ? 'linear-gradient(135deg,#0d9488,#14b8a6)' : 'linear-gradient(135deg,#64748b,#94a3b8)',
-              }"
-            />
-            <view style="flex: 1; min-width: 0">
-              <view class="home-todo-title">{{ t.title }}</view>
-              <view class="hint" style="margin: 4px 0 0">{{ t.hint }}</view>
-            </view>
-            <view style="color: var(--muted); flex-shrink: 0">›</view>
-          </view>
-          <view style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; text-align: center">
+          <view style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; text-align: center">
             <view v-for="s in data.stats" :key="s.label">
               <view style="font-size: 20px; font-weight: 700">{{ s.value }}</view>
               <view style="font-size: 11px; color: var(--muted)">{{ s.label }}</view>
             </view>
           </view>
         </view>
-        <view style="display: flex; gap: 10px; margin-bottom: 12px">
-          <button class="btn-primary" style="flex: 1; padding: 12px; font-size: 14px" @click="goPublish(true)">
-            ＋ 发布房源
-          </button>
-          <button
-            class="btn-secondary"
-            style="flex: 1; padding: 12px; font-size: 14px; border-color: rgba(52, 211, 153, 0.35); color: var(--mint)"
-            @click="goCustomerNew"
-          >
-            ＋ 新建客户
-          </button>
+
+        <scroll-view scroll-y :show-scrollbar="false" class="home-todo-scroll">
+          <view class="home-todo-scroll__inner">
+            <view v-if="data.todos.length === 0" class="hint home-todo-empty">暂无洽谈中的客户</view>
+            <view
+              v-for="t in data.todos"
+              :key="t.id"
+              class="card list-item home-todo-item"
+              :class="{ 'home-todo-item--highlight': !!t.highlight }"
+              :style="todoHighlightStyle(t.highlight)"
+              @click="goCustomer(t.id)"
+            >
+              <view
+                class="home-todo-avatar"
+                :class="t.tone === 'mint' ? 'home-todo-avatar--mint' : 'home-todo-avatar--slate'"
+              />
+              <view style="flex: 1; min-width: 0">
+                <view class="home-todo-title">{{ t.title }}</view>
+                <view class="hint" style="margin: 4px 0 0">{{ t.hint }}</view>
+              </view>
+              <view v-if="t.highlight" class="home-todo-tag">提醒</view>
+              <view style="color: var(--muted); flex-shrink: 0; margin-left: 4px">›</view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="page-footer home-footer">
+        <view class="page-footer__row">
+          <button class="btn-primary" @click="goPublish(true)">＋ 发布房源</button>
+          <button class="btn-secondary home-footer-new" @click="goCustomerNew">＋ 新建客户</button>
         </view>
-        </view>
-      </scroll-view>
+      </view>
     </view>
 
     <view v-if="popupVisible && popupItem" class="modal-overlay show" @click.self="onPopupDismiss">
@@ -291,6 +310,96 @@ function todoCardStyle(i: number) {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+.home-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.home-load-error {
+  margin: 0 16px 8px;
+}
+
+.home-summary {
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.home-todo-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.home-todo-scroll__inner {
+  padding-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.home-todo-empty {
+  padding: 16px 4px;
+  text-align: center;
+}
+
+.home-todo-item {
+  margin-top: 8px;
+}
+
+.home-todo-item:first-of-type {
+  margin-top: 0;
+}
+
+.home-todo-item--highlight {
+  border-width: 2px !important;
+  border-style: solid !important;
+  border-color: #34d399 !important;
+  background-color: #ecfdf5 !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18) !important;
+}
+
+.home-todo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.home-todo-avatar--mint {
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+}
+
+.home-todo-avatar--slate {
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+}
+
+.home-todo-tag {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #0d9488;
+  color: #fff;
+  font-weight: 600;
+  align-self: center;
+}
+
+.home-footer {
+  flex-shrink: 0;
+}
+
+.home-footer-new {
+  border-color: rgba(52, 211, 153, 0.35);
+  color: var(--mint);
 }
 
 .top-bar__home-icon {

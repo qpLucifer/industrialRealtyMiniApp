@@ -8,13 +8,20 @@ export const mockWorkbench: WorkbenchSummary = {
   followCount: 2,
   pendingAudit: 1,
   remindHtml: '系统提醒 · 2026-05-13 10:00 跟进 张晨',
+  remindCustomerId: 'zhangchen',
   todos: [
-    { id: 'zhangchen', title: '张晨 · 待跟进', hint: 'A 类 · 2026-05-13 10:00 · 黄埔/增城', tone: 'mint' },
-    { id: 'wangli', title: '王莉 · 待跟进', hint: 'C 类 · 2026-05-16 14:00 · 台州', tone: 'slate' },
+    {
+      id: 'zhangchen',
+      title: '张晨 · 洽谈中',
+      hint: 'A 类 · 2026-05-13 10:00 · 上周完成验厂',
+      tone: 'mint',
+      highlight: true,
+    },
+    { id: 'wangli', title: '王莉 · 洽谈中', hint: 'C 类 · 关注南沙仓', tone: 'slate' },
   ],
   stats: [
     { value: '128', label: '可租房源' },
-    { value: '42', label: '意向客户' },
+    { value: '42', label: '客户总数' },
     { value: '7', label: '本周带看' },
   ],
 }

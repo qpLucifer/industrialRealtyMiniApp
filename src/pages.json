@@ -12,6 +12,7 @@
     { "path": "pages/customer/detail", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/new", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/edit", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/customer/follow", "style": { "navigationStyle": "custom" } },
     { "path": "pages/follow/add", "style": { "navigationStyle": "custom" } },
     { "path": "pages/announcements/list", "style": { "navigationStyle": "custom" } },
     { "path": "pages/me/my-properties", "style": { "navigationStyle": "custom" } },

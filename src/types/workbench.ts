@@ -5,6 +5,8 @@ export interface WorkbenchTodo {
   title: string
   hint: string
   tone: 'mint' | 'slate'
+  /** System-reminder customer — pinned first on home */
+  highlight?: boolean
 }
 
 export interface WorkbenchStat {
@@ -17,6 +19,8 @@ export interface WorkbenchSummary {
   followCount: number
   pendingAudit: number
   remindHtml: string
+  /** Slug of customer shown in system reminder (if any) */
+  remindCustomerId?: string | null
   todos: WorkbenchTodo[]
   stats: WorkbenchStat[]
 }
