@@ -323,6 +323,7 @@ export function emptyPropertyForm(): PropertyEditForm {
     companyName: '',
     address: '',
     district: '',
+    districtRegionId: null,
     listTitle: '',
     listingLine1: '',
     listingLine2: '',

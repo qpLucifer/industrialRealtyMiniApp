@@ -81,7 +81,8 @@ const uploading = ref(false)
 
 const form = reactive<PropertyEditForm>(emptyPropertyForm())
 const propertyTypes = ref<string[]>([...FALLBACK_PROPERTY_TYPES])
-const regionNames = ref<string[]>([])
+const regionDefs = ref<{ id: number; name: string }[]>([])
+const regionNames = computed(() => regionDefs.value.map((r) => r.name))
 
 async function loadMeta() {
   try {
@@ -89,9 +90,14 @@ async function loadMeta() {
       fetchRegionDefs(),
       fetchCodeMasterLabels('property_type').catch(() => ({ list: [] as string[] })),
     ])
-    regionNames.value = (regions.list ?? [])
-      .map((r) => String((r as { name?: string; label?: string }).name || (r as { label?: string }).label || ''))
-      .filter(Boolean)
+    regionDefs.value = (regions.list ?? [])
+      .map((r) => {
+        const row = r as { id?: number | string; name?: string; label?: string }
+        const id = Number(row.id)
+        const name = String(row.name || row.label || '').trim()
+        return Number.isFinite(id) && name ? { id, name } : null
+      })
+      .filter(Boolean) as { id: number; name: string }[]
     if (types.list?.length) propertyTypes.value = types.list
   } catch {
     /* keep fallbacks */
@@ -207,8 +213,12 @@ const mapMarkers = computed(() => {
 function guessDistrictFromAddress(address: string) {
   const text = String(address || '').trim()
   if (!text) return ''
-  const hit = regionNames.value.find((name) => name && text.includes(name))
-  return hit || ''
+  const hit = regionDefs.value.find((r) => r.name && text.includes(r.name))
+  if (hit) {
+    form.districtRegionId = hit.id
+    return hit.name
+  }
+  return ''
 }
 
 function applyLocationPick(res: UniApp.ChooseLocationSuccess) {
@@ -247,9 +257,12 @@ function pickFromRange(range: readonly string[], e: PickerChange, set: (v: strin
 }
 
 function pickDistrict(e: PickerChange) {
-  pickFromRange(regionNames.value, e, (v) => {
-    form.district = v
-  })
+  const i = Number(e.detail.value)
+  const row = regionDefs.value[i]
+  if (row) {
+    form.district = row.name
+    form.districtRegionId = row.id
+  }
 }
 
 function onPickDining(e: PickerChange) {

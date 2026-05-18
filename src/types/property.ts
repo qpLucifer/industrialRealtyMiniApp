@@ -76,6 +76,8 @@ export interface PropertyEditForm {
   companyName?: string
   address?: string
   district?: string
+  /** region_defs.id */
+  districtRegionId?: number | null
   types?: string[]
   lat?: string
   lng?: string
