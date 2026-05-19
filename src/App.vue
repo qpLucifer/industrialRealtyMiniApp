@@ -29,3 +29,4 @@ onLaunch(async () => {
 <style src="@/styles/layout-refine.css"></style>
 <style src="@/styles/property-pages.css"></style>
 <style src="@/styles/property-form-ui.css"></style>
+<style src="@/styles/customer-form.css"></style>

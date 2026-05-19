@@ -1,0 +1,61 @@
+/**
+ * Customer create/edit — unified field chrome (match picker-like on same page).
+ */
+
+.customer-form .form-group {
+  margin-bottom: 28rpx;
+}
+
+.customer-form .form-group .label {
+  display: block;
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+}
+
+.customer-form .form-group .label .req {
+  color: #e11d48;
+  margin-left: 4rpx;
+}
+
+.customer-form .field-input,
+.customer-form .field-textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  min-height: 88rpx;
+  line-height: 1.5;
+  font-size: 28rpx;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+}
+
+.customer-form .field-textarea {
+  min-height: 200rpx;
+  height: 200rpx;
+}
+
+.customer-form .field-input::placeholder,
+.customer-form .field-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.customer-form .picker-like {
+  width: 100%;
+}
+
+.customer-form .form-field-readonly {
+  padding: 20rpx 24rpx;
+  min-height: 88rpx;
+  line-height: 1.5;
+  font-size: 28rpx;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  box-sizing: border-box;
+}

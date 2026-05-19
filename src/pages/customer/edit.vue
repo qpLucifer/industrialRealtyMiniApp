@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { useKeyboardScrollPad } from '@/composables/useKeyboardScrollPad'
+import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
@@ -31,11 +30,6 @@ const form = reactive({
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 const deals: CustomerDealStatus[] = ['洽谈中', '已成交', '搁置']
 const scopes: CustomerScope[] = ['私有', '公有']
-
-const { keyboardPadPx } = useKeyboardScrollPad()
-const keyboardPadStyle = computed(() =>
-  keyboardPadPx.value > 0 ? { paddingBottom: `${keyboardPadPx.value + 16}px` } : {},
-)
 
 onLoad(async (q) => {
   if (q?.id) id.value = String(q.id)
@@ -132,24 +126,49 @@ function back() {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="编辑客户" @back="back" />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll" :enable-flex="true">
-        <view class="page-scroll__inner page-scroll__inner--keyboard-pad" :style="keyboardPadStyle">
-          <view class="card">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll customer-form-scroll">
+        <view class="page-scroll__inner">
+          <view class="card customer-form">
             <view class="form-group">
               <text class="label">公司 / 主体<text class="req">*</text></text>
-              <input :adjust-position="false" :cursor-spacing="80" v-model="form.company" type="text" class="field-input" placeholder="营业执照名称" />
+              <input
+                v-model="form.company"
+                type="text"
+                class="field-input"
+                placeholder="营业执照名称"
+                :cursor-spacing="120"
+              />
             </view>
             <view class="form-group">
               <text class="label">主题（列表摘要）</text>
-              <input :adjust-position="false" :cursor-spacing="80" v-model="form.titleLine" type="text" class="field-input" placeholder="例：张晨 · 某某公司" />
+              <input
+                v-model="form.titleLine"
+                type="text"
+                class="field-input"
+                placeholder="例：张晨 · 某某公司"
+                :cursor-spacing="120"
+              />
             </view>
             <view class="form-group">
               <text class="label">联系人<text class="req">*</text></text>
-              <input :adjust-position="false" :cursor-spacing="80" v-model="form.contactName" type="text" class="field-input" placeholder="姓名" />
+              <input
+                v-model="form.contactName"
+                type="text"
+                class="field-input"
+                placeholder="姓名"
+                :cursor-spacing="120"
+              />
             </view>
             <view class="form-group">
               <text class="label">手机<text class="req">*</text></text>
-              <input :adjust-position="false" :cursor-spacing="80" v-model="form.phone" type="number" maxlength="11" class="field-input" placeholder="11 位手机号" />
+              <input
+                v-model="form.phone"
+                type="number"
+                maxlength="11"
+                class="field-input"
+                placeholder="11 位手机号"
+                :cursor-spacing="120"
+              />
             </view>
             <view class="form-group">
               <text class="label">等级</text>
@@ -186,11 +205,25 @@ function back() {
             />
             <view class="form-group">
               <text class="label">地址 / 区域</text>
-              <input :adjust-position="false" :cursor-spacing="80" v-model="form.addressHint" type="text" class="field-input" placeholder="意向区域、地址提示" />
+              <input
+                v-model="form.addressHint"
+                type="text"
+                class="field-input"
+                placeholder="意向区域、地址提示"
+                :cursor-spacing="120"
+              />
             </view>
             <view class="form-group">
               <text class="label">需求摘要</text>
-              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.demandSummary" class="field-textarea" placeholder="面积、预算、行业偏好…" />
+              <textarea
+                v-model="form.demandSummary"
+                class="field-textarea"
+                placeholder="面积、预算、行业偏好…"
+                :cursor-spacing="160"
+                :show-confirm-bar="true"
+                :adjust-position="true"
+                :hold-keyboard="true"
+              />
             </view>
             <button class="btn-primary" style="width: 100%; margin-top: 24rpx" :disabled="saving" @click="submit">
               {{ saving ? '保存中…' : '保存' }}
@@ -203,9 +236,13 @@ function back() {
 </template>
 
 <style scoped>
-.field-input,
-.field-textarea {
-  width: 100%;
-  box-sizing: border-box;
+.customer-form-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+.page-scroll__inner {
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 </style>
