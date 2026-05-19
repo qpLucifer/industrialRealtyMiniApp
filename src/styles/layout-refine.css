@@ -405,12 +405,13 @@ button[plain]::after {
 }
 
 .ic-nav-back {
-  width: 22rpx;
-  height: 22rpx;
-  border-left: 4rpx solid #334155;
-  border-bottom: 4rpx solid #334155;
+  width: 20rpx;
+  height: 20rpx;
+  border-left: 3rpx solid #334155;
+  border-bottom: 3rpx solid #334155;
   transform: rotate(45deg);
-  margin-left: 8rpx;
+  margin-left: 6rpx;
+  box-sizing: border-box;
 }
 
 .ic-nav-close {
@@ -440,8 +441,8 @@ button[plain]::after {
 }
 
 .ic-nav-log {
-  width: 22rpx;
-  height: 26rpx;
+  width: 20rpx;
+  height: 24rpx;
   border: 3rpx solid #334155;
   border-radius: 4rpx;
   position: relative;
@@ -451,12 +452,12 @@ button[plain]::after {
 .ic-nav-log::after {
   content: '';
   position: absolute;
-  left: 4rpx;
-  right: 4rpx;
-  top: 8rpx;
-  height: 3rpx;
+  left: 3rpx;
+  right: 3rpx;
+  top: 7rpx;
+  height: 2rpx;
   background: #334155;
-  box-shadow: 0 6rpx 0 #334155;
+  box-shadow: 0 5rpx 0 #334155;
 }
 
 .ic-nav-add {

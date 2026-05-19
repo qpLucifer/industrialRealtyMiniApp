@@ -2,6 +2,16 @@
  * Property publish / detail — modern industrial CRM look (mini program)
  */
 
+.pf-publish-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+.pf-publish-scroll .page-scroll__inner {
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
 .pf-page-head {
   margin-bottom: 24rpx;
 }
