@@ -5,7 +5,7 @@ export interface MessageItem {
   title: string
   hint: string
   time: string
-  nav?: 'property-detail' | 'customer-detail' | 'announcements' | 'settings'
+  nav?: 'property-detail' | 'customer-detail' | 'viewing-list' | 'announcements' | 'settings'
   propId?: string
   customerId?: string
 }

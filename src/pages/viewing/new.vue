@@ -8,6 +8,7 @@ import { fetchCustomerList } from '@/api/customer'
 import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
+import { fetchViewingDetail, updateViewing } from '@/api/extra'
 import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerListItem } from '@/types/customer'
@@ -20,6 +21,8 @@ const propLocked = ref(false)
 const propertyTitle = ref('')
 const customerSlug = ref('')
 const grade = ref('B')
+const viewingId = ref<number | null>(null)
+const pageTitle = ref('新建带看')
 
 const customers = ref<CustomerListItem[]>([])
 const properties = ref<PropertyListItem[]>([])
@@ -81,13 +84,19 @@ function initStaffSelection(list: StaffPeerOption[], selfId: string) {
 }
 
 onLoad(async (q) => {
-  defaultSlot()
-  const routeKey = parsePropertyRouteKey(q)
-  if (routeKey) {
-    propertyId.value = routeKey
-    propLocked.value = true
+  const editId = q?.id != null ? Number(q.id) : NaN
+  if (Number.isFinite(editId)) viewingId.value = editId
+
+  if (!viewingId.value) {
+    defaultSlot()
+    const routeKey = parsePropertyRouteKey(q)
+    if (routeKey) {
+      propertyId.value = routeKey
+      propLocked.value = true
+    }
+    if (q?.customerId) customerSlug.value = String(q.customerId)
   }
-  if (q?.customerId) customerSlug.value = String(q.customerId)
+
   try {
     const [cr, pr, staff] = await Promise.all([
       fetchCustomerList(),
@@ -97,11 +106,34 @@ onLoad(async (q) => {
     customers.value = cr.list
     properties.value = pr.list
     initStaffSelection(staff.list, staff.selfId)
-    syncPickersFromCode()
+
+    if (viewingId.value) {
+      pageTitle.value = '编辑带看'
+      const v = await fetchViewingDetail(viewingId.value)
+      start.value = v.start
+      end.value = v.end
+      grade.value = v.score || 'B'
+      customerSlug.value = v.customerSlug || ''
+      propertyId.value = v.propertyId || v.propertyRef || v.miniPropCode || ''
+      propLocked.value = true
+      propertyTitle.value = propLabelFromViewing(v)
+      selectedStaffIds.value =
+        v.companionStaffIds?.length ? [...v.companionStaffIds] : staff.selfId ? [staff.selfId] : []
+      syncPickersFromCode()
+    } else {
+      syncPickersFromCode()
+    }
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载选项失败', icon: 'none' })
+    if (viewingId.value) setTimeout(() => uni.navigateBack(), 400)
   }
 })
+
+function propLabelFromViewing(v: { propertyRef?: string | null; miniPropCode?: string | null; propertyId?: string | null }) {
+  const code = String(v.propertyRef || v.miniPropCode || v.propertyId || '').trim()
+  const p = properties.value.find((x) => x.id === code || x.code === code)
+  return p ? `${p.code || p.id} · ${p.title}` : code || '—'
+}
 
 function onCustomerPick(e: { detail: { value: string } }) {
   customerIdx.value = Number(e.detail.value)
@@ -127,7 +159,7 @@ async function submit() {
   try {
     markListStale('viewing-list')
     markWorkbenchStale()
-    await postAction('viewing-create', {
+    const payload = {
       start: start.value,
       end: end.value,
       propertyId: propertyId.value,
@@ -137,8 +169,14 @@ async function submit() {
       customerId: customerSlug.value,
       companionStaffIds: selectedStaffIds.value,
       grade: grade.value,
-    })
-    uni.showToast({ title: '带看已登记', icon: 'none' })
+    }
+    if (viewingId.value) {
+      await updateViewing({ ...payload, id: viewingId.value })
+      uni.showToast({ title: '已保存', icon: 'none' })
+    } else {
+      await postAction('viewing-create', payload)
+      uni.showToast({ title: '带看已登记', icon: 'none' })
+    }
     uni.navigateBack()
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '提交失败', icon: 'none' })
@@ -153,7 +191,7 @@ function back() {
 <template>
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
-      <NavIconBar title="新建带看" @back="back" />
+      <NavIconBar :title="pageTitle" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
           <view class="card">
@@ -200,7 +238,7 @@ function back() {
         </view>
       </scroll-view>
       <view class="page-footer">
-        <button class="btn-primary" style="width: 100%" @click="submit">提交带看</button>
+        <button class="btn-primary" style="width: 100%" @click="submit">{{ viewingId ? '保存修改' : '提交带看' }}</button>
       </view>
     </view>
   </view>

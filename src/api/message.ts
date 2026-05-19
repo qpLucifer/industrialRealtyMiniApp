@@ -5,6 +5,10 @@ export function fetchMessageList() {
   return get<{ list: MessageItem[] }>('/api/message/list')
 }
 
+export function dismissMessage(messageId: string) {
+  return post<{ success: boolean }>('/api/message/dismiss', { id: messageId })
+}
+
 export function fetchAnnouncementList() {
   return get<AnnouncementListResult>('/api/announcement/list')
 }

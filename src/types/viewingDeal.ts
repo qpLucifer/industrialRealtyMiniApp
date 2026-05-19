@@ -1,11 +1,22 @@
 export interface ViewingListItem {
+  id: number
   start: string
   end: string
-  prop: string
-  customer: string
-  staff: string
-  grade: string
+  propertyRef: string
+  propertyId?: string | null
+  miniPropCode?: string | null
+  customerName: string
+  customerSlug?: string | null
+  companions: string
+  companionStaffIds?: string[]
+  score: string
+  miniStaff?: string | null
+  miniStaffId?: string | null
+  /** In-progress when now is between start and end */
+  active?: boolean
 }
+
+export interface ViewingDetail extends ViewingListItem {}
 
 export interface DealFormDefaults {
   contractType: string
