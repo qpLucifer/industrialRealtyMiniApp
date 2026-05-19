@@ -77,7 +77,7 @@ function confirmSheet() {
         <scroll-view scroll-y class="staff-multi-sheet__list" :show-scrollbar="false">
           <checkbox-group @change="onCheckboxChange">
             <label v-for="s in options" :key="s.id" class="staff-multi-sheet__row">
-              <checkbox :value="s.id" :checked="draft.includes(s.id)" color="#0d9488" />
+              <checkbox :value="s.id" :checked="draft.includes(s.id)" color="#1a3a6c" />
               <text class="staff-multi-sheet__name">{{ s.name }}</text>
             </label>
           </checkbox-group>
@@ -120,7 +120,7 @@ function confirmSheet() {
 }
 
 .staff-multi-sheet__action--ok {
-  color: var(--teal, #0d9488);
+  color: var(--brand, #1a3a6c);
   font-weight: 600;
 }
 

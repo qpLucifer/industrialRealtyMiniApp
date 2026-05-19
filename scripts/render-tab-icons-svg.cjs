@@ -29,8 +29,9 @@ function buildSvg(pathD, fill) {
 }
 
 async function main() {
+  /** Match pages.json tabBar + brand-theme (--brand) */
   const inactive = '#64748b'
-  const active = '#0d9488'
+  const active = '#1a3a6c'
   for (const { file, d } of ICONS) {
     const out1 = path.join(dir, `${file}.png`)
     const out2 = path.join(dir, `${file}-active.png`)

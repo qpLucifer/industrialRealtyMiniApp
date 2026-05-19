@@ -54,12 +54,18 @@ button[plain]::after {
   flex: 1;
   min-height: 0;
   width: 100%;
+  height: 0;
   box-sizing: border-box;
 }
 
 .page-scroll__inner {
   padding: 12px 16px 20px;
   box-sizing: border-box;
+}
+
+/* Long forms: extra room so keyboard does not cover the active field */
+.page-scroll__inner--keyboard-pad {
+  transition: padding-bottom 0.15s ease-out;
 }
 
 .page-footer {
@@ -92,8 +98,8 @@ button[plain]::after {
 .card-glow {
   border: none;
   box-shadow:
-    0 0 0 2rpx rgba(13, 148, 136, 0.12),
-    0 4rpx 24rpx rgba(13, 148, 136, 0.08);
+    0 0 0 2rpx rgba(26, 58, 108, 0.12),
+    0 4rpx 24rpx rgba(26, 58, 108, 0.08);
 }
 
 .scroll {
@@ -121,7 +127,7 @@ button[plain]::after {
 
 .chip.on {
   border: none;
-  box-shadow: 0 2rpx 8rpx rgba(13, 148, 136, 0.2);
+  box-shadow: 0 2rpx 8rpx rgba(26, 58, 108, 0.2);
 }
 
 .list-item {
@@ -132,11 +138,11 @@ button[plain]::after {
 
 /* Home — system-reminder customer row (must override .card { border: none } above) */
 .card.list-item.home-todo-item--highlight {
-  border: 2rpx solid #34d399 !important;
+  border: 2rpx solid #4a6fa8 !important;
   background-color: #ecfdf5 !important;
   box-shadow:
     0 0 0 4rpx rgba(52, 211, 153, 0.16),
-    0 6rpx 20rpx rgba(13, 148, 136, 0.12) !important;
+    0 6rpx 20rpx rgba(26, 58, 108, 0.12) !important;
 }
 
 .card.list-item.home-todo-item--highlight .home-todo-avatar--mint,
@@ -249,11 +255,11 @@ button[plain]::after {
 
 .wizard-step-pill.on {
   color: #fff;
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  background: linear-gradient(135deg, #2d4f8c, #1a3a6c);
 }
 
 .upload-tile {
-  border: 2rpx dashed rgba(13, 148, 136, 0.25);
+  border: 2rpx dashed rgba(26, 58, 108, 0.25);
   border-radius: 20rpx;
   background: #f8fafc;
 }
@@ -268,7 +274,7 @@ button[plain]::after {
   margin-bottom: 20rpx;
   border-radius: 24rpx;
   background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
-  box-shadow: 0 4rpx 24rpx rgba(13, 148, 136, 0.1);
+  box-shadow: 0 4rpx 24rpx rgba(26, 58, 108, 0.1);
 }
 
 .detail-header-card__code {
@@ -317,7 +323,7 @@ button[plain]::after {
 
 .detail-seg__btn.on {
   color: #fff;
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  background: linear-gradient(135deg, #2d4f8c, #1a3a6c);
 }
 
 .detail-kv-card .kv-row {
@@ -364,7 +370,7 @@ button[plain]::after {
 
 .fab {
   bottom: calc(32rpx + var(--safe-bottom));
-  box-shadow: 0 8rpx 32rpx rgba(13, 148, 136, 0.35);
+  box-shadow: 0 8rpx 32rpx rgba(26, 58, 108, 0.35);
 }
 
 .fab.fab--tab {
@@ -372,7 +378,7 @@ button[plain]::after {
 }
 
 .btn-ghost {
-  background: rgba(13, 148, 136, 0.08);
+  background: rgba(26, 58, 108, 0.08);
   border-radius: 12rpx;
 }
 
@@ -502,6 +508,8 @@ button[plain]::after {
 
 .form-group input,
 .form-group textarea,
+.form-group :deep(textarea),
+.form-group :deep(input),
 .picker-value {
   width: 100%;
   box-sizing: border-box;

@@ -154,7 +154,7 @@ async function onDelete(m: MessageItem) {
 }
 
 .msg-card__icon--mint {
-  background: linear-gradient(135deg, #34d399, #0d9488);
+  background: linear-gradient(135deg, #4a6fa8, #1a3a6c);
   color: #fff;
 }
 

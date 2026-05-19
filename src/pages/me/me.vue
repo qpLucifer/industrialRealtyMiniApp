@@ -161,7 +161,7 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
 
 .me-hero__accent {
   height: 8rpx;
-  background: linear-gradient(90deg, #0d9488 0%, #34d399 55%, #99f6e4 100%);
+  background: linear-gradient(90deg, #1a3a6c 0%, #4a6fa8 55%, #d4deed 100%);
 }
 
 .me-hero__body {
@@ -198,8 +198,8 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   height: 168rpx;
   border-radius: 50%;
   padding: 6rpx;
-  background: linear-gradient(135deg, #0d9488, #34d399, #a7f3d0);
-  box-shadow: 0 12rpx 32rpx rgba(13, 148, 136, 0.22);
+  background: linear-gradient(135deg, #1a3a6c, #4a6fa8, #c5d4e8);
+  box-shadow: 0 12rpx 32rpx rgba(26, 58, 108, 0.22);
 }
 
 .me-avatar-img,

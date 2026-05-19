@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { miniLoginByPhoneDigits, miniLoginByWechatPhoneCode } from '@/api/auth'
 import type { MiniLoginResult } from '@/types/auth'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 
 const loading = ref(false)
 const manualPhone = ref('')
+const agreed = ref(false)
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const phoneFallbackEnabled = (import.meta.env.VITE_MINI_LOGIN_PHONE_FALLBACK ?? 'false') === 'true'
+
+const canLogin = computed(() => agreed.value && !loading.value)
+
+const LOGO_SRC = '/static/brand/logo.png'
 
 function persistSession(r: MiniLoginResult) {
   if (!USE_MOCK && !isIndustrialMiniSessionToken(r.token)) {
@@ -34,7 +39,15 @@ function toastAfterLogin(r: MiniLoginResult) {
   uni.showToast({ title: `已登录 · ${short}`, icon: 'none', duration: 2200 })
 }
 
+function warnAgree() {
+  uni.showToast({ title: '请先勾选「我已知晓」', icon: 'none' })
+}
+
 async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
+  if (!agreed.value) {
+    warnAgree()
+    return
+  }
   const detail = (e.detail || {}) as { errMsg?: string; code?: string; errno?: number }
   if (detail.errMsg !== 'getPhoneNumber:ok') {
     const deny = String(detail.errMsg || '').includes('deny') || detail.errno === 1400001
@@ -65,6 +78,10 @@ async function onGetPhoneNumber(e: { detail?: Record<string, unknown> }) {
 }
 
 async function onManualPhoneLogin() {
+  if (!agreed.value) {
+    warnAgree()
+    return
+  }
   const d = manualPhone.value.replace(/\D/g, '')
   if (d.length !== 11 || !/^1\d{10}$/.test(d)) {
     uni.showToast({ title: '请输入 11 位大陆手机号', icon: 'none' })
@@ -84,6 +101,10 @@ async function onManualPhoneLogin() {
   }
 }
 
+function toggleAgree() {
+  agreed.value = !agreed.value
+}
+
 onMounted(() => {
   const t = uni.getStorageSync('mini_token')
   if (!t) return
@@ -98,52 +119,251 @@ onMounted(() => {
 </script>
 
 <template>
-  <view class="app-shell">
-    <view
-      class="screen active"
-      style="display: flex; flex-direction: column; min-height: 100vh; height: 100vh; max-height: 100vh; overflow: hidden"
-    >
-      <view style="padding: 20px 24px 32px; flex: 1; min-height: 0; display: flex; flex-direction: column">
-        <view class="login-logo" aria-hidden="true">
-          <text style="font-size: 48px; line-height: 1; color: #0d9488">◆</text>
+  <view class="login-page">
+    <view class="login-page__bg" aria-hidden="true" />
+    <view class="login-page__body">
+      <view class="login-hero">
+        <view class="login-hero__logo-wrap">
+          <image class="login-hero__logo" :src="LOGO_SRC" mode="aspectFit" />
         </view>
-        <view class="hero-brand">INDUSTRIAL CORE</view>
-        <view style="text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px"
-          >企业内部 · 厂房 / 土地 / 园区房源与客户闭环</view
-        >
-        <view style="flex: 1" />
-        <view class="hint" style="text-align: center; margin-bottom: 12px"
-          >使用微信授权手机号登录；号码须在后台白名单且与员工档案一致。全程脱敏与操作留痕。</view
-        >
+        <text class="login-hero__name">浙江企鹏工业地产</text>
+        <text class="login-hero__tag">企业内部 · 厂房 / 土地 / 园区</text>
+      </view>
+
+      <view class="login-card">
+        <text class="login-card__lead">使用微信授权手机号登录，号码须在后台白名单且与员工档案一致。</text>
+
+        <view class="login-agree" @tap="toggleAgree">
+          <view class="login-agree__box" :class="{ 'login-agree__box--on': agreed }">
+            <text v-if="agreed" class="login-agree__tick">✓</text>
+          </view>
+          <text class="login-agree__text">我已知晓并同意使用本系统处理业务数据</text>
+        </view>
+
         <!-- #ifdef MP-WEIXIN -->
         <button
-          class="btn-primary"
-          style="width: 100%"
+          v-if="canLogin"
+          class="login-btn login-btn--primary"
           open-type="getPhoneNumber"
-          :disabled="loading"
           @getphonenumber="onGetPhoneNumber"
         >
-          {{ loading ? '登录中…' : '微信手机号快捷登录' }}
+          微信手机号快捷登录
+        </button>
+        <button v-else class="login-btn login-btn--primary login-btn--ghost" @tap="warnAgree">
+          微信手机号快捷登录
         </button>
         <!-- #endif -->
+
         <!-- #ifndef MP-WEIXIN -->
-        <view class="hint" style="text-align: center; margin-bottom: 12px"
-          >当前不是微信小程序运行时，无法拉起手机号授权。请在微信开发者工具/真机预览中使用小程序；或在下方开启回落用手机号（仅开发）。</view
-        >
+        <view class="login-card__note">请在微信开发者工具或真机预览中使用小程序登录。</view>
         <!-- #endif -->
-        <view v-if="phoneFallbackEnabled" style="margin-top: 20px">
+
+        <view v-if="phoneFallbackEnabled" class="login-dev">
           <input
             v-model="manualPhone"
             type="number"
             maxlength="11"
             placeholder="开发：11 位手机号"
-            style="width: 100%; margin-bottom: 12px; box-sizing: border-box; min-height: 44px; padding: 10px 12px"
+            class="login-dev__input"
+            :adjust-position="false"
+            :cursor-spacing="80"
           />
-          <button class="btn-secondary" style="width: 100%" :disabled="loading" @click="onManualPhoneLogin">
+          <button class="login-btn login-btn--secondary" :disabled="loading" @click="onManualPhoneLogin">
             开发模式登录
           </button>
         </view>
       </view>
+
+      <text class="login-foot">© 浙江企鹏工业地产</text>
     </view>
   </view>
 </template>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  position: relative;
+  background: #f0f4fa;
+  overflow: hidden;
+}
+
+.login-page__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(26, 58, 108, 0.14), transparent 55%),
+    linear-gradient(165deg, #f8fafc 0%, #eef2f8 48%, #e8eef6 100%);
+  pointer-events: none;
+}
+
+.login-page__body {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(48rpx + env(safe-area-inset-top)) 40rpx calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.login-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0 40rpx;
+}
+
+.login-hero__logo-wrap {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 32rpx;
+  background: #fff;
+  box-shadow: 0 16rpx 48rpx rgba(26, 58, 108, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.login-hero__logo {
+  width: 100%;
+  height: 100%;
+}
+
+.login-hero__name {
+  margin-top: 36rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1a3a6c;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.login-hero__tag {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  text-align: center;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 40rpx 36rpx 36rpx;
+  box-shadow: 0 12rpx 40rpx rgba(15, 23, 42, 0.08);
+  border: 1rpx solid rgba(26, 58, 108, 0.06);
+}
+
+.login-card__lead {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: #64748b;
+  margin-bottom: 32rpx;
+}
+
+.login-card__note {
+  font-size: 26rpx;
+  color: #94a3b8;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.login-agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 28rpx;
+}
+
+.login-agree__box {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+  border-radius: 10rpx;
+  border: 2rpx solid #94a3b8;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin-top: 4rpx;
+}
+
+.login-agree__box--on {
+  background: #1a3a6c;
+  border-color: #1a3a6c;
+}
+
+.login-agree__tick {
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.login-agree__text {
+  flex: 1;
+  font-size: 26rpx;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.login-btn--primary {
+  background: linear-gradient(135deg, #1a3a6c 0%, #2d4f8c 100%);
+  color: #fff;
+  box-shadow: 0 12rpx 28rpx rgba(26, 58, 108, 0.28);
+}
+
+.login-btn--ghost {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.login-btn--secondary {
+  margin-top: 16rpx;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.login-dev {
+  margin-top: 28rpx;
+  padding-top: 28rpx;
+  border-top: 1rpx solid #e2e8f0;
+}
+
+.login-dev__input {
+  width: 100%;
+  min-height: 88rpx;
+  margin-bottom: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.login-foot {
+  display: block;
+  text-align: center;
+  margin-top: 32rpx;
+  font-size: 22rpx;
+  color: #94a3b8;
+}
+</style>

@@ -223,7 +223,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
   return {
     borderWidth: '2px',
     borderStyle: 'solid',
-    borderColor: '#34d399',
+    borderColor: '#4a6fa8',
     backgroundColor: '#ecfdf5',
     boxShadow: '0 0 0 3px rgba(52, 211, 153, 0.18)',
   }
@@ -382,7 +382,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
 .home-todo-item--highlight {
   border-width: 2px !important;
   border-style: solid !important;
-  border-color: #34d399 !important;
+  border-color: #4a6fa8 !important;
   background-color: #ecfdf5 !important;
   box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18) !important;
 }
@@ -395,7 +395,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
 }
 
 .home-todo-avatar--mint {
-  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  background: linear-gradient(135deg, #1a3a6c, #2d4f8c);
 }
 
 .home-todo-avatar--slate {
@@ -407,7 +407,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
   font-size: 11px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #0d9488;
+  background: #1a3a6c;
   color: #fff;
   font-weight: 600;
   align-self: center;
@@ -430,7 +430,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
 .ic-announce {
   width: 44rpx;
   height: 44rpx;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E")
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a3a6c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/%3E%3Cpath d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
 

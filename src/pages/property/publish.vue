@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { provide } from 'vue'
+import { computed, provide } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
+import { useKeyboardScrollPad } from '@/composables/useKeyboardScrollPad'
 import {
   PROPERTY_PUBLISH_KEY,
   usePropertyPublishPage,
@@ -24,6 +25,11 @@ import {
 
 const ctx = usePropertyPublishPage()
 provide(PROPERTY_PUBLISH_KEY, ctx)
+
+const { keyboardPadPx } = useKeyboardScrollPad()
+const keyboardPadStyle = computed(() =>
+  keyboardPadPx.value > 0 ? { paddingBottom: `${keyboardPadPx.value + 16}px` } : {},
+)
 
 const {
   step,
@@ -101,8 +107,12 @@ const {
     <view class="page-frame screen active screen--sub">
       <NavIconBar :title="title" back-icon="close" @back="close" />
 
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner" :class="{ 'pf-publish--locked': formLocked }">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll" :enable-flex="true">
+        <view
+          class="page-scroll__inner page-scroll__inner--keyboard-pad"
+          :class="{ 'pf-publish--locked': formLocked }"
+          :style="keyboardPadStyle"
+        >
           <view class="pf-page-head">
             <text class="wizard-head__title">{{ stepNames[step] }}</text>
             <text class="wizard-head__sub">第 {{ step + 1 }} / {{ stepNames.length }} 步 · 与后台验厂表字段一致</text>
@@ -155,19 +165,19 @@ const {
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">挂牌标题</text>
-              <input v-model="form.listTitle" class="pf-input" placeholder="对外展示标题" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.listTitle" class="pf-input" placeholder="对外展示标题" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">公司名称<text class="req">*</text></text>
-              <input v-model="form.companyName" class="pf-input" placeholder="营业执照全称" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.companyName" class="pf-input" placeholder="营业执照全称" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">业主联系人</text>
-              <input v-model="form.ownerContact" class="pf-input" placeholder="姓名 · 电话" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.ownerContact" class="pf-input" placeholder="姓名 · 电话" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">风险标签</text>
-              <input v-model="form.riskTag" class="pf-input" placeholder="如：资料待核、无" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.riskTag" class="pf-input" placeholder="如：资料待核、无" />
             </view>
           </view>
 
@@ -195,7 +205,7 @@ const {
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">详细地址<text class="req">*</text></text>
-              <input v-model="form.address" class="pf-input" placeholder="选点后自动回填，也可手填" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.address" class="pf-input" placeholder="选点后自动回填，也可手填" />
             </view>
             <view class="pf-cell pf-cell--col">
               <view class="pf-map-btn" @tap="chooseMap">{{ hasMapCoords ? '重新选点 / 调整位置' : '微信地图选点' }}</view>
@@ -220,11 +230,11 @@ const {
             <view class="pf-field-grid" style="padding: 0 28rpx 20rpx">
               <view class="pf-field">
                 <text class="pf-field__label">纬度<text class="req">*</text></text>
-                <input v-model="form.lat" class="pf-input" type="digit" placeholder="23.xxx" />
+                <input :adjust-position="false" :cursor-spacing="80" v-model="form.lat" class="pf-input" type="digit" placeholder="23.xxx" />
               </view>
               <view class="pf-field">
                 <text class="pf-field__label">经度<text class="req">*</text></text>
-                <input v-model="form.lng" class="pf-input" type="digit" placeholder="113.xxx" />
+                <input :adjust-position="false" :cursor-spacing="80" v-model="form.lng" class="pf-input" type="digit" placeholder="113.xxx" />
               </view>
             </view>
             <view v-if="hasMapCoords" class="pf-cell pf-cell--col">
@@ -293,35 +303,35 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">土地（亩）<text class="req">*</text></text>
-                  <input v-model="form.landMu" class="pf-input" type="digit" placeholder="亩" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.landMu" class="pf-input" type="digit" placeholder="亩" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">实际土地（亩）</text>
-                  <input v-model="form.actualLandMu" class="pf-input" type="digit" placeholder="亩" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.actualLandMu" class="pf-input" type="digit" placeholder="亩" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">建筑面积（㎡）</text>
-                  <input v-model="form.buildingArea" class="pf-input" type="number" placeholder="㎡" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.buildingArea" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">使用面积（㎡）</text>
-                  <input v-model="form.actualUseArea" class="pf-input" type="number" placeholder="㎡" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.actualUseArea" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">总层数</text>
-                  <input v-model="form.floors" class="pf-input" type="number" placeholder="层" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.floors" class="pf-input" type="number" placeholder="层" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">承重（吨/m²）</text>
-                  <input v-model="form.loadPerSqm" class="pf-input" type="digit" placeholder="吨/m²" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.loadPerSqm" class="pf-input" type="digit" placeholder="吨/m²" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">车间长宽高（米）</text>
-                  <input v-model="form.workshopSize" class="pf-input" placeholder="长×宽×高" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.workshopSize" class="pf-input" placeholder="长×宽×高" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">承重注明区域</text>
-                  <input v-model="form.loadNote" class="pf-input" placeholder="承重特殊说明" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.loadNote" class="pf-input" placeholder="承重特殊说明" />
                 </view>
               </view>
             </view>
@@ -337,7 +347,7 @@ const {
                   >{{ s }}</text
                 >
               </view>
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.structureOther"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': structureOtherOff }"
@@ -353,31 +363,31 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">电力总容量（kVA）<text class="req">*</text></text>
-                  <input v-model="form.powerKva" class="pf-input" type="number" placeholder="kVA" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.powerKva" class="pf-input" type="number" placeholder="kVA" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">变压器（台）</text>
-                  <input v-model="form.transformers" class="pf-input" type="number" placeholder="台" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.transformers" class="pf-input" type="number" placeholder="台" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">货梯（台）</text>
-                  <input v-model="form.freightLifts" class="pf-input" type="number" placeholder="台" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.freightLifts" class="pf-input" type="number" placeholder="台" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">货梯载重（吨）</text>
-                  <input v-model="form.liftLoadT" class="pf-input" type="digit" placeholder="吨" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.liftLoadT" class="pf-input" type="digit" placeholder="吨" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">货梯尺寸（米）</text>
-                  <input v-model="form.liftDims" class="pf-input" placeholder="长×宽×高（米）" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.liftDims" class="pf-input" placeholder="长×宽×高（米）" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">装卸平台高度（cm）</text>
-                  <input v-model="form.platformHeightCm" class="pf-input" type="number" placeholder="可选" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.platformHeightCm" class="pf-input" type="number" placeholder="可选" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">货车转弯半径（米）</text>
-                  <input v-model="form.turnRadiusM" class="pf-input" type="digit" placeholder="可选" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.turnRadiusM" class="pf-input" type="digit" placeholder="可选" />
                 </view>
               </view>
             </view>
@@ -386,11 +396,11 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">宿舍 · 园区内租金（元/房）</text>
-                  <input v-model="form.dormRent" class="pf-input" type="number" placeholder="可选" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.dormRent" class="pf-input" type="number" placeholder="可选" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">宿舍 · 周边距离（公里）</text>
-                  <input v-model="form.dormDistanceKm" class="pf-input" type="digit" placeholder="可选" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.dormDistanceKm" class="pf-input" type="digit" placeholder="可选" />
                 </view>
               </view>
             </view>
@@ -407,11 +417,11 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">公交 / 地铁站点</text>
-                  <input v-model="form.transitStation" class="pf-input" placeholder="站点名称" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.transitStation" class="pf-input" placeholder="站点名称" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">站点距离（米）</text>
-                  <input v-model="form.stationDistanceM" class="pf-input" type="number" placeholder="米" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.stationDistanceM" class="pf-input" type="number" placeholder="米" />
                 </view>
               </view>
             </view>
@@ -420,19 +430,19 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">自用（㎡）</text>
-                  <input v-model="form.selfUseSqm" class="pf-input" type="number" placeholder="㎡" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.selfUseSqm" class="pf-input" type="number" placeholder="㎡" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">租金估算（元/年）</text>
-                  <input v-model="form.rentEstimateYear" class="pf-input" type="number" placeholder="元/年" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.rentEstimateYear" class="pf-input" type="number" placeholder="元/年" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">共租（家）</text>
-                  <input v-model="form.coTenantCount" class="pf-input" type="number" placeholder="0 表示非共租" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.coTenantCount" class="pf-input" type="number" placeholder="0 表示非共租" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">年租金（元/年）</text>
-                  <input
+                  <input :adjust-position="false" :cursor-spacing="80"
                     v-model="form.annualRent"
                     class="pf-input"
                     :class="{ 'pf-input--disabled': coTenantAnnualOff }"
@@ -443,7 +453,7 @@ const {
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">租客公司</text>
-                  <input
+                  <input :adjust-position="false" :cursor-spacing="80"
                     v-model="form.tenantCompanies"
                     class="pf-input"
                     :class="{ 'pf-input--disabled': coTenantAnnualOff }"
@@ -453,7 +463,7 @@ const {
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">合同还有（年）</text>
-                  <input
+                  <input :adjust-position="false" :cursor-spacing="80"
                     v-model="form.contractYearsLeft"
                     class="pf-input"
                     :class="{ 'pf-input--disabled': coTenantAnnualOff }"
@@ -464,13 +474,13 @@ const {
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">腾空周期（月）</text>
-                  <input v-model="form.vacantMonths" class="pf-input" type="number" placeholder="月" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.vacantMonths" class="pf-input" type="number" placeholder="月" />
                 </view>
               </view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">使用情况备注</text>
-              <textarea v-model="form.usageRemark" class="pf-textarea" placeholder="使用情况说明" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.usageRemark" class="pf-textarea" placeholder="使用情况说明" />
             </view>
           </view>
 
@@ -488,7 +498,7 @@ const {
                   >{{ r }}</text
                 >
               </view>
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.propertyRightsOther"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': rightsOtherOff }"
@@ -508,7 +518,7 @@ const {
                   >{{ u }}</text
                 >
               </view>
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.landUseOther"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': landUseOtherOff }"
@@ -540,7 +550,7 @@ const {
             </picker>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">抵押 / 纠纷说明</text>
-              <textarea
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false"
                 v-model="form.mortgageNote"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': mortgageNoteOff }"
@@ -553,25 +563,25 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">房东心里价位（万）</text>
-                  <input v-model="form.landlordPriceWan" class="pf-input" type="digit" placeholder="可选" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.landlordPriceWan" class="pf-input" type="digit" placeholder="可选" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">交易方式</text>
-                  <input v-model="form.tradeMode" class="pf-input" placeholder="如：股权转让" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.tradeMode" class="pf-input" placeholder="如：股权转让" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">交易税费说明</text>
-                  <input v-model="form.taxFeeNote" class="pf-input" placeholder="金额或区间" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.taxFeeNote" class="pf-input" placeholder="金额或区间" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">允许产业类型</text>
-                  <input v-model="form.allowedIndustries" class="pf-input" placeholder="允许入驻产业" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.allowedIndustries" class="pf-input" placeholder="允许入驻产业" />
                 </view>
               </view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">特殊限制</text>
-              <textarea v-model="form.specialLimits" class="pf-textarea" placeholder="特殊限制说明" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.specialLimits" class="pf-textarea" placeholder="特殊限制说明" />
             </view>
             <view class="pf-section-h">消防 · 物流</view>
             <view class="pf-cell pf-cell--col">
@@ -586,7 +596,7 @@ const {
                   >{{ f }}</text
                 >
               </view>
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.fireOther"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': fireOtherOff }"
@@ -614,7 +624,7 @@ const {
             </picker>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">未通过原因</text>
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.fireFailReason"
                 class="pf-input"
                 :class="{ 'pf-input--disabled': fireFailOff }"
@@ -626,15 +636,15 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">最近高速口（km）</text>
-                  <input v-model="form.highwayKm" class="pf-input" type="digit" placeholder="km" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.highwayKm" class="pf-input" type="digit" placeholder="km" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">港口/机场（km）</text>
-                  <input v-model="form.portAirportKm" class="pf-input" type="digit" placeholder="km" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.portAirportKm" class="pf-input" type="digit" placeholder="km" />
                 </view>
                 <view class="pf-field pf-field--full">
                   <text class="pf-field__label">道路限高/限重</text>
-                  <input v-model="form.roadLimits" class="pf-input" placeholder="限高/限重说明" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.roadLimits" class="pf-input" placeholder="限高/限重说明" />
                 </view>
               </view>
             </view>
@@ -661,7 +671,7 @@ const {
               </view>
             </picker>
             <view class="pf-cell pf-cell--col">
-              <input
+              <input :adjust-position="false" :cursor-spacing="80"
                 v-model="form.subsidyDetail"
                 class="pf-textarea"
                 :class="{ 'pf-textarea--disabled': subsidyDetailOff }"
@@ -671,11 +681,11 @@ const {
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">税收优惠</text>
-              <input v-model="form.taxBenefit" class="pf-input" placeholder="税收优惠说明" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.taxBenefit" class="pf-input" placeholder="税收优惠说明" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">环评等级</text>
-              <input v-model="form.envLevel" class="pf-input" placeholder="如：二类工业用地" />
+              <input :adjust-position="false" :cursor-spacing="80" v-model="form.envLevel" class="pf-input" placeholder="如：二类工业用地" />
             </view>
             <picker mode="selector" :range="DISCHARGE" :value="pickerIdx(DISCHARGE, form.dischargePermit || '有')" @change="onPickDischarge">
               <view class="pf-cell">
@@ -698,15 +708,15 @@ const {
             <view class="pf-section-h">亮点 · 风险 · 评估</view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">厂房亮点</text>
-              <textarea v-model="form.highlights" class="pf-textarea" placeholder="厂房亮点" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.highlights" class="pf-textarea" placeholder="厂房亮点" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">潜在风险</text>
-              <textarea v-model="form.risks" class="pf-textarea" placeholder="潜在风险" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.risks" class="pf-textarea" placeholder="潜在风险" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">评估建议</text>
-              <textarea v-model="form.assessment" class="pf-textarea" placeholder="评估建议" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.assessment" class="pf-textarea" placeholder="评估建议" />
             </view>
           </view>
 
@@ -724,11 +734,11 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">租金挂牌（元/㎡·月）</text>
-                  <input v-model="form.rentListSqm" class="pf-input" type="digit" placeholder="元/㎡·月" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.rentListSqm" class="pf-input" type="digit" placeholder="元/㎡·月" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">物业费（元/㎡·月）</text>
-                  <input v-model="form.propertyFee" class="pf-input" type="digit" placeholder="元/㎡·月" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.propertyFee" class="pf-input" type="digit" placeholder="元/㎡·月" />
                 </view>
               </view>
             </view>
@@ -736,21 +746,21 @@ const {
               <view class="pf-field-grid">
                 <view class="pf-field">
                   <text class="pf-field__label">联系人姓名<text class="req">*</text></text>
-                  <input v-model="form.contactName" class="pf-input" placeholder="姓名" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.contactName" class="pf-input" placeholder="姓名" />
                 </view>
                 <view class="pf-field">
                   <text class="pf-field__label">联系人电话<text class="req">*</text></text>
-                  <input v-model="form.contactPhone" class="pf-input" type="number" maxlength="11" placeholder="11位手机" />
+                  <input :adjust-position="false" :cursor-spacing="80" v-model="form.contactPhone" class="pf-input" type="number" maxlength="11" placeholder="11位手机" />
                 </view>
               </view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">看房预约备注</text>
-              <textarea v-model="form.viewingNote" class="pf-textarea" placeholder="看房预约备注" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.viewingNote" class="pf-textarea" placeholder="看房预约备注" />
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">内部备注</text>
-              <textarea v-model="form.internalNote" class="pf-textarea" placeholder="不对客户展示" />
+              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="form.internalNote" class="pf-textarea" placeholder="不对客户展示" />
             </view>
           </view>
         </view>

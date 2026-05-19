@@ -190,7 +190,7 @@ function back() {
 }
 
 .viewing-card--active {
-  border-left-color: #0d9488;
+  border-left-color: #1a3a6c;
   background: linear-gradient(90deg, rgba(13, 148, 136, 0.06), #fff);
 }
 

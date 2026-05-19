@@ -21,7 +21,7 @@
 }
 
 .pf-progress__seg.on {
-  background: linear-gradient(90deg, #14b8a6, #0d9488);
+  background: linear-gradient(90deg, #2d4f8c, #1a3a6c);
 }
 
 .pf-step-tabs {
@@ -42,8 +42,8 @@
 
 .pf-step-tab.on {
   color: #fff;
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
-  box-shadow: 0 4rpx 16rpx rgba(13, 148, 136, 0.28);
+  background: linear-gradient(135deg, #2d4f8c, #1a3a6c);
+  box-shadow: 0 4rpx 16rpx rgba(26, 58, 108, 0.28);
 }
 
 .pf-card {
@@ -58,13 +58,13 @@
 .pf-card--media {
   padding: 24rpx;
   background: linear-gradient(160deg, #ffffff 0%, #f0fdfa 100%);
-  border: 1rpx solid rgba(13, 148, 136, 0.12);
+  border: 1rpx solid rgba(26, 58, 108, 0.12);
 }
 
 .pf-section-h {
   font-size: 24rpx;
   font-weight: 700;
-  color: #0d9488;
+  color: #1a3a6c;
   padding: 28rpx 28rpx 12rpx;
   letter-spacing: 0.04em;
 }
@@ -74,7 +74,7 @@
   display: inline-block;
   width: 8rpx;
   height: 24rpx;
-  background: linear-gradient(180deg, #14b8a6, #0d9488);
+  background: linear-gradient(180deg, #2d4f8c, #1a3a6c);
   border-radius: 4rpx;
   margin-right: 12rpx;
   vertical-align: middle;
@@ -249,7 +249,7 @@
   width: 56rpx;
   height: 56rpx;
   border: 6rpx solid #e2e8f0;
-  border-top-color: #0ea5e9;
+  border-top-color: #3d5f94;
   border-radius: 50%;
   animation: pf-spin 0.8s linear infinite;
 }
@@ -298,15 +298,15 @@
 
 .pf-chip.on {
   color: #fff;
-  background: linear-gradient(135deg, #14b8a6, #0d9488);
-  box-shadow: 0 4rpx 12rpx rgba(13, 148, 136, 0.25);
+  background: linear-gradient(135deg, #2d4f8c, #1a3a6c);
+  box-shadow: 0 4rpx 12rpx rgba(26, 58, 108, 0.25);
 }
 
 .pf-map-btn {
   width: 100%;
   padding: 28rpx;
   border-radius: 20rpx;
-  background: linear-gradient(135deg, #0ea5e9 0%, #0d9488 100%);
+  background: linear-gradient(135deg, #3d5f94 0%, #1a3a6c 100%);
   color: #fff;
   font-size: 30rpx;
   font-weight: 700;
@@ -320,7 +320,7 @@
   height: 360rpx;
   border-radius: 20rpx;
   overflow: hidden;
-  border: 1rpx solid rgba(13, 148, 136, 0.2);
+  border: 1rpx solid rgba(26, 58, 108, 0.2);
   background: #e2e8f0;
 }
 
@@ -422,7 +422,7 @@
   padding: 32rpx;
   border-radius: 24rpx;
   background: #fff;
-  box-shadow: 0 8rpx 32rpx rgba(13, 148, 136, 0.1);
+  box-shadow: 0 8rpx 32rpx rgba(26, 58, 108, 0.1);
 }
 
 .pf-detail-title-card .detail-header-card__code,
@@ -459,7 +459,7 @@
 .pf-detail-price {
   font-size: 40rpx;
   font-weight: 800;
-  color: #0d9488;
+  color: #1a3a6c;
   margin-top: 12rpx;
 }
 

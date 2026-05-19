@@ -23,11 +23,11 @@
   "globalStyle": {
     "navigationStyle": "custom",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f4f7fb"
+    "backgroundColor": "#f0f4fa"
   },
   "tabBar": {
     "color": "#64748b",
-    "selectedColor": "#0d9488",
+    "selectedColor": "#1a3a6c",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [

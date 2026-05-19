@@ -1,0 +1,81 @@
+/**
+ * 浙江企鹏工业地产 — brand tokens aligned with login logo (#1a3a6c).
+ * Loaded after prototype.css to unify accent colors project-wide.
+ */
+
+page {
+  --brand: #1a3a6c;
+  --brand-dark: #0f2848;
+  --brand-light: #2d4f8c;
+  --brand-soft: rgba(26, 58, 108, 0.1);
+  --brand-border: rgba(26, 58, 108, 0.22);
+  --mint: var(--brand);
+  --cyan: var(--brand-light);
+  --cyan-dim: var(--brand-soft);
+  --border-strong: var(--brand-border);
+  --bg-deep: #f0f4fa;
+}
+
+page::before {
+  background:
+    radial-gradient(ellipse 100% 70% at 50% -20%, rgba(26, 58, 108, 0.12), transparent 58%),
+    radial-gradient(ellipse 60% 50% at 100% 30%, rgba(45, 79, 140, 0.1), transparent 50%),
+    linear-gradient(180deg, #f8fafc 0%, var(--bg-deep) 55%, #eef2f8 100%);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand-light) 0%, var(--brand) 55%, var(--brand-dark) 100%);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.18) inset,
+    0 8px 24px rgba(26, 58, 108, 0.28);
+}
+
+.card-glow {
+  border-color: var(--brand-border);
+  box-shadow:
+    0 0 0 1px rgba(26, 58, 108, 0.06),
+    var(--shadow-md);
+}
+
+.chip.on {
+  background: linear-gradient(135deg, #e8eef6, #d4deed);
+  color: var(--brand-dark);
+  border-color: var(--brand-border);
+}
+
+.chip.ok {
+  background: #e8eef6;
+  color: var(--brand);
+  border-color: var(--brand-border);
+}
+
+.hero-brand {
+  background: linear-gradient(90deg, var(--brand-dark), var(--brand-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.login-logo {
+  background: linear-gradient(145deg, rgba(26, 58, 108, 0.08), #ffffff);
+  border-color: var(--brand-border);
+}
+
+.pf-chip.on,
+.pf-chip-grid .pf-chip.on {
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand-light), var(--brand));
+  border-color: var(--brand-border);
+}
+
+.home-todo-avatar--mint,
+.msg-card__icon--mint {
+  background: linear-gradient(135deg, var(--brand-light), var(--brand)) !important;
+}
+
+.me-menu-icon--mint {
+  background: linear-gradient(135deg, var(--brand), var(--brand-light), #c5d4e8) !important;
+}
+
+.swipe-row__action--primary {
+  background: var(--brand) !important;
+}

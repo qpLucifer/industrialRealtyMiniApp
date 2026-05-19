@@ -26,7 +26,7 @@ function avatarStyle(c: CustomerListItem) {
     borderRadius: '14px',
     flexShrink: 0,
     background: mint
-      ? 'linear-gradient(135deg,#0d9488,#14b8a6)'
+      ? 'linear-gradient(135deg,#1a3a6c,#2d4f8c)'
       : 'linear-gradient(135deg,#64748b,#94a3b8)',
   }
 }
@@ -148,7 +148,7 @@ function goVideoFaq() {
       <view class="fab-col">
         <view
           class="fab fab--view"
-          style="background: linear-gradient(145deg, #14b8a6, #0d9488); box-shadow: 0 14px 36px rgba(20, 184, 166, 0.35)"
+          style="background: linear-gradient(145deg, #2d4f8c, #1a3a6c); box-shadow: 0 14px 36px rgba(26, 58, 108, 0.35)"
           @tap="goNew"
         >
           <text>＋</text>
@@ -172,7 +172,7 @@ function goVideoFaq() {
 .ic-video-faq {
   width: 40rpx;
   height: 40rpx;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='14' height='14' rx='2'/%3E%3Cpath d='M16 10l6-3v10l-6-3V10z'/%3E%3C/svg%3E")
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a3a6c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='14' height='14' rx='2'/%3E%3Cpath d='M16 10l6-3v10l-6-3V10z'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
 </style>

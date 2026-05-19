@@ -25,7 +25,7 @@ function writeSolid(name, w, h, rgb) {
 }
 
 const muted = [148, 163, 184] /* slate-400 */
-const active = [13, 148, 136] /* mint-600 */
+const active = [26, 58, 108] /* brand #1a3a6c */
 
 const names = ['home', 'property', 'customer', 'msg', 'me']
 for (const n of names) {

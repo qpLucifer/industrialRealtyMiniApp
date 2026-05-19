@@ -159,7 +159,7 @@ defineExpose({ close })
 }
 
 .swipe-row__btn--primary {
-  background: #0d9488;
+  background: #1a3a6c;
 }
 
 .swipe-row__btn--muted {
