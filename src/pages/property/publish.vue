@@ -191,7 +191,7 @@ const {
             </picker>
             <view v-else class="pf-cell pf-cell--col">
               <text class="pf-cell__label">所属区域<text class="req">*</text></text>
-              <input v-model="form.district" class="pf-input" placeholder="如：黄埔区" />
+              <view class="form-field-readonly">暂无负责区域，请联系管理员在后台配置</view>
             </view>
             <view class="pf-cell pf-cell--col">
               <text class="pf-cell__label">详细地址<text class="req">*</text></text>

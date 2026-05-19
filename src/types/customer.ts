@@ -31,6 +31,7 @@ export interface CustomerDetail {
   demandSummary: string
   addressHint: string
   ownerName: string
+  ownerStaffIds?: string[]
   scope: CustomerScope
   badgesHtml: string
   lastFollow: string
@@ -57,6 +58,8 @@ export interface CustomerFormPayload {
   addressHint?: string
   scope: CustomerScope
   ownerName?: string
+  /** Public pool: optional assignee; private pool: omit (server uses current staff). */
+  ownerStaffIds?: string[]
 }
 
 export interface CustomerFollowUpPayload {

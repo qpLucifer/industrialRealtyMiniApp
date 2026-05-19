@@ -17,7 +17,8 @@ import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/u
 
 const routeKey = ref('')
 const detail = ref<PropertyDetailPayload | null>(null)
-const loading = ref(false)
+/** Start true so first paint does not render `detail.*` before onLoad → load(). */
+const loading = ref(true)
 const loadError = ref('')
 const tab = ref(0)
 
@@ -144,6 +145,7 @@ onLoad((q) => {
 
 async function load() {
   if (!routeKey.value) {
+    loading.value = false
     loadError.value = '缺少房源标识'
     return
   }
@@ -264,7 +266,7 @@ function openVideoFullscreen(url: string) {
         <button class="btn-secondary" @click="load">重试</button>
       </view>
 
-      <scroll-view v-else scroll-y :show-scrollbar="false" class="page-scroll">
+      <scroll-view v-else-if="detail" scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="pf-detail-hero-wrap">
           <view class="prop-media-hero">
             <video
@@ -308,6 +310,9 @@ function openVideoFullscreen(url: string) {
             <text class="detail-header-card__title">{{ detail.detailTitle }}</text>
             <text class="detail-header-card__meta">{{ detail.specLine }}</text>
             <text class="pf-detail-price">{{ detail.priceLine }}</text>
+            <text v-if="detail.submitterName && detail.submitterName !== '—'" class="detail-header-card__meta" style="margin-top: 8rpx">
+              提交人 {{ detail.submitterName }}
+            </text>
             <view class="chip-row">
               <text v-for="(c, i) in headerChips" :key="i" :class="c.cls">{{ c.label }}</text>
             </view>

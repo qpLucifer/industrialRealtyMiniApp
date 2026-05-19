@@ -9,6 +9,8 @@ export interface PropertyListItem {
   status: string
   statusTone: 'draft' | 'ok' | 'warn' | 'neutral' | 'rejected'
   draftHint?: string
+  /** First image from mediaImageUrls / mediaUrls */
+  thumbUrl?: string
 }
 
 export interface PropertyKvRow {
@@ -50,6 +52,7 @@ export interface PropertyDetailPayload {
   powerKva?: string
   rentListSqm?: string
   propertyType?: string
+  submitterName?: string
   mediaImages?: string[]
   mediaVideos?: string[]
   kv: PropertyDetailKv

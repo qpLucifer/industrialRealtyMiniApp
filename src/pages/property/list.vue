@@ -10,7 +10,7 @@ import {
   type PropertyListQuery,
 } from '@/api/property'
 import type { PropertyListItem } from '@/types/property'
-import { fetchRegionDefs } from '@/utils/request'
+import { fetchRegionDefs, resolveMediaUrl } from '@/utils/request'
 import { consumeListStale } from '@/utils/listStale'
 
 const topBarInsetStyle = useTopBarInsetStyle()
@@ -206,7 +206,13 @@ function applyFilter() {
           class="prop-list-card"
           @click="onPropertyRow(p)"
         >
-          <view class="thumb" />
+          <image
+            v-if="p.thumbUrl"
+            class="thumb thumb--cover"
+            :src="resolveMediaUrl(p.thumbUrl)"
+            mode="aspectFill"
+          />
+          <view v-else class="thumb" />
           <view style="flex: 1; min-width: 0">
             <view style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
               <view class="list-title-strong" style="flex: 1; min-width: 0">{{ p.title }}</view>
@@ -312,5 +318,9 @@ function applyFilter() {
 .filter-sheet-actions .btn-secondary,
 .filter-sheet-actions .btn-primary {
   flex: 1;
+}
+.thumb--cover {
+  flex-shrink: 0;
+  background: #f1f5f9;
 }
 </style>

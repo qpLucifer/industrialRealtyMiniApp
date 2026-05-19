@@ -56,20 +56,33 @@ export function usePropertyPublishPage() {
   const regionDefs = ref<{ id: number; name: string }[]>([])
   const regionNames = computed(() => regionDefs.value.map((r) => r.name))
 
+  function mapRegionDefs(list: unknown[]) {
+    return list
+      .map((r) => {
+        const row = r as { id?: number | string; name?: string; label?: string }
+        const id = Number(row.id)
+        const name = String(row.name || row.label || '').trim()
+        return Number.isFinite(id) && name ? { id, name } : null
+      })
+      .filter(Boolean) as { id: number; name: string }[]
+  }
+
+  /** Keep current property district visible when editing legacy/out-of-list row. */
+  function ensureCurrentDistrictInRegionList() {
+    const id = form.districtRegionId != null ? Number(form.districtRegionId) : NaN
+    const name = String(form.district || '').trim()
+    if (Number.isFinite(id) && id > 0 && !regionDefs.value.some((r) => r.id === id)) {
+      regionDefs.value = [...regionDefs.value, { id, name: name || `区域#${id}` }]
+    }
+  }
+
   async function loadMeta() {
     try {
       const [regions, types] = await Promise.all([
         fetchRegionDefs(),
         fetchCodeMasterLabels('property_type').catch(() => ({ list: [] as string[] })),
       ])
-      regionDefs.value = (regions.list ?? [])
-        .map((r) => {
-          const row = r as { id?: number | string; name?: string; label?: string }
-          const id = Number(row.id)
-          const name = String(row.name || row.label || '').trim()
-          return Number.isFinite(id) && name ? { id, name } : null
-        })
-        .filter(Boolean) as { id: number; name: string }[]
+      regionDefs.value = mapRegionDefs(regions.list ?? [])
       if (types.list?.length) propertyTypes.value = types.list
     } catch {
       /* keep fallbacks */
@@ -356,6 +369,7 @@ export function usePropertyPublishPage() {
       try {
         const api = await fetchPropertyEditForm(key)
         applyPropertyApiForm(form, api)
+        ensureCurrentDistrictInRegionList()
       } catch {
         uni.showToast({ title: '加载房源失败', icon: 'none' })
       }

@@ -30,6 +30,8 @@ export function collectPropertyRequiredMiss(form: PropertyEditForm): string[] {
   if (!Array.isArray(form.types) || !form.types.length) miss.push('房源类型')
   if (!String(form.companyName || '').trim()) miss.push('公司名称')
   if (!String(form.address || '').trim()) miss.push('详细地址')
+  const district = String(form.district || '').trim()
+  if (!district || district === '未分区') miss.push('所属区域')
   if (!String(form.lat || '').trim() || !String(form.lng || '').trim()) miss.push('地图坐标（GCJ-02 纬经度）')
   if (!Array.isArray(form.photoChecklist) || !form.photoChecklist.length) miss.push('现场必拍清单')
   const hasImg = parseMediaLines(form.mediaImageUrls).length > 0

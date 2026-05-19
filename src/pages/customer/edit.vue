@@ -2,12 +2,18 @@
 import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
+import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { fetchCustomerDetail, updateCustomer } from '@/api/customer'
+import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
 
 const id = ref('')
 const saving = ref(false)
+const selfId = ref('')
+const selfName = ref('')
+const staffOptions = ref<StaffPeerOption[]>([])
+const publicOwnerStaffIds = ref<string[]>([])
 
 const form = reactive({
   company: '',
@@ -29,7 +35,13 @@ onLoad(async (q) => {
   if (q?.id) id.value = String(q.id)
   if (!id.value) return
   try {
-    const d = await fetchCustomerDetail(id.value)
+    const [d, staff] = await Promise.all([
+      fetchCustomerDetail(id.value),
+      fetchStaffPeers().catch(() => ({ list: [], selfId: '', selfName: '' })),
+    ])
+    selfId.value = staff.selfId
+    selfName.value = staff.selfName
+    staffOptions.value = staff.list
     if (!d.canEdit) {
       uni.showToast({ title: '无权编辑', icon: 'none' })
       setTimeout(() => uni.navigateBack(), 400)
@@ -44,6 +56,7 @@ onLoad(async (q) => {
     form.demandSummary = d.demandSummary
     form.addressHint = d.addressHint
     form.scope = d.scope
+    publicOwnerStaffIds.value = d.scope === '公有' && d.ownerStaffIds?.length ? [...d.ownerStaffIds] : []
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 400)
@@ -60,11 +73,23 @@ function onDealPick(e: { detail: { value: string | number } }) {
 
 function onScopePick(e: { detail: { value: string | number } }) {
   form.scope = scopes[Number(e.detail.value)] ?? '私有'
+  if (form.scope === '私有') publicOwnerStaffIds.value = []
+}
+
+function ownerPayload(): { ownerStaffIds?: string[] } {
+  if (form.scope === '私有') {
+    return selfId.value ? { ownerStaffIds: [selfId.value] } : {}
+  }
+  return { ownerStaffIds: [...publicOwnerStaffIds.value] }
 }
 
 async function submit() {
   if (!form.company.trim() || !form.contactName.trim() || !form.phone.trim()) {
     uni.showToast({ title: '请填写公司、联系人与手机', icon: 'none' })
+    return
+  }
+  if (form.scope === '私有' && !selfId.value) {
+    uni.showToast({ title: '无法识别当前员工，请重新登录', icon: 'none' })
     return
   }
   saving.value = true
@@ -79,6 +104,7 @@ async function submit() {
       demandSummary: form.demandSummary.trim(),
       addressHint: form.addressHint.trim(),
       scope: form.scope,
+      ...ownerPayload(),
     })
     markCustomerDetailStale(id.value)
     markCustomerListStale()
@@ -137,6 +163,21 @@ function back() {
                 <view class="picker-like">{{ form.scope }}</view>
               </picker>
             </view>
+            <view v-if="form.scope === '私有'" class="form-group">
+              <text class="label">负责人</text>
+              <view class="form-field-readonly">{{ selfName || '当前登录员工' }}</view>
+              <text class="hint" style="display: block; margin-top: 8rpx">私有客户负责人为本人</text>
+            </view>
+            <StaffMultiPickField
+              v-else
+              v-model="publicOwnerStaffIds"
+              :options="staffOptions"
+              label="负责人（可选）"
+              placeholder="不指定"
+              sheet-title="选择负责人"
+              hint="公海客户可不指定；可多选多名员工"
+              :min-count="0"
+            />
             <view class="form-group">
               <text class="label">地址 / 区域</text>
               <input v-model="form.addressHint" type="text" class="field-input" placeholder="意向区域、地址提示" />
@@ -160,17 +201,5 @@ function back() {
 .field-textarea {
   width: 100%;
   box-sizing: border-box;
-  line-height: 1.5;
-  padding: 20rpx 24rpx;
-  font-size: 28rpx;
-  color: #0f172a;
-}
-
-.field-input {
-  min-height: 88rpx;
-}
-
-.field-textarea {
-  min-height: 180rpx;
 }
 </style>

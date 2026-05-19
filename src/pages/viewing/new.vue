@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import DateTimeField from '@/components/DateTimeField.vue'
+import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { fetchCustomerList } from '@/api/customer'
 import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
@@ -28,22 +29,23 @@ const propertyIdx = ref(0)
 const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
 
+function customerPickLabel(c: CustomerListItem) {
+  const name = String(c.contactName || '').trim() || '—'
+  const company = String(c.company || '').trim() || '—'
+  return `${name} · ${company}`
+}
+
+const customerPickerLabels = computed(() => customers.value.map(customerPickLabel))
+
 const customerLabel = computed(() => {
   const c = customers.value[customerIdx.value]
-  return c ? `${c.titleLine} · ${c.company}` : '请选择客户'
+  return c ? customerPickLabel(c) : '请选择客户'
 })
 
 const propertyLabel = computed(() => {
   if (propLocked.value && propertyTitle.value) return propertyTitle.value
   const p = properties.value[propertyIdx.value]
   return p ? `${p.code || p.id} · ${p.title}` : '请选择房源'
-})
-
-const companionsDisplay = computed(() => {
-  const names = selectedStaffIds.value
-    .map((id) => staffOptions.value.find((s) => s.id === id)?.name)
-    .filter(Boolean) as string[]
-  return names.length ? names.join('、') : '请选择陪同员工'
 })
 
 function defaultSlot() {
@@ -76,16 +78,6 @@ function syncPickersFromCode() {
 function initStaffSelection(list: StaffPeerOption[], selfId: string) {
   staffOptions.value = list
   selectedStaffIds.value = selfId && list.some((s) => s.id === selfId) ? [selfId] : list[0] ? [list[0].id] : []
-}
-
-function toggleStaff(id: string) {
-  const i = selectedStaffIds.value.indexOf(id)
-  if (i >= 0) {
-    if (selectedStaffIds.value.length <= 1) return
-    selectedStaffIds.value = selectedStaffIds.value.filter((x) => x !== id)
-  } else {
-    selectedStaffIds.value = [...selectedStaffIds.value, id]
-  }
 }
 
 onLoad(async (q) => {
@@ -183,8 +175,7 @@ function back() {
               <text class="label">客户</text>
               <picker
                 mode="selector"
-                :range="customers"
-                range-key="titleLine"
+                :range="customerPickerLabels"
                 :value="customerIdx"
                 @change="onCustomerPick"
               >
@@ -193,21 +184,12 @@ function back() {
             </view>
             <DateTimeField v-model="start" label="开始时间" placeholder="选择带看开始时间" />
             <DateTimeField v-model="end" label="结束时间" placeholder="选择带看结束时间" />
-            <view class="form-group">
-              <text class="label">陪同员工</text>
-              <view class="chip-row" style="flex-wrap: wrap">
-                <text
-                  v-for="s in staffOptions"
-                  :key="s.id"
-                  class="chip"
-                  :class="{ on: selectedStaffIds.includes(s.id) }"
-                  @click="toggleStaff(s.id)"
-                >
-                  {{ s.name }}
-                </text>
-              </view>
-              <text class="hint" style="display: block; margin-top: 8rpx">{{ companionsDisplay }} · 默认含本人，可多选</text>
-            </view>
+            <StaffMultiPickField
+              v-model="selectedStaffIds"
+              :options="staffOptions"
+              label="陪同员工"
+              hint="点击展开列表，勾选多名员工后点确定；默认含本人"
+            />
             <view class="form-group">
               <text class="label">意向等级</text>
               <view class="chip-row">
