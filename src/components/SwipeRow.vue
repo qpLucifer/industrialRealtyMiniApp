@@ -7,14 +7,9 @@ export type SwipeAction = {
   tone?: 'danger' | 'primary' | 'muted'
 }
 
-const props = withDefaults(
-  defineProps<{
-    actions: SwipeAction[]
-    /** left: swipe right to reveal; right (default): swipe left to reveal */
-    actionsSide?: 'left' | 'right'
-  }>(),
-  { actionsSide: 'right' },
-)
+const props = defineProps<{
+  actions: SwipeAction[]
+}>()
 
 const emit = defineEmits<{ action: [key: string] }>()
 
@@ -24,24 +19,22 @@ const open = ref(false)
 const actionWidthPx = computed(() => {
   const n = Math.max(props.actions.length, 1)
   try {
-    return n * uni.upx2px(144)
+    return n * uni.upx2px(128)
   } catch {
-    return n * 72
+    return n * 64
   }
 })
 
-const maxOffset = computed(() =>
-  props.actionsSide === 'left' ? actionWidthPx.value : -actionWidthPx.value,
-)
+/** Swipe left: track moves left, actions on the right edge */
+const maxOffset = computed(() => -actionWidthPx.value)
 
 let startX = 0
 let startOffset = 0
 let dragging = false
 
 function clampOffset(x: number) {
-  const max = maxOffset.value
-  if (max > 0) return Math.min(Math.max(x, 0), max)
-  return Math.max(Math.min(x, 0), max)
+  const min = maxOffset.value
+  return Math.max(Math.min(x, 0), min)
 }
 
 function onTouchStart(e: TouchEvent) {
@@ -56,21 +49,15 @@ function onTouchMove(e: TouchEvent) {
   if (!dragging) return
   const t = e.touches[0]
   if (!t) return
-  const dx = t.clientX - startX
-  offsetX.value = clampOffset(startOffset + dx)
+  offsetX.value = clampOffset(startOffset + (t.clientX - startX))
 }
 
 function onTouchEnd() {
   dragging = false
-  const max = maxOffset.value
-  const threshold = max * 0.35
-  if (max > 0) {
-    open.value = offsetX.value > threshold
-    offsetX.value = open.value ? max : 0
-  } else {
-    open.value = offsetX.value < threshold
-    offsetX.value = open.value ? max : 0
-  }
+  const min = maxOffset.value
+  const threshold = min * 0.35
+  open.value = offsetX.value < threshold
+  offsetX.value = open.value ? min : 0
 }
 
 function close() {
@@ -89,45 +76,29 @@ defineExpose({ close })
 <template>
   <view class="swipe-row">
     <view
-      v-if="actionsSide === 'left'"
-      class="swipe-row__actions swipe-row__actions--left"
-      :style="{ width: actionWidthPx + 'px' }"
-    >
-      <view
-        v-for="a in actions"
-        :key="a.key"
-        class="swipe-row__btn"
-        :class="'swipe-row__btn--' + (a.tone || 'primary')"
-        @tap.stop="onAction(a.key)"
-      >
-        {{ a.label }}
-      </view>
-    </view>
-
-    <view
-      class="swipe-row__panel"
+      class="swipe-row__track"
+      :class="{ 'swipe-row__track--dragging': dragging }"
       :style="{ transform: 'translateX(' + offsetX + 'px)' }"
-      @touchstart.stop="onTouchStart"
-      @touchmove.stop.prevent="onTouchMove"
-      @touchend.stop="onTouchEnd"
-      @touchcancel.stop="onTouchEnd"
-    >
-      <slot />
-    </view>
-
-    <view
-      v-if="actionsSide !== 'left'"
-      class="swipe-row__actions swipe-row__actions--right"
-      :style="{ width: actionWidthPx + 'px' }"
     >
       <view
-        v-for="a in actions"
-        :key="a.key"
-        class="swipe-row__btn"
-        :class="'swipe-row__btn--' + (a.tone || 'primary')"
-        @tap.stop="onAction(a.key)"
+        class="swipe-row__main"
+        @touchstart.stop="onTouchStart"
+        @touchmove.stop.prevent="onTouchMove"
+        @touchend.stop="onTouchEnd"
+        @touchcancel.stop="onTouchEnd"
       >
-        {{ a.label }}
+        <slot />
+      </view>
+      <view class="swipe-row__actions" :style="{ width: actionWidthPx + 'px' }">
+        <view
+          v-for="a in actions"
+          :key="a.key"
+          class="swipe-row__btn"
+          :class="'swipe-row__btn--' + (a.tone || 'primary')"
+          @tap.stop="onAction(a.key)"
+        >
+          {{ a.label }}
+        </view>
       </view>
     </view>
   </view>
@@ -135,43 +106,52 @@ defineExpose({ close })
 
 <style scoped>
 .swipe-row {
-  position: relative;
+  width: 100%;
   overflow: hidden;
   border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  background: #f1f5f9;
 }
 
-.swipe-row__panel {
-  position: relative;
-  z-index: 2;
-  transition: transform 0.2s ease;
+.swipe-row__track {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  transition: transform 0.22s ease;
+  will-change: transform;
+}
+
+.swipe-row__track--dragging {
+  transition: none;
+}
+
+.swipe-row__main {
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
   background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
 }
 
 .swipe-row__actions {
-  position: absolute;
-  top: 0;
-  bottom: 0;
+  flex: 0 0 auto;
   display: flex;
-  z-index: 1;
-}
-
-.swipe-row__actions--right {
-  right: 0;
-}
-
-.swipe-row__actions--left {
-  left: 0;
+  flex-direction: row;
+  align-items: stretch;
 }
 
 .swipe-row__btn {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26rpx;
   font-weight: 600;
   color: #fff;
-  padding: 0 8rpx;
+  padding: 0 12rpx;
+  box-sizing: border-box;
 }
 
 .swipe-row__btn--danger {

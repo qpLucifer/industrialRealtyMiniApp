@@ -104,7 +104,7 @@ function back() {
       />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner viewing-page">
-          <text class="viewing-page__hint">右滑可编辑或取消带看 · 进行中会高亮</text>
+          <text class="viewing-page__hint">左滑可编辑或取消带看 · 进行中会高亮</text>
 
           <view v-if="loading && !list.length" class="viewing-empty card">
             <text class="hint">加载中…</text>
@@ -125,7 +125,6 @@ function back() {
               { key: 'edit', label: '编辑', tone: 'primary' },
               { key: 'cancel', label: '取消', tone: 'danger' },
             ]"
-            actions-side="left"
             @action="onRowAction($event, v)"
           >
             <view class="viewing-card" :class="{ 'viewing-card--active': v.active }">
@@ -187,7 +186,6 @@ function back() {
 
 .viewing-card {
   padding: 28rpx;
-  margin-bottom: 20rpx;
   border-left: 6rpx solid transparent;
 }
 

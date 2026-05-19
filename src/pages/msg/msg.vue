@@ -87,7 +87,6 @@ async function onDelete(m: MessageItem) {
             v-for="m in list"
             :key="m.id"
             :actions="[{ key: 'delete', label: '删除', tone: 'danger' }]"
-            actions-side="right"
             @action="(key) => key === 'delete' && onDelete(m)"
           >
             <view class="msg-card" @tap="open(m)">
@@ -129,7 +128,6 @@ async function onDelete(m: MessageItem) {
   display: flex;
   gap: 24rpx;
   padding: 28rpx;
-  margin-bottom: 20rpx;
   align-items: flex-start;
 }
 
