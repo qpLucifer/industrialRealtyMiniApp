@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { formatBeijingYmdHm } from '@/utils/beijingTime'
-import { formatBeijingYmdHm } from '@/utils/beijingTime'
 
 const model = defineModel<string>({ default: '' })
 
