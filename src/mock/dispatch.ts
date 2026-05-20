@@ -322,6 +322,10 @@ export async function dispatchMock(
     return okResult({ saved: true, ...(body || {}) })
   }
 
+  if (method === 'POST' && path === '/api/message/dismiss') {
+    return okResult({ success: true })
+  }
+
   if (method === 'POST' && path.startsWith('/api/action/')) {
     const actionKey = path.replace('/api/action/', '')
     const payload = (body || {}) as Record<string, unknown>
