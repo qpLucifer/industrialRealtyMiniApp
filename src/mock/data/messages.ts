@@ -5,7 +5,7 @@ function pad2(n: number) {
 }
 
 function toLocalIsoMinute(d: Date) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
 const popupStart = new Date()
@@ -65,7 +65,7 @@ export const mockAnnouncements = [
     popup: '否',
     popupStart: '',
     popupEnd: '',
-    updatedAt: '2026-05-17T10:00',
+    updatedAt: '2026-05-17 10:00',
   },
   {
     id: '2',
@@ -74,6 +74,6 @@ export const mockAnnouncements = [
     popup: '是',
     popupStart: toLocalIsoMinute(popupStart),
     popupEnd: toLocalIsoMinute(popupEnd),
-    updatedAt: '2026-05-17T12:00',
+    updatedAt: '2026-05-17 12:00',
   },
 ]

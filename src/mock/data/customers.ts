@@ -70,7 +70,7 @@ function buildDetail(id: string): CustomerDetail {
     badgesHtml: isZhang ? '私有,A,急租' : '私有,C,求租',
     lastFollow: isZhang ? '2026-05-11 16:20' : '2026-01-09 15:40',
     nextReminder: base.nextReminder,
-    nextFollowInput: isZhang ? '2026-05-13T10:00' : '2026-05-16T14:00',
+    nextFollowInput: isZhang ? '2026-05-13 10:00' : '2026-05-16 14:00',
     reminderText: base.nextReminder,
     reminderTone: 'warn',
     kv: [

@@ -20,7 +20,7 @@ const mockAnnouncementReadContentAt: Record<string, string> = {}
 
 function buildMockAnnouncementList() {
   const list = mockAnnouncements.map((a) => {
-    const updatedAt = String(a.updatedAt || '2026-05-17T10:00')
+    const updatedAt = String(a.updatedAt || '2026-05-17 10:00')
     const read = mockAnnouncementReadContentAt[a.id] === updatedAt
     return {
       id: a.id,
@@ -297,7 +297,7 @@ export async function dispatchMock(
     const annId = announceReadMatch[1]
     const row = mockAnnouncements.find((a) => a.id === annId)
     if (!row) return okResult({ success: false })
-    mockAnnouncementReadContentAt[annId] = String(row.updatedAt || '2026-05-17T10:00')
+    mockAnnouncementReadContentAt[annId] = String(row.updatedAt || '2026-05-17 10:00')
     return okResult({ success: true })
   }
 

@@ -1,13 +1,10 @@
 import type { AnnouncementItem } from '@/types/message'
+import { parseBeijingNaiveToInstant } from '@/utils/beijingTime'
 
-/** Parse API datetime (YYYY-MM-DDTHH:mm or with space). */
+/** Parse API datetime as Beijing naive wall time. */
 export function parseAnnouncementDateTime(raw: string | undefined | null): number {
-  const s = String(raw ?? '')
-    .trim()
-    .replace(' ', 'T')
-  if (!s) return NaN
-  const t = Date.parse(s)
-  return Number.isFinite(t) ? t : NaN
+  const t = parseBeijingNaiveToInstant(raw)?.getTime()
+  return t != null && Number.isFinite(t) ? t : NaN
 }
 
 export function isAnnouncementPopupActive(item: AnnouncementItem, nowMs = Date.now()): boolean {

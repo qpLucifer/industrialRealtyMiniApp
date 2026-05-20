@@ -5,6 +5,7 @@ import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchCustomerDetail } from '@/api/customer'
 import { consumeCustomerDetailRefresh } from '@/utils/customerNav'
 import type { CustomerDetail } from '@/types/customer'
+import { formatBeijingDisplay } from '@/utils/beijingTime'
 
 const id = ref('')
 const d = ref<CustomerDetail | null>(null)
@@ -83,7 +84,7 @@ function goFollow() {
             </view>
             <view class="cust-meta">电话 {{ d.phoneMasked || d.phone }}</view>
             <view v-if="d.ownerName" class="cust-meta">负责人 {{ d.ownerName }}</view>
-            <view class="cust-meta">最近跟进 {{ d.lastFollow || '—' }}</view>
+            <view class="cust-meta">最近跟进 {{ formatBeijingDisplay(d.lastFollow) || d.lastFollow || '—' }}</view>
           </view>
 
           <view class="section-title">需求与地址</view>

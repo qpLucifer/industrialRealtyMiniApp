@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchPropertyLogs, parsePropertyRouteKey } from '@/api/property'
+import { formatTimelineLine } from '@/utils/beijingTime'
 
 const list = ref<{ line: string; sub: string }[]>([])
 const code = ref('')
@@ -58,7 +59,7 @@ function back() {
         <template v-else>
           <view v-for="(t, i) in list" :key="i" class="card" style="margin-bottom: 24rpx">
             <view style="font-weight: 700" :class="{ 'text-rose': isRejectLog(t) }">{{ t.line }}</view>
-            <text class="hint" style="display: block; margin-top: 8rpx">{{ t.sub }}</text>
+            <text class="hint" style="display: block; margin-top: 8rpx">{{ formatTimelineLine(t.sub) }}</text>
           </view>
           <view v-if="!list.length" class="card">
             <text class="hint">暂无日志</text>

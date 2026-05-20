@@ -61,6 +61,15 @@ export function defaultViewingSlotBeijing() {
   return { start: startStr, end: formatBeijingYmdHm(end) }
 }
 
+/** Follow-up timeline line: normalize date prefix before ` · `. */
+export function formatTimelineLine(line: string): string {
+  const s = String(line || '').trim()
+  const sep = s.indexOf(' · ')
+  if (sep < 0) return formatBeijingDisplay(s) || s
+  const head = formatBeijingDisplay(s.slice(0, sep).trim()) || s.slice(0, sep).trim()
+  return `${head}${s.slice(sep)}`
+}
+
 export function parseBeijingNaiveToInstant(input: unknown): Date | null {
   const mysql = toMysqlDateTime(input)
   if (!mysql) return null
