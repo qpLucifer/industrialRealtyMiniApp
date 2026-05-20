@@ -4,7 +4,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import SwipeRow from '@/components/SwipeRow.vue'
 import { deleteViewing, fetchViewingList } from '@/api/extra'
-import { markListStale } from '@/utils/listStale'
+import { consumeListStale, markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { ViewingListItem } from '@/types/viewingDeal'
 

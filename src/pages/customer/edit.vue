@@ -7,6 +7,7 @@ import { fetchCustomerDetail, updateCustomer } from '@/api/customer'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
+import { isPhone11Cn } from '@/utils/propertyPublish'
 
 const id = ref('')
 const saving = ref(false)
@@ -88,6 +89,11 @@ async function submit() {
     uni.showToast({ title: '请填写公司、联系人与手机', icon: 'none' })
     return
   }
+  const phoneDigits = form.phone.replace(/\D/g, '')
+  if (!isPhone11Cn(phoneDigits)) {
+    uni.showToast({ title: '请输入 11 位大陆手机号（1 开头）', icon: 'none' })
+    return
+  }
   if (form.scope === '私有' && !selfId.value) {
     uni.showToast({ title: '无法识别当前员工，请重新登录', icon: 'none' })
     return
@@ -98,7 +104,7 @@ async function submit() {
       company: form.company.trim(),
       contactName: form.contactName.trim(),
       titleLine: form.titleLine.trim(),
-      phone: form.phone.trim(),
+      phone: phoneDigits,
       grade: form.grade,
       dealStatus: form.dealStatus,
       demandSummary: form.demandSummary.trim(),
