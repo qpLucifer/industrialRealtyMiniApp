@@ -8,6 +8,7 @@ import { postCustomerFollowUp } from '@/api/customer'
 import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerGrade } from '@/types/customer'
+import { nowBeijingYmdHm } from '@/utils/beijingTime'
 
 const id = ref('')
 const followNote = ref('')
@@ -23,15 +24,9 @@ const keyboardPadStyle = computed(() =>
   keyboardPadPx.value > 0 ? { paddingBottom: `${keyboardPadPx.value + 16}px` } : {},
 )
 
-function formatNowLocal() {
-  const n = new Date()
-  const pad = (x: number) => String(x).padStart(2, '0')
-  return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())} ${pad(n.getHours())}:${pad(n.getMinutes())}`
-}
-
 onLoad((q) => {
   if (q?.id) id.value = String(q.id)
-  followOccurredAt.value = formatNowLocal()
+  followOccurredAt.value = nowBeijingYmdHm()
 })
 
 function back() {
@@ -58,7 +53,7 @@ async function onSaveFollow() {
     const payload: Record<string, string> = {
       slug: id.value,
       note: followNote.value.trim(),
-      occurredAt: followOccurredAt.value || formatNowLocal(),
+      occurredAt: followOccurredAt.value || nowBeijingYmdHm(),
     }
     if (followGrade.value) payload.grade = followGrade.value
     if (followNextAt.value) payload.nextReminderAt = followNextAt.value

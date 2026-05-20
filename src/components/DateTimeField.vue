@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { formatBeijingYmdHm } from '@/utils/beijingTime'
+import { formatBeijingYmdHm } from '@/utils/beijingTime'
 
 const model = defineModel<string>({ default: '' })
 
@@ -19,9 +21,8 @@ function splitDateTime(raw: string) {
   const s = String(raw || '').trim()
   const m = s.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})/)
   if (m) return { date: m[1], time: m[2] }
-  const d = new Date()
-  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  return { date, time: '14:00' }
+  const today = formatBeijingYmdHm().slice(0, 10)
+  return { date: today, time: '14:00' }
 }
 
 const parts = computed(() => splitDateTime(model.value))

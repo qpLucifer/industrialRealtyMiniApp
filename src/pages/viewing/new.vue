@@ -13,6 +13,7 @@ import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
+import { defaultViewingSlotBeijing, formatBeijingDisplay } from '@/utils/beijingTime'
 
 const start = ref('')
 const end = ref('')
@@ -52,14 +53,9 @@ const propertyLabel = computed(() => {
 })
 
 function defaultSlot() {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  d.setHours(14, 0, 0, 0)
-  const endD = new Date(d.getTime() + 90 * 60 * 1000)
-  const fmt = (x: Date) =>
-    `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')} ${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`
-  start.value = fmt(d)
-  end.value = fmt(endD)
+  const { start: s, end: e } = defaultViewingSlotBeijing()
+  start.value = s
+  end.value = e
 }
 
 function syncPickersFromCode() {
