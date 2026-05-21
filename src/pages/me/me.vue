@@ -16,7 +16,7 @@ const menuItems = [
   { title: '我的发布', hint: '草稿 / 待审 / 已上架', path: '/pages/me/my-properties', tone: 'mint' as const },
   { title: '带看记录', hint: '日程与纪要', path: '/pages/viewing/list', tone: 'slate' as const },
   { title: '视频话术库', hint: '验厂高频问答', path: '/pages/video-faq/index', tone: 'cyan' as const },
-  { title: '安全与隐私', hint: '脱敏 · 复制 · 审核', path: '/pages/settings/settings', tone: 'slate' as const },
+  { title: '安全与隐私', hint: '查看全站策略', path: '/pages/settings/settings', tone: 'slate' as const },
 ]
 
 async function loadProfile() {

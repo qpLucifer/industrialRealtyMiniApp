@@ -3,9 +3,12 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchCustomerDetail } from '@/api/customer'
+import { useSecuritySettings } from '@/composables/useSecuritySettings'
 import { consumeCustomerDetailRefresh } from '@/utils/customerNav'
 import type { CustomerDetail } from '@/types/customer'
 import { formatBeijingDisplay } from '@/utils/beijingTime'
+
+const { noCopyClass } = useSecuritySettings()
 
 const id = ref('')
 const d = ref<CustomerDetail | null>(null)
@@ -60,7 +63,7 @@ function goFollow() {
 </script>
 
 <template>
-  <view class="app-shell">
+  <view class="app-shell" :class="noCopyClass">
     <view class="page-frame screen active screen--sub cust-detail-frame">
       <NavIconBar title="客户档案" @back="back" />
 
@@ -82,7 +85,7 @@ function goFollow() {
               <text v-if="d.nextReminder" class="chip warn">下次 {{ d.nextReminder }}</text>
               <text class="chip">{{ d.dealStatus }}</text>
             </view>
-            <view class="cust-meta">电话 {{ d.phoneMasked || d.phone }}</view>
+            <view class="cust-meta">电话 {{ d.phone }}</view>
             <view v-if="d.ownerName" class="cust-meta">负责人 {{ d.ownerName }}</view>
             <view class="cust-meta">最近跟进 {{ formatBeijingDisplay(d.lastFollow) || d.lastFollow || '—' }}</view>
           </view>

@@ -1,6 +1,7 @@
 /** Customer mock — maps to customer APIs */
 
 import type { CustomerDetail, CustomerListItem } from '@/types/customer'
+import { mockSecuritySettings } from '@/mock/data/user'
 
 export const mockCustomerList: CustomerListItem[] = [
   {
@@ -88,5 +89,8 @@ function buildDetail(id: string): CustomerDetail {
 }
 
 export function getCustomerDetail(id: string): CustomerDetail {
-  return buildDetail(id)
+  const d = buildDetail(id)
+  if (!mockSecuritySettings.maskCustomerPhone) return d
+  if (d.canEdit) return d
+  return { ...d, phone: d.phoneMasked || d.phone }
 }

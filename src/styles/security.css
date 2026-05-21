@@ -1,0 +1,7 @@
+/* Applied when forbid_long_press_copy is enabled (mini program). */
+.security-no-copy,
+.security-no-copy .pf-kv-dd,
+.security-no-copy .cust-meta {
+  user-select: none;
+  -webkit-user-select: none;
+}

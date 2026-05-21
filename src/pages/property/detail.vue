@@ -13,7 +13,10 @@ import {
 } from '@/api/property'
 import type { PropertyDetailPayload } from '@/types/property'
 import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
+import { useSecuritySettings } from '@/composables/useSecuritySettings'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
+
+const { noCopyClass } = useSecuritySettings()
 
 const routeKey = ref('')
 const detail = ref<PropertyDetailPayload | null>(null)
@@ -248,7 +251,7 @@ function openVideoFullscreen(url: string) {
 </script>
 
 <template>
-  <view class="app-shell">
+  <view class="app-shell" :class="noCopyClass">
     <view class="page-frame screen active screen--sub">
       <NavIconBar
         title="房源详情"

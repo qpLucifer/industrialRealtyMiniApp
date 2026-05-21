@@ -28,6 +28,13 @@ async function load() {
 function back() {
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/me/me' }) })
 }
+
+const policyLabels: { key: keyof SecuritySettings; title: string; hint: string }[] = [
+  { key: 'maskPropertyContact', title: '房源联系人脱敏', hint: '对外展示掩码号码' },
+  { key: 'maskCustomerPhone', title: '客户电话脱敏', hint: '列表与详情默认掩码' },
+  { key: 'forbidLongPressCopy', title: '禁止长按复制', hint: '降低截图外流风险' },
+  { key: 'auditPublish', title: '发布默认走审核', hint: '关闭则提交后直接上架' },
+]
 </script>
 
 <template>
@@ -46,35 +53,24 @@ function back() {
       <scroll-view v-else-if="s" scroll-y :show-scrollbar="false" :enable-flex="true" class="scroll" style="flex: 1; min-height: 0">
         <view class="card">
           <text class="hint" style="display: block; margin-bottom: 24rpx">
-            以下为全站安全策略（只读）。如需修改，请联系管理员在后台「系统设置」中调整。
+            以下为全站生效策略，仅管理员可在管理后台「系统设置」中修改。
           </text>
-          <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0">
+          <view
+            v-for="(item, idx) in policyLabels"
+            :key="item.key"
+            class="list-item"
+            :style="{
+              border: 0,
+              paddingLeft: 0,
+              paddingRight: 0,
+              marginTop: idx > 0 ? '24rpx' : 0,
+            }"
+          >
             <view style="flex: 1">
-              <text style="font-weight: 700">房源联系人脱敏</text>
-              <text class="hint" style="display: block; margin-top: 8rpx">对外展示掩码号码</text>
+              <text style="font-weight: 700">{{ item.title }}</text>
+              <text class="hint" style="display: block; margin-top: 8rpx">{{ item.hint }}</text>
             </view>
-            <switch :checked="s.maskPropertyContact" disabled />
-          </view>
-          <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0; margin-top: 24rpx">
-            <view style="flex: 1">
-              <text style="font-weight: 700">客户电话脱敏</text>
-              <text class="hint" style="display: block; margin-top: 8rpx">列表与详情默认掩码</text>
-            </view>
-            <switch :checked="s.maskCustomerPhone" disabled />
-          </view>
-          <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0; margin-top: 24rpx">
-            <view style="flex: 1">
-              <text style="font-weight: 700">禁止长按复制</text>
-              <text class="hint" style="display: block; margin-top: 8rpx">降低截图外流风险</text>
-            </view>
-            <switch :checked="s.forbidLongPressCopy" disabled />
-          </view>
-          <view class="list-item" style="border: 0; padding-left: 0; padding-right: 0; margin-top: 24rpx">
-            <view style="flex: 1">
-              <text style="font-weight: 700">发布默认走审核</text>
-              <text class="hint" style="display: block; margin-top: 8rpx">关闭则部分角色可直接上架</text>
-            </view>
-            <switch :checked="s.auditPublish" disabled />
+            <switch :checked="s[item.key]" disabled />
           </view>
         </view>
       </scroll-view>

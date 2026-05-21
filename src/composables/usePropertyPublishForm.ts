@@ -4,6 +4,7 @@ import { fetchPropertyEditForm, markPropertyDetailStale, parsePropertyRouteKey }
 import { postAction } from '@/api/message'
 import type { PropertyEditForm } from '@/types/property'
 import { markListStale } from '@/utils/listStale'
+import { getSecuritySettingsSync } from '@/utils/securitySettingsCache'
 import {
   CERT_OPTIONS,
   DINING_OPTIONS,
@@ -447,10 +448,13 @@ export function usePropertyPublishPage() {
       uni.showToast({ title: '联系人电话须为 11 位手机号', icon: 'none' })
       return
     }
+    const auditOn = getSecuritySettingsSync().auditPublish
     const ok = await new Promise<boolean>((resolve) => {
       uni.showModal({
         title: '确认发布',
-        content: '提交后房源将进入「待审核」，管理员审核通过后为「待租」，驳回需按原因修改后重新发布。',
+        content: auditOn
+          ? '提交后房源将进入「待审核」，管理员审核通过后为「待租」，驳回需按原因修改后重新发布。'
+          : '当前未开启发布审核，提交后将直接上架为「待租」。',
         confirmText: '确认发布',
         cancelText: '取消',
         success: (res) => resolve(Boolean(res.confirm)),
@@ -473,7 +477,7 @@ export function usePropertyPublishPage() {
       markListStale('my-published')
       markListStale('property-list')
       markWorkbenchStale()
-      uni.showToast({ title: '已提交审核', icon: 'none' })
+      uni.showToast({ title: auditOn ? '已提交审核' : '已发布上架', icon: 'none' })
       uni.navigateBack()
     } catch (e) {
       uni.showToast({ title: e instanceof Error ? e.message : '提交失败', icon: 'none' })

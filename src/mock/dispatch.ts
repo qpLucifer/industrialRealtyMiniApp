@@ -11,6 +11,7 @@ import {
 import type { PropertyEditForm } from '@/types/property'
 import { buildPropertyDetailKvFromForm } from '@/utils/propertyDetailKv'
 import { mockSecuritySettings, mockUserProfile } from '@/mock/data/user'
+import { maskPhone } from '@/utils/phoneMask'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
@@ -141,13 +142,25 @@ function buildPropertyDetailPayload(key: string) {
   const resolved = resolvePropertyDetailKey(key)
   const d = getPropertyDetail(resolved)
   const form = mockEditFormForDetail(resolved)
-  const kv = buildPropertyDetailKvFromForm(form, {
+  let kv = buildPropertyDetailKvFromForm(form, {
     type: d.propertyType,
     district: d.district,
     company: d.company,
     statusTag: d.externalStatus || d.leaseChip,
     priceLine: d.priceLine,
   })
+  if (mockSecuritySettings.maskPropertyContact) {
+    const maskRows = (rows: { dt: string; dd: string }[]) =>
+      rows.map((r) => {
+        if (r.dt === '联系人电话' || r.dt === '业主联系人') {
+          const raw = String(r.dd || '').trim()
+          if (!raw || raw === '—') return r
+          return { ...r, dd: maskPhone(raw) }
+        }
+        return r
+      })
+    kv = { ...kv, s1: maskRows(kv.s1), s8: maskRows(kv.s8) }
+  }
   const rejectReason = d.auditKey === 'rejected' ? d.rejectReason || d.auditHint : ''
   return {
     ...d,
@@ -319,7 +332,7 @@ export async function dispatchMock(
   }
 
   if (method === 'POST' && path === '/api/settings/security') {
-    return okResult({ saved: true, ...(body || {}) })
+    return { code: 403, message: '仅管理员可修改安全策略', result: null }
   }
 
   if (method === 'POST' && path === '/api/message/dismiss') {
@@ -342,12 +355,13 @@ export async function dispatchMock(
       })
     }
     if (actionKey === 'submit-property') {
+      const auditOn = mockSecuritySettings.auditPublish
       return okResult({
         ok: true,
         code: generatedCode,
-        auditState: 'pending',
-        externalStatus: '待审核',
-        auditHint: '已提交发布 · 等待管理员审核',
+        auditState: auditOn ? 'pending' : 'live',
+        externalStatus: auditOn ? '待审核' : '待租',
+        auditHint: auditOn ? '已提交发布 · 等待管理员审核' : '已发布上架 · 无需管理员审核',
       })
     }
     return okResult({ ok: true })
