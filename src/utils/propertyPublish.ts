@@ -2,7 +2,7 @@ import type { PropertyEditForm } from '@/types/property'
 import { parseMediaLines } from '@/utils/request'
 
 export const PHOTO_OPTIONS = ['门口形象照', '路口进出照', '车间照片', '货梯', '厂房屋顶'] as const
-export const STRUCTURE_OPTIONS = ['钢构', '框架', '其他'] as const
+export const STRUCTURE_OPTIONS = ['钢构', '混凝土', '其他'] as const
 export const RIGHTS_OPTIONS = ['国有土地', '出让', '划拨', '集体土地', '其他'] as const
 export const LAND_USE_OPTIONS = ['工业', '仓储', '其他'] as const
 export const CERT_OPTIONS = ['房产证', '土地证', '消防验收证', '环保批文'] as const
@@ -28,7 +28,6 @@ export function collectPropertyRequiredMiss(form: PropertyEditForm): string[] {
   const miss: string[] = []
   if (!String(form.listTitle || '').trim()) miss.push('列表标题')
   if (!Array.isArray(form.types) || !form.types.length) miss.push('房源类型')
-  if (!String(form.companyName || '').trim()) miss.push('公司名称')
   if (!String(form.address || '').trim()) miss.push('详细地址')
   const district = String(form.district || '').trim()
   if (!district || district === '未分区') miss.push('所属区域')

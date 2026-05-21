@@ -160,7 +160,7 @@ const {
               <input :cursor-spacing="120" v-model="form.listTitle" class="pf-input" placeholder="对外展示标题" />
             </view>
             <view class="pf-cell pf-cell--col">
-              <text class="pf-cell__label">公司名称<text class="req">*</text></text>
+              <text class="pf-cell__label">公司名称</text>
               <input :cursor-spacing="120" v-model="form.companyName" class="pf-input" placeholder="营业执照全称" />
             </view>
             <view class="pf-cell pf-cell--col">
@@ -266,17 +266,20 @@ const {
             </view>
             <view class="pf-section-h">视频上传</view>
             <view class="prop-media-editor">
-              <view v-if="editorVideos.length" class="prop-media-editor__hero-wrap">
-                <video
-                  class="prop-media-editor__hero-video"
-                  :src="editorVideos[0]"
-                  controls
-                  show-center-play-btn
-                  object-fit="cover"
-                  @error="onVideoComponentError"
-                />
-                <view class="prop-media-editor__hero-actions">
-                  <text class="prop-media-editor__link" @tap="previewNetworkVideo(editorVideos[0])">全屏播放</text>
+              <view v-if="editorVideos.length" class="prop-media-editor__video-list">
+                <view v-for="(url, i) in editorVideos" :key="'vid' + i" class="prop-media-editor__video-block">
+                  <view class="prop-media-editor__cell prop-media-editor__cell--video">
+                    <video
+                      class="prop-media-editor__img prop-media-editor__video"
+                      :src="url"
+                      controls
+                      show-center-play-btn
+                      object-fit="cover"
+                      @error="onVideoComponentError"
+                    />
+                    <text class="prop-media-editor__del" @tap.stop="removeEditorVideo(i)">×</text>
+                  </view>
+                  <text class="prop-media-editor__link" @tap="previewNetworkVideo(url)">全屏播放</text>
                 </view>
               </view>
               <view class="upload-grid">

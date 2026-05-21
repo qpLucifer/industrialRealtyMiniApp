@@ -125,6 +125,33 @@ async function initVideoMultipart(
   return data
 }
 
+/** WeChat range read often returns binary string, not ArrayBuffer — normalize both. */
+function fileReadResultToBuffer(data: unknown, expectedBytes: number): ArrayBuffer | null {
+  if (data instanceof ArrayBuffer) {
+    return data.byteLength > 0 || expectedBytes === 0 ? data : null
+  }
+  if (typeof data !== 'string' || !data.length) return null
+  const buf = new ArrayBuffer(data.length)
+  const u8 = new Uint8Array(buf)
+  for (let i = 0; i < data.length; i++) u8[i] = data.charCodeAt(i) & 0xff
+  return buf
+}
+
+function resolveFileSize(filePath: string, reported: number): Promise<number> {
+  if (reported > 0) return Promise.resolve(reported)
+  return new Promise((resolve, reject) => {
+    uni.getFileInfo({
+      filePath,
+      success: (res) => {
+        const n = Number(res.size)
+        if (Number.isFinite(n) && n > 0) resolve(n)
+        else reject(new Error('无法读取视频大小，请重新选择'))
+      },
+      fail: () => reject(new Error('无法读取视频大小，请重新选择')),
+    })
+  })
+}
+
 function readFileChunk(filePath: string, position: number, length: number): Promise<ArrayBuffer> {
   const fs = uni.getFileSystemManager()
   return new Promise((resolve, reject) => {
@@ -132,12 +159,54 @@ function readFileChunk(filePath: string, position: number, length: number): Prom
       filePath,
       position,
       length,
+      // Range reads on WeChat return binary string when encoding is set; omitting it may yield non-ArrayBuffer types.
+      encoding: 'binary',
       success: (res) => {
-        const data = res.data
-        if (data instanceof ArrayBuffer) resolve(data)
-        else reject(new Error('分片读取失败'))
+        const buf = fileReadResultToBuffer(res.data, length)
+        if (!buf || (length > 0 && buf.byteLength === 0)) {
+          reject(new Error('分片读取失败，请换用真机重试或选择其他视频'))
+          return
+        }
+        resolve(buf)
       },
-      fail: (err) => reject(err ?? new Error('分片读取失败')),
+      fail: (err) => {
+        const msg = err && typeof err === 'object' && 'errMsg' in err ? String((err as { errMsg?: string }).errMsg) : ''
+        reject(new Error(msg ? `分片读取失败：${msg}` : '分片读取失败，请换用真机重试'))
+      },
+    })
+  })
+}
+
+/** Small videos: one-shot upload (avoids fragile range read on temp files). */
+function uploadVideoDirect(
+  filePath: string,
+  folder: string,
+  onProgress?: (percent: number) => void,
+): Promise<{ url: string; key: string }> {
+  if (!API_BASE) return Promise.reject(new Error('未配置 VITE_API_BASE'))
+  onProgress?.(10)
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: `${API_BASE}/api/upload/oss`,
+      filePath,
+      name: 'file',
+      formData: { folder },
+      header: miniAuthHeaders(),
+      timeout: 300000,
+      success(res) {
+        try {
+          if ((res.statusCode ?? 0) >= 400) {
+            reject(new Error(parseUploadError(res)))
+            return
+          }
+          const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          onProgress?.(100)
+          resolve(unwrapResult<{ url: string; key: string }>(data))
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error('视频上传失败'))
+        }
+      },
+      fail: (err) => reject(err ?? new Error('视频上传失败')),
     })
   })
 }
@@ -204,17 +273,21 @@ export async function uploadVideoFromPath(
   mimeType = 'video/mp4',
   onProgress?: (percent: number) => void,
 ): Promise<{ url: string; key: string }> {
-  if (size > MAX_VIDEO_BYTES) {
+  const actualSize = await resolveFileSize(filePath, size)
+  if (actualSize > MAX_VIDEO_BYTES) {
     throw new Error(`视频不能超过 ${formatBytes(MAX_VIDEO_BYTES)}`)
   }
-  const { sessionId, chunkSize } = await initVideoMultipart(filePath, size, folder, mimeType)
+  if (actualSize <= MULTIPART_CHUNK_BYTES) {
+    return uploadVideoDirect(filePath, folder, onProgress)
+  }
+  const { sessionId, chunkSize } = await initVideoMultipart(filePath, actualSize, folder, mimeType)
   const chunk = chunkSize > 0 ? chunkSize : MULTIPART_CHUNK_BYTES
   let offset = 0
   let partNumber = 1
   const fs = uni.getFileSystemManager()
 
-  while (offset < size) {
-    const len = Math.min(chunk, size - offset)
+  while (offset < actualSize) {
+    const len = Math.min(chunk, actualSize - offset)
     const buf = await readFileChunk(filePath, offset, len)
     const tempPath = await writeTempChunk(buf, partNumber)
     try {
@@ -228,7 +301,7 @@ export async function uploadVideoFromPath(
     }
     offset += len
     partNumber += 1
-    onProgress?.(Math.min(99, Math.round((offset / size) * 100)))
+    onProgress?.(Math.min(99, Math.round((offset / actualSize) * 100)))
   }
 
   const result = await completeMultipart(sessionId)
