@@ -42,8 +42,13 @@ import {
   parseMediaLines,
   previewNetworkVideo,
   resolveMediaUrl,
-  uploadOssFile,
 } from '@/utils/request'
+import {
+  formatBatchUploadToast,
+  uploadImagesFromPaths,
+  uploadVideoFromPath,
+} from '@/utils/mediaUpload'
+import { MAX_IMAGES_PER_PICK } from '@/utils/mediaUploadPolicy'
 
 export function usePropertyPublishPage() {
   const step = ref(0)
@@ -51,6 +56,8 @@ export function usePropertyPublishPage() {
   const showLeave = ref(false)
   const saving = ref(false)
   const uploading = ref(false)
+  const uploadPercent = ref(0)
+  const uploadLabel = ref('')
 
   const form = reactive<PropertyEditForm>(emptyPropertyForm())
   const propertyTypes = ref<string[]>([...FALLBACK_PROPERTY_TYPES])
@@ -312,22 +319,35 @@ export function usePropertyPublishPage() {
   async function pickImages() {
     if (formLocked.value) return
     uni.chooseMedia({
-      count: 9,
+      count: MAX_IMAGES_PER_PICK,
       mediaType: ['image'],
       success: async (res) => {
+        const files = res.tempFiles.slice(0, MAX_IMAGES_PER_PICK)
         uploading.value = true
-        uni.showLoading({ title: '图片上传中…', mask: true })
+        uploadPercent.value = 0
+        uploadLabel.value = '图片上传中…'
         try {
-          for (const f of res.tempFiles) {
-            const { url } = await uploadOssFile(f.tempFilePath, uploadFolder())
-            appendUrl('mediaImageUrls', url)
+          const summary = await uploadImagesFromPaths(
+            files.map((f, i) => ({
+              path: f.tempFilePath,
+              name: `图片${i + 1}`,
+              size: f.size ?? 0,
+            })),
+            uploadFolder(),
+            (done, total) => {
+              uploadPercent.value = total ? Math.round((done / total) * 100) : 0
+            },
+          )
+          for (const item of summary.succeeded) {
+            if (item.url) appendUrl('mediaImageUrls', item.url)
           }
-          uni.showToast({ title: '图片已上传', icon: 'none' })
+          uni.showToast({ title: formatBatchUploadToast(summary), icon: 'none' })
         } catch (e) {
           uni.showToast({ title: e instanceof Error ? e.message : '上传失败', icon: 'none' })
         } finally {
           uploading.value = false
-          uni.hideLoading()
+          uploadPercent.value = 0
+          uploadLabel.value = ''
         }
       },
     })
@@ -339,19 +359,29 @@ export function usePropertyPublishPage() {
       count: 1,
       mediaType: ['video'],
       success: async (res) => {
+        const f = res.tempFiles[0]
+        if (!f) return
         uploading.value = true
-        uni.showLoading({ title: '视频上传中…', mask: true })
+        uploadPercent.value = 0
+        uploadLabel.value = '视频上传中…'
         try {
-          for (const f of res.tempFiles) {
-            const { url } = await uploadOssFile(f.tempFilePath, uploadFolder())
-            appendUrl('mediaVideoUrls', url)
-          }
+          const { url } = await uploadVideoFromPath(
+            f.tempFilePath,
+            f.size ?? 0,
+            uploadFolder(),
+            'video/mp4',
+            (pct) => {
+              uploadPercent.value = pct
+            },
+          )
+          appendUrl('mediaVideoUrls', url)
           uni.showToast({ title: '视频已上传', icon: 'none' })
         } catch (e) {
           uni.showToast({ title: e instanceof Error ? e.message : '上传失败', icon: 'none' })
         } finally {
           uploading.value = false
-          uni.hideLoading()
+          uploadPercent.value = 0
+          uploadLabel.value = ''
         }
       },
     })
@@ -503,6 +533,8 @@ export function usePropertyPublishPage() {
     showLeave,
     saving,
     uploading,
+    uploadPercent,
+    uploadLabel,
     form,
     propertyTypes,
     regionDefs,

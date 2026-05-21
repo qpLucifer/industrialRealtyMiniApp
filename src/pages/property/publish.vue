@@ -31,6 +31,8 @@ const {
   showLeave,
   saving,
   uploading,
+  uploadPercent,
+  uploadLabel,
   form,
   propertyTypes,
   regionNames,
@@ -769,8 +771,11 @@ const {
 
     <view v-if="uploading" class="pf-upload-mask" @touchmove.stop.prevent>
       <view class="pf-upload-mask__box">
-        <view class="pf-upload-mask__spinner" />
-        <text class="pf-upload-mask__txt">媒体上传中…</text>
+        <text class="pf-upload-mask__txt">{{ uploadLabel || '媒体上传中…' }}</text>
+        <view class="pf-upload-progress-track">
+          <view class="pf-upload-progress-fill" :style="{ width: uploadPercent + '%' }" />
+        </view>
+        <text class="pf-upload-mask__pct">{{ uploadPercent }}%</text>
       </view>
     </view>
 

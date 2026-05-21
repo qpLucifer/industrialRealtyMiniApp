@@ -4,7 +4,7 @@ import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchUserProfile, updateUserProfile } from '@/api/user'
 import type { UserProfile } from '@/types/user'
-import { uploadOssFile } from '@/utils/request'
+import { uploadImagePath } from '@/utils/mediaUpload'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
@@ -41,7 +41,7 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
   if (!path) return
   avatarUploading.value = true
   try {
-    const { url } = await uploadOssFile(path, 'miniapp/avatars')
+    const { url } = await uploadImagePath(path, 'miniapp/avatars')
     const updated = await updateUserProfile({ avatarUrl: url })
     profile.value = updated
     uni.showToast({ title: '头像已更新', icon: 'none' })

@@ -328,6 +328,35 @@ export async function dispatchMock(
     return okResult(mockDealFormDefaults)
   }
 
+  if (method === 'GET' && path === '/api/upload/limits') {
+    return okResult({
+      maxImageBytes: 50 * 1024 * 1024,
+      maxVideoBytes: 500 * 1024 * 1024,
+      maxImagesPerPick: 5,
+      maxVideosPerPick: 1,
+      multipartChunkBytes: 5 * 1024 * 1024,
+    })
+  }
+
+  if (method === 'POST' && path === '/api/upload/oss/multipart/init') {
+    return okResult({
+      sessionId: `mock-session-${Date.now()}`,
+      chunkSize: 5 * 1024 * 1024,
+      totalParts: 3,
+    })
+  }
+
+  if (method === 'POST' && path === '/api/upload/oss/multipart/part') {
+    return okResult({ partNumber: 1, receivedParts: 1, uploadedBytes: 1, totalBytes: 1 })
+  }
+
+  if (method === 'POST' && path === '/api/upload/oss/multipart/complete') {
+    return okResult({
+      url: 'https://example.com/mock-oss/video.mp4',
+      key: 'mock/video.mp4',
+    })
+  }
+
   if (method === 'GET' && path === '/api/settings/security') {
     return okResult(mockSecuritySettings)
   }

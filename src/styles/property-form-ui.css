@@ -264,6 +264,26 @@
   animation: pf-spin 0.8s linear infinite;
 }
 
+.pf-upload-progress-track {
+  width: 420rpx;
+  max-width: 80vw;
+  height: 12rpx;
+  margin-top: 24rpx;
+  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+.pf-upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2dd4bf, #5eead4);
+  transition: width 0.15s ease;
+}
+.pf-upload-mask__pct {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
 .pf-upload-mask__txt {
   font-size: 28rpx;
   color: #334155;

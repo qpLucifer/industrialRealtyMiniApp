@@ -6,7 +6,7 @@ import { clearMiniSessionAndGoLogin } from '@/utils/session'
 
 /** Explicit `VITE_USE_MOCK=true` only — production builds default to real API. */
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
-const API_BASE = String(import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
+export const API_BASE = String(import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
 function resolveUrl(url: string) {
   if (USE_MOCK) return url
@@ -273,46 +273,9 @@ function miniAuthHeaders(): Record<string, string> {
   return headers
 }
 
-/** OSS multipart upload — lives in request.ts for mp-weixin module stability. */
-export function uploadOssFile(
-  filePath: string,
-  folder = 'miniapp/properties',
-): Promise<{ url: string; key: string }> {
-  if (!API_BASE) {
-    return Promise.reject(new Error('未配置 VITE_API_BASE'))
-  }
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url: `${API_BASE}/api/upload/oss`,
-      filePath,
-      name: 'file',
-      formData: { folder },
-      header: miniAuthHeaders(),
-      success(res) {
-        try {
-          const sc = res.statusCode ?? 0
-          if (sc >= 400) {
-            let msg = `上传失败 (${sc})`
-            try {
-              const body = JSON.parse(res.data as string) as { message?: string }
-              if (body.message) msg = body.message
-            } catch {
-              /* ignore */
-            }
-            reject(new Error(msg))
-            return
-          }
-          const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
-          resolve(unwrapResult<{ url: string; key: string }>(data))
-        } catch (e) {
-          reject(e)
-        }
-      },
-      fail(err) {
-        reject(err ?? new Error('uploadFile failed'))
-      },
-    })
-  })
+/** @deprecated Prefer uploadImagePath / uploadVideoFromPath from @/utils/mediaUpload */
+export function uploadOssFile(filePath: string, folder = 'miniapp/properties') {
+  return import('@/utils/mediaUpload').then((m) => m.uploadImagePath(filePath, folder))
 }
 
 /* --- Property publish form helpers (inlined for WeChat MP module graph) --- */
