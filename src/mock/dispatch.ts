@@ -12,6 +12,7 @@ import type { PropertyEditForm } from '@/types/property'
 import { buildPropertyDetailKvFromForm } from '@/utils/propertyDetailKv'
 import { mockSecuritySettings, mockUserProfile } from '@/mock/data/user'
 import { maskPhone } from '@/utils/phoneMask'
+import { defaultStatusLabelForRentSale } from '@/utils/propertyListingStatus'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
@@ -339,6 +340,16 @@ export async function dispatchMock(
     return okResult({ success: true })
   }
 
+  if (method === 'PUT' && path === '/api/property/listing-status') {
+    const code = String((body as Record<string, unknown>)?.code || '').trim()
+    const externalStatus = String((body as Record<string, unknown>)?.externalStatus || '').trim()
+    return okResult({
+      externalStatus: externalStatus || '待租',
+      listingLine1: externalStatus || '待租',
+      listingLine2: `Mock · ${code || '—'}`,
+    })
+  }
+
   if (method === 'POST' && path.startsWith('/api/action/')) {
     const actionKey = path.replace('/api/action/', '')
     const payload = (body || {}) as Record<string, unknown>
@@ -356,11 +367,13 @@ export async function dispatchMock(
     }
     if (actionKey === 'submit-property') {
       const auditOn = mockSecuritySettings.auditPublish
+      const rentSale = String(payload.rentSaleType || '出租')
+      const liveStatus = defaultStatusLabelForRentSale(rentSale)
       return okResult({
         ok: true,
         code: generatedCode,
         auditState: auditOn ? 'pending' : 'live',
-        externalStatus: auditOn ? '待审核' : '待租',
+        externalStatus: auditOn ? '待审核' : liveStatus,
         auditHint: auditOn ? '已提交发布 · 等待管理员审核' : '已发布上架 · 无需管理员审核',
       })
     }

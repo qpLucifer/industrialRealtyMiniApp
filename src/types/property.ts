@@ -51,6 +51,8 @@ export interface PropertyDetailPayload {
   buildingArea?: string
   powerKva?: string
   rentListSqm?: string
+  /** 挂牌联系 · 租售类型 */
+  rentSaleType?: string
   propertyType?: string
   submitterName?: string
   mediaImages?: string[]

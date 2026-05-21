@@ -1,4 +1,5 @@
-import { get } from '@/utils/request'
+import { get, put } from '@/utils/request'
+import type { LiveListingStatus } from '@/utils/propertyListingStatus'
 import type { MyPublishedProperty, PropertyDetailPayload, PropertyEditForm, PropertyListItem } from '@/types/property'
 
 export {
@@ -51,4 +52,11 @@ export function fetchPropertyLogs(key: string) {
 
 export function fetchMyPublished() {
   return get<{ list: MyPublishedProperty[] }>('/api/property/my-published')
+}
+
+export function updatePropertyListingStatus(code: string, externalStatus: LiveListingStatus) {
+  return put<{ externalStatus: string; listingLine1: string; listingLine2: string }>(
+    '/api/property/listing-status',
+    { code, externalStatus },
+  )
 }

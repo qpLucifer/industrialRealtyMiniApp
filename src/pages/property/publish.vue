@@ -755,7 +755,7 @@ const {
         </view>
         <view v-else-if="auditState === 'live'" class="pf-detail-audit-wrap" style="margin-bottom: 12rpx">
           <view class="prop-detail-audit-strip audit-live">
-            <text>已上线，租售状态请在后台管理系统调整</text>
+            <text>已上线，可在房源详情页调整租售状态（不可改为草稿/待审核/驳回）</text>
           </view>
         </view>
         <view class="page-footer__row">

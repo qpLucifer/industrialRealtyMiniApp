@@ -19,7 +19,7 @@ const loading = ref(false)
 const filterOpen = ref(false)
 const seg = ref(0)
 const keyword = ref('')
-const segStatus = ['', '草稿', '待租', '待售', '意向中']
+const segStatus = ['', '草稿', '待租', '待售', '待租售']
 
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
@@ -195,7 +195,7 @@ function applyFilter() {
           <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">草稿</button>
           <button class="seg-btn" :class="{ active: seg === 2 }" @click="onSeg(2)">待租</button>
           <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待售</button>
-          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">意向中</button>
+          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">待租售</button>
         </view>
         <view v-if="loading && !list.length" class="card">
           <text class="hint">加载中…</text>

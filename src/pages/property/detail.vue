@@ -6,14 +6,21 @@ import {
   consumePropertyDetailRefresh,
   fetchPropertyDetail,
   fetchPropertyEditForm,
+  markPropertyDetailStale,
   navigateToPropertyLog,
   navigateToPropertyPublish,
   navigateToViewingNew,
   parsePropertyRouteKey,
+  updatePropertyListingStatus,
 } from '@/api/property'
 import type { PropertyDetailPayload } from '@/types/property'
 import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
 import { useSecuritySettings } from '@/composables/useSecuritySettings'
+import {
+  LIVE_LISTING_STATUSES,
+  rentSaleStatusHint,
+  type LiveListingStatus,
+} from '@/utils/propertyListingStatus'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
 const { noCopyClass } = useSecuritySettings()
@@ -39,6 +46,25 @@ const auditClass = computed(() => {
 })
 
 const canViewing = computed(() => detail.value?.auditKey === 'live')
+const canChangeListingStatus = computed(() => detail.value?.auditKey === 'live')
+const listingStatusSaving = ref(false)
+
+const currentListingStatus = computed(() => {
+  const d = detail.value
+  if (!d) return ''
+  const ext = String(d.externalStatus || '').trim()
+  if (ext && LIVE_LISTING_STATUSES.includes(ext as LiveListingStatus)) return ext
+  const chip = String(d.leaseChip || '').trim()
+  if (chip && LIVE_LISTING_STATUSES.includes(chip as LiveListingStatus)) return chip
+  return LIVE_LISTING_STATUSES[0]
+})
+
+const listingStatusIdx = computed(() => {
+  const i = LIVE_LISTING_STATUSES.indexOf(currentListingStatus.value as LiveListingStatus)
+  return i >= 0 ? i : 0
+})
+
+const rentSaleHint = computed(() => rentSaleStatusHint(detail.value?.rentSaleType || ''))
 const canEditProperty = computed(() => {
   const k = detail.value?.auditKey
   return k === 'draft' || k === 'rejected'
@@ -226,6 +252,26 @@ function copyCoord() {
   uni.setClipboardData({ data: d.lat && d.lng ? `${d.lat}, ${d.lng}` : d.mapCoordLabel })
 }
 
+async function onListingStatusPick(e: { detail: { value: string | number } }) {
+  const d = detail.value
+  if (!d || !canChangeListingStatus.value || listingStatusSaving.value) return
+  const idx = Number(e.detail.value)
+  const next = LIVE_LISTING_STATUSES[idx]
+  if (!next || next === currentListingStatus.value) return
+  listingStatusSaving.value = true
+  try {
+    const r = await updatePropertyListingStatus(d.id, next)
+    d.externalStatus = r.externalStatus
+    d.leaseChip = r.externalStatus
+    markPropertyDetailStale(d.id)
+    uni.showToast({ title: `已更新为「${next}」`, icon: 'none' })
+  } catch (err) {
+    uni.showToast({ title: err instanceof Error ? err.message : '更新失败', icon: 'none' })
+  } finally {
+    listingStatusSaving.value = false
+  }
+}
+
 function shareInternal() {
   const d = detail.value
   if (!d) return
@@ -318,6 +364,23 @@ function openVideoFullscreen(url: string) {
             </text>
             <view class="chip-row">
               <text v-for="(c, i) in headerChips" :key="i" :class="c.cls">{{ c.label }}</text>
+            </view>
+          </view>
+
+          <view v-if="canChangeListingStatus" class="pf-kv-card" style="margin-top: 24rpx">
+            <view class="section-title">租售状态</view>
+            <view class="pf-cell pf-cell--col">
+              <picker
+                mode="selector"
+                :range="[...LIVE_LISTING_STATUSES]"
+                :value="listingStatusIdx"
+                :disabled="listingStatusSaving"
+                @change="onListingStatusPick"
+              >
+                <view class="picker-like">{{ currentListingStatus }}</view>
+              </picker>
+              <text v-if="rentSaleHint" class="hint" style="display: block; margin-top: 12rpx">{{ rentSaleHint }}</text>
+              <text class="hint" style="display: block; margin-top: 8rpx">不可改为草稿、待审核或驳回</text>
             </view>
           </view>
 

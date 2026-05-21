@@ -68,6 +68,7 @@ export interface PropertyDetailMock {
   lat?: string
   lng?: string
   district?: string
+  rentSaleType?: string
   propertyType?: string
   mediaImages?: string[]
   mediaVideos?: string[]
@@ -91,6 +92,7 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
     lat: '23.179455',
     lng: '113.429512',
     district: '黄埔区',
+    rentSaleType: '出租',
     propertyType: '标准厂房',
     mediaImages: [
       'https://img.alicdn.com/imgextra/i1/O1CN01example1.jpg',
