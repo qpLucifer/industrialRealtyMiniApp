@@ -2,10 +2,15 @@
 import { computed, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
-import { fetchCustomerList } from '@/api/customer'
+import { fetchCustomerList, type CustomerListReminderFilter } from '@/api/customer'
 import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
-import type { CustomerListItem } from '@/types/customer'
+import type { CustomerDealStatus, CustomerGrade, CustomerListItem } from '@/types/customer'
+
+const GRADE_OPTIONS = ['全部等级', 'A 类', 'B 类', 'C 类'] as const
+const DEAL_OPTIONS = ['全部状态', '洽谈中', '已成交', '搁置'] as const
+const REMINDER_OPTIONS = ['全部提醒', '有待提醒', '已到期', '近7天待跟'] as const
+const REMINDER_VALUES: ('' | CustomerListReminderFilter)[] = ['', 'due', 'overdue', 'week']
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
@@ -17,15 +22,34 @@ const filterOpen = ref(false)
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
 
-const filterDraft = ref({ regionIdx: 0 })
-const filterApplied = ref({ districtRegionId: null as number | null })
+const filterDraft = ref({ regionIdx: 0, gradeIdx: 0, dealIdx: 0, reminderIdx: 0 })
+const filterApplied = ref({
+  districtRegionId: null as number | null,
+  grade: '' as '' | CustomerGrade,
+  dealStatus: '' as '' | CustomerDealStatus,
+  reminder: '' as '' | CustomerListReminderFilter,
+})
 
-const hasActiveFilters = computed(() => filterApplied.value.districtRegionId != null)
+const hasActiveFilters = computed(
+  () =>
+    filterApplied.value.districtRegionId != null ||
+    !!filterApplied.value.grade ||
+    !!filterApplied.value.dealStatus ||
+    !!filterApplied.value.reminder,
+)
 
 const filterSummary = computed(() => {
-  if (!hasActiveFilters.value) return ''
-  const name = regionDefs.value.find((r) => r.id === filterApplied.value.districtRegionId)?.name
-  return name ? `区域：${name}` : '已筛选'
+  const parts: string[] = []
+  if (filterApplied.value.districtRegionId != null) {
+    const name = regionDefs.value.find((r) => r.id === filterApplied.value.districtRegionId)?.name
+    parts.push(name ? `区域：${name}` : '区域已选')
+  }
+  if (filterApplied.value.grade) parts.push(filterApplied.value.grade)
+  if (filterApplied.value.dealStatus) parts.push(filterApplied.value.dealStatus)
+  if (filterApplied.value.reminder === 'due') parts.push('有待提醒')
+  else if (filterApplied.value.reminder === 'overdue') parts.push('已到期')
+  else if (filterApplied.value.reminder === 'week') parts.push('近7天待跟')
+  return parts.join(' · ')
 })
 
 function gradeChipClass(c: CustomerListItem) {
@@ -63,6 +87,9 @@ async function reload() {
       scope,
       q: keyword.value.trim() || undefined,
       districtRegionId: filterApplied.value.districtRegionId,
+      grade: filterApplied.value.grade || undefined,
+      dealStatus: filterApplied.value.dealStatus || undefined,
+      reminder: filterApplied.value.reminder || undefined,
     })
     list.value = r.list
   } catch (e) {
@@ -85,12 +112,24 @@ function onSeg(i: number) {
   void reload()
 }
 
-function openFilter() {
+function syncFilterDraftFromApplied() {
   filterDraft.value.regionIdx = 0
   if (filterApplied.value.districtRegionId != null) {
     const i = regionDefs.value.findIndex((r) => r.id === filterApplied.value.districtRegionId)
     filterDraft.value.regionIdx = i >= 0 ? i + 1 : 0
   }
+  filterDraft.value.gradeIdx = filterApplied.value.grade
+    ? Math.max(0, GRADE_OPTIONS.indexOf(filterApplied.value.grade as (typeof GRADE_OPTIONS)[number]))
+    : 0
+  filterDraft.value.dealIdx = filterApplied.value.dealStatus
+    ? Math.max(0, DEAL_OPTIONS.indexOf(filterApplied.value.dealStatus as (typeof DEAL_OPTIONS)[number]))
+    : 0
+  const ri = REMINDER_VALUES.indexOf(filterApplied.value.reminder)
+  filterDraft.value.reminderIdx = ri >= 0 ? ri : 0
+}
+
+function openFilter() {
+  syncFilterDraftFromApplied()
   filterOpen.value = true
 }
 
@@ -98,9 +137,21 @@ function onFilterRegionPick(e: { detail: { value: string | number } }) {
   filterDraft.value.regionIdx = Number(e.detail.value)
 }
 
+function onFilterGradePick(e: { detail: { value: string | number } }) {
+  filterDraft.value.gradeIdx = Number(e.detail.value)
+}
+
+function onFilterDealPick(e: { detail: { value: string | number } }) {
+  filterDraft.value.dealIdx = Number(e.detail.value)
+}
+
+function onFilterReminderPick(e: { detail: { value: string | number } }) {
+  filterDraft.value.reminderIdx = Number(e.detail.value)
+}
+
 function resetFilter() {
-  filterDraft.value.regionIdx = 0
-  filterApplied.value.districtRegionId = null
+  filterDraft.value = { regionIdx: 0, gradeIdx: 0, dealIdx: 0, reminderIdx: 0 }
+  filterApplied.value = { districtRegionId: null, grade: '', dealStatus: '', reminder: '' }
   filterOpen.value = false
   void reload()
 }
@@ -112,6 +163,11 @@ function applyFilter() {
     const row = regionDefs.value[filterDraft.value.regionIdx - 1]
     filterApplied.value.districtRegionId = row?.id ?? null
   }
+  filterApplied.value.grade =
+    filterDraft.value.gradeIdx > 0 ? (GRADE_OPTIONS[filterDraft.value.gradeIdx] as CustomerGrade) : ''
+  filterApplied.value.dealStatus =
+    filterDraft.value.dealIdx > 0 ? (DEAL_OPTIONS[filterDraft.value.dealIdx] as CustomerDealStatus) : ''
+  filterApplied.value.reminder = REMINDER_VALUES[filterDraft.value.reminderIdx] ?? ''
   filterOpen.value = false
   void reload()
 }
@@ -231,6 +287,29 @@ function goVideoFaq() {
         <view class="form-group">
           <picker mode="selector" :range="regionNames" :value="filterDraft.regionIdx" @change="onFilterRegionPick">
             <view class="picker-like">{{ regionNames[filterDraft.regionIdx] || '全部区域' }}</view>
+          </picker>
+        </view>
+        <view class="section-title">客户等级</view>
+        <view class="form-group">
+          <picker mode="selector" :range="GRADE_OPTIONS" :value="filterDraft.gradeIdx" @change="onFilterGradePick">
+            <view class="picker-like">{{ GRADE_OPTIONS[filterDraft.gradeIdx] }}</view>
+          </picker>
+        </view>
+        <view class="section-title">成交状态</view>
+        <view class="form-group">
+          <picker mode="selector" :range="DEAL_OPTIONS" :value="filterDraft.dealIdx" @change="onFilterDealPick">
+            <view class="picker-like">{{ DEAL_OPTIONS[filterDraft.dealIdx] }}</view>
+          </picker>
+        </view>
+        <view class="section-title">下次提醒</view>
+        <view class="form-group">
+          <picker
+            mode="selector"
+            :range="REMINDER_OPTIONS"
+            :value="filterDraft.reminderIdx"
+            @change="onFilterReminderPick"
+          >
+            <view class="picker-like">{{ REMINDER_OPTIONS[filterDraft.reminderIdx] }}</view>
           </picker>
         </view>
         <view class="filter-sheet-actions">

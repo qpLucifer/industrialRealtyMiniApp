@@ -21,6 +21,8 @@ function apiQueryKey(key: string) {
 export type PropertyListQuery = {
   q?: string
   status?: string
+  /** Filter status_tag 待租/待售 (optional; home stat uses total count without this) */
+  available?: boolean
   districtRegionId?: number
   minArea?: number
   maxArea?: number
@@ -30,6 +32,7 @@ export function fetchPropertyList(query?: PropertyListQuery) {
   const params: Record<string, string | number> = {}
   if (query?.q) params.q = query.q
   if (query?.status) params.status = query.status
+  if (query?.available) params.available = '1'
   if (query?.districtRegionId != null && Number.isFinite(query.districtRegionId)) {
     params.districtRegionId = query.districtRegionId
   }

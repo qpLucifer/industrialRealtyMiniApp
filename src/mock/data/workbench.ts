@@ -20,7 +20,7 @@ export const mockWorkbench: WorkbenchSummary = {
     { id: 'wangli', title: '王莉 · 洽谈中', hint: 'C 类 · 关注南沙仓', tone: 'slate' },
   ],
   stats: [
-    { value: '128', label: '可租房源' },
+    { value: '128', label: '房源总数' },
     { value: '42', label: '客户总数' },
     { value: '7', label: '本周带看' },
   ],

@@ -51,8 +51,13 @@ function filterMockPropertyList(query: Record<string, string>) {
       [p.title, p.code, p.id, p.metaLine].some((s) => String(s).toLowerCase().includes(q)),
     )
   }
-  const status = (query.status || '').trim()
-  if (status) rows = rows.filter((p) => p.status === status)
+  const available = query.available === '1' || query.available === 'true'
+  if (available) {
+    rows = rows.filter((p) => p.status === '待租' || p.status === '待售')
+  } else {
+    const status = (query.status || '').trim()
+    if (status) rows = rows.filter((p) => p.status === status)
+  }
   const regionId = query.districtRegionId != null && String(query.districtRegionId).trim() !== ''
     ? Number(query.districtRegionId)
     : NaN
@@ -73,6 +78,13 @@ function filterMockPropertyList(query: Record<string, string>) {
   return rows
 }
 
+function parseMockReminderAt(c: { nextReminderAt?: string; nextReminder?: string }) {
+  const raw = c.nextReminderAt || c.nextReminder
+  if (!raw || raw === '—') return null
+  const d = new Date(String(raw).replace(' ', 'T'))
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 function filterMockCustomerList(query: Record<string, string>) {
   let rows = [...mockCustomerList]
   const scope = (query.scope || '').trim()
@@ -82,10 +94,28 @@ function filterMockCustomerList(query: Record<string, string>) {
   if (Number.isFinite(regionId) && regionId > 0) {
     rows = rows.filter((c) => c.districtRegionId === regionId)
   }
+  const grade = (query.grade || '').trim()
+  if (grade) rows = rows.filter((c) => c.grade === grade)
+  const dealStatus = (query.dealStatus || '').trim()
+  if (dealStatus) rows = rows.filter((c) => c.dealStatus === dealStatus)
+  const reminder = (query.reminder || '').trim()
+  if (reminder) {
+    const now = Date.now()
+    const weekEnd = now + 7 * 24 * 60 * 60 * 1000
+    rows = rows.filter((c) => {
+      const d = parseMockReminderAt(c)
+      if (!d) return false
+      const t = d.getTime()
+      if (reminder === 'due') return true
+      if (reminder === 'overdue') return t <= now
+      if (reminder === 'week') return t > now && t <= weekEnd
+      return true
+    })
+  }
   const q = (query.q || '').trim().toLowerCase()
   if (q) {
     rows = rows.filter((c) =>
-      [c.company, c.contactName, c.titleLine, c.id, c.district].some((s) =>
+      [c.company, c.contactName, c.titleLine, c.id, c.district, c.dealStatus].some((s) =>
         String(s || '').toLowerCase().includes(q),
       ),
     )

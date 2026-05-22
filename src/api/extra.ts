@@ -6,8 +6,10 @@ export function fetchVideoFaqList() {
   return get<{ list: VideoFaqItem[] }>('/api/video-faq/list')
 }
 
-export function fetchViewingList() {
-  return get<{ list: ViewingListItem[] }>('/api/viewing/list')
+export function fetchViewingList(query?: { week?: boolean }) {
+  const params: Record<string, string> = {}
+  if (query?.week) params.week = '1'
+  return get<{ list: ViewingListItem[] }>('/api/viewing/list', params)
 }
 
 export function fetchViewingDetail(id: number) {

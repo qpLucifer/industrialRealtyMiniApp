@@ -18,6 +18,8 @@ export interface CustomerListItem {
   scope: CustomerScope
   district?: string
   districtRegionId?: number | null
+  /** Mock / debug: ISO datetime for reminder filters */
+  nextReminderAt?: string
 }
 
 export interface CustomerDetail {

@@ -6,12 +6,14 @@ import SwipeRow from '@/components/SwipeRow.vue'
 import { deleteViewing, fetchViewingList } from '@/api/extra'
 import { consumeListStale, markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
+import { consumeTabNavIntent } from '@/utils/tabNavIntent'
 import type { ViewingListItem } from '@/types/viewingDeal'
 
 const list = ref<ViewingListItem[]>([])
 const loading = ref(false)
 const loadError = ref('')
 const skipNextShow = ref(false)
+const weekOnly = ref(false)
 
 function propLabel(v: ViewingListItem) {
   return String(v.propertyRef || v.miniPropCode || '—').trim()
@@ -28,7 +30,7 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    const r = await fetchViewingList()
+    const r = await fetchViewingList({ week: weekOnly.value || undefined })
     list.value = r.list
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
@@ -40,6 +42,8 @@ async function load() {
 
 onLoad(async () => {
   skipNextShow.value = true
+  const intent = consumeTabNavIntent()
+  if (intent?.kind === 'viewing' && intent.thisWeek) weekOnly.value = true
   await load()
 })
 
@@ -97,14 +101,16 @@ function back() {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar
-        title="带看记录"
+        :title="weekOnly ? '本周带看' : '带看记录'"
         :actions="[{ key: 'add', icon: 'add', ariaLabel: '新建带看' }]"
         @back="back"
         @action="goNew"
       />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner viewing-page">
-          <text class="viewing-page__hint">左滑可编辑或取消带看 · 进行中会高亮</text>
+          <text class="viewing-page__hint">
+            {{ weekOnly ? '仅显示近 7 天带看 · ' : '' }}左滑可编辑或取消带看 · 进行中会高亮
+          </text>
 
           <view v-if="loading && !list.length" class="viewing-empty card">
             <text class="hint">加载中…</text>

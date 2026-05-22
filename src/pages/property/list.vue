@@ -12,6 +12,7 @@ import {
 import type { PropertyListItem } from '@/types/property'
 import { fetchRegionDefs, resolveMediaUrl } from '@/utils/request'
 import { consumeListStale } from '@/utils/listStale'
+import { consumeTabNavIntent } from '@/utils/tabNavIntent'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 const list = ref<PropertyListItem[]>([])
@@ -36,8 +37,11 @@ const filterApplied = reactive({
   maxArea: '',
 })
 
+const listAvailableOnly = ref(false)
+
 const hasActiveFilters = computed(
   () =>
+    listAvailableOnly.value ||
     filterApplied.districtRegionId != null ||
     String(filterApplied.minArea).trim() !== '' ||
     String(filterApplied.maxArea).trim() !== '',
@@ -45,6 +49,7 @@ const hasActiveFilters = computed(
 
 const filterSummary = computed(() => {
   const parts: string[] = []
+  if (listAvailableOnly.value) parts.push('可租/可售')
   if (filterApplied.districtRegionId != null) {
     const name = regionDefs.value.find((r) => r.id === filterApplied.districtRegionId)?.name
     if (name) parts.push(name)
@@ -58,10 +63,11 @@ const filterSummary = computed(() => {
 })
 
 function buildListQuery(): PropertyListQuery {
-  const status = segStatus[seg.value] || ''
+  const status = listAvailableOnly.value ? '' : segStatus[seg.value] || ''
   const q: PropertyListQuery = {
     q: keyword.value.trim() || undefined,
     status: status || undefined,
+    available: listAvailableOnly.value || undefined,
   }
   if (filterApplied.districtRegionId != null) {
     q.districtRegionId = filterApplied.districtRegionId
@@ -102,10 +108,21 @@ async function loadRegionDefs() {
 }
 
 onMounted(() => {
+  applyTabNavIntent()
   void loadRegionDefs()
 })
 
+function applyTabNavIntent() {
+  const intent = consumeTabNavIntent()
+  if (!intent || intent.kind !== 'property') return
+  if (intent.available) {
+    listAvailableOnly.value = true
+    seg.value = 0
+  }
+}
+
 useTabPageShow(() => {
+  applyTabNavIntent()
   if (consumeListStale('property-list')) {
     /* refresh after publish / edit */
   }
@@ -151,6 +168,7 @@ function resetFilter() {
   filterApplied.districtRegionId = null
   filterApplied.minArea = ''
   filterApplied.maxArea = ''
+  listAvailableOnly.value = false
   filterOpen.value = false
   reload()
 }

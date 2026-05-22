@@ -20,6 +20,25 @@ const displayTitle = computed(() => {
   return d.value.titleLine || `${d.value.contactName} · ${d.value.company}`
 })
 
+const canDialPhone = computed(() => {
+  const p = String(d.value?.phone || '').trim()
+  if (!p || p.includes('*')) return false
+  const digits = p.replace(/\D/g, '')
+  return digits.length >= 7
+})
+
+function onCallPhone() {
+  if (!canDialPhone.value || !d.value) {
+    uni.showToast({ title: '号码不可用', icon: 'none' })
+    return
+  }
+  const digits = String(d.value.phone).replace(/\s/g, '').replace(/[^\d+]/g, '')
+  uni.makePhoneCall({
+    phoneNumber: digits,
+    fail: () => uni.showToast({ title: '无法唤起拨号', icon: 'none' }),
+  })
+}
+
 onLoad((q) => {
   if (q?.id) id.value = String(q.id)
   if (id.value) void load()
@@ -85,7 +104,11 @@ function goFollow() {
               <text v-if="d.nextReminder" class="chip warn">下次 {{ d.nextReminder }}</text>
               <text class="chip">{{ d.dealStatus }}</text>
             </view>
-            <view class="cust-meta">电话 {{ d.phone }}</view>
+            <view v-if="canDialPhone" class="cust-meta cust-meta--dial" @tap="onCallPhone">
+              电话 {{ d.phone }}
+              <text class="cust-meta__action"> 拨打</text>
+            </view>
+            <view v-else class="cust-meta">电话 {{ d.phone }}</view>
             <view v-if="d.district" class="cust-meta">所属区域 {{ d.district }}</view>
             <view v-if="d.ownerName" class="cust-meta">负责人 {{ d.ownerName }}</view>
             <view class="cust-meta">最近跟进 {{ formatBeijingDisplay(d.lastFollow) || d.lastFollow || '—' }}</view>
@@ -174,6 +197,15 @@ function goFollow() {
   font-size: 26rpx;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.cust-meta--dial {
+  color: var(--navy);
+}
+
+.cust-meta__action {
+  color: var(--mint);
+  font-weight: 600;
 }
 
 .cust-block-label {

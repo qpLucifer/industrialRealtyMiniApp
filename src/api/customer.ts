@@ -6,10 +6,15 @@ import type {
   CustomerListItem,
 } from '@/types/customer'
 
+export type CustomerListReminderFilter = 'due' | 'overdue' | 'week'
+
 export function fetchCustomerList(query?: {
   q?: string
   scope?: 'mine' | 'public' | ''
   districtRegionId?: number | null
+  grade?: string
+  dealStatus?: string
+  reminder?: CustomerListReminderFilter
 }) {
   return get<{ list: CustomerListItem[] }>('/api/customer/list', query)
 }

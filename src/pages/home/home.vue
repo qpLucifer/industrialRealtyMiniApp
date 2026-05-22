@@ -10,6 +10,7 @@ import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
 import { pickActivePopupAnnouncements } from '@/utils/announcement'
+import { setTabNavIntent } from '@/utils/tabNavIntent'
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v != null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
@@ -44,8 +45,9 @@ function normalizeTodo(raw: unknown, remindCustomerId: string): WorkbenchTodo | 
 function normalizeStat(raw: unknown): WorkbenchStat | null {
   const o = asRecord(raw)
   if (!o) return null
-  const label = str(o.label)
-  if (!label) return null
+  const labelRaw = str(o.label)
+  if (!labelRaw) return null
+  const label = labelRaw === '可租房源' ? '房源总数' : labelRaw
   return { value: str(o.value, '0'), label }
 }
 
@@ -69,7 +71,7 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
   const statsIn = Array.isArray(o.stats) ? o.stats : []
   const statsParsed = statsIn.map(normalizeStat).filter(Boolean) as WorkbenchStat[]
   const defaultStats: WorkbenchStat[] = [
-    { value: '0', label: '可租房源' },
+    { value: '0', label: '房源总数' },
     { value: '0', label: '客户总数' },
     { value: '0', label: '本周带看' },
   ]
@@ -217,6 +219,21 @@ function goCustomerNew() {
   uni.navigateTo({ url: '/pages/customer/new' })
 }
 
+function onStatTap(label: string) {
+  if (label === '房源总数' || label === '可租房源') {
+    uni.switchTab({ url: '/pages/property/list' })
+    return
+  }
+  if (label === '客户总数') {
+    uni.switchTab({ url: '/pages/customer/list' })
+    return
+  }
+  if (label === '本周带看') {
+    setTabNavIntent({ kind: 'viewing', thisWeek: true })
+    uni.navigateTo({ url: '/pages/viewing/list' })
+  }
+}
+
 /** Inline fallback — WeChat MP often ignores scoped/global border on nested .card */
 function todoHighlightStyle(highlight: boolean | undefined) {
   if (!highlight) return {}
@@ -269,10 +286,10 @@ function todoHighlightStyle(highlight: boolean | undefined) {
             </template>
             <text v-else>{{ remindParts.body }}</text>
           </view>
-          <view style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; text-align: center">
-            <view v-for="s in data.stats" :key="s.label">
-              <view style="font-size: 20px; font-weight: 700">{{ s.value }}</view>
-              <view style="font-size: 11px; color: var(--muted)">{{ s.label }}</view>
+          <view class="home-stats-grid">
+            <view v-for="s in data.stats" :key="s.label" class="home-stat-cell" @tap="onStatTap(s.label)">
+              <view class="home-stat-value">{{ s.value }}</view>
+              <view class="home-stat-label">{{ s.label }}</view>
             </view>
           </view>
         </view>
@@ -353,6 +370,34 @@ function todoHighlightStyle(highlight: boolean | undefined) {
 .home-summary {
   flex-shrink: 0;
   margin-bottom: 10px;
+}
+
+.home-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+  text-align: center;
+}
+
+.home-stat-cell {
+  padding: 8px 4px;
+  border-radius: 10px;
+}
+
+.home-stat-cell:active {
+  background: rgba(26, 58, 108, 0.06);
+}
+
+.home-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.home-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
 .home-todo-scroll {
