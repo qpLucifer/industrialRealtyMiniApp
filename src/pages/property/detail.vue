@@ -46,6 +46,12 @@ const auditClass = computed(() => {
 })
 
 const canViewing = computed(() => detail.value?.auditKey === 'live')
+const privacyRestricted = computed(() => detail.value?.canViewPrivacy === false)
+
+const showCompanyInHeader = computed(() => {
+  const c = String(detail.value?.company || '').trim()
+  return !privacyRestricted.value && c && c !== '—'
+})
 const canChangeListingStatus = computed(() => detail.value?.auditKey === 'live')
 const listingStatusSaving = ref(false)
 
@@ -71,12 +77,26 @@ const canEditProperty = computed(() => {
 })
 
 const KV_STATUS_OMIT = new Set(['对外状态', '当前状态', '状态', '审核状态'])
+const PRIVACY_KV_LABELS = new Set(['公司名称', '业主联系人'])
 
 const kvRows = computed(() => {
   const d = detail.value?.kv
   if (!d) return []
-  return (d[TAB_KV_KEYS[tab.value]] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
+  let rows = (d[TAB_KV_KEYS[tab.value]] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
+  if (privacyRestricted.value) {
+    rows = rows.filter((r) => !PRIVACY_KV_LABELS.has(r.dt))
+  }
+  return rows
 })
+
+const listingStatusLabel = computed(() => statusChipLabel.value)
+
+/** Tab 0: rent/sale status row (editable when live). */
+const showListingStatusInBasicTab = computed(() => tab.value === 0 && !!detail.value)
+
+const showBasicTabKvCard = computed(
+  () => kvRows.value.length > 0 || (showListingStatusInBasicTab.value && !!listingStatusLabel.value),
+)
 
 const mediaImages = computed(() => (detail.value?.mediaImages ?? []).map((u) => resolveMediaUrl(u)))
 const mediaVideos = computed(() => (detail.value?.mediaVideos ?? []).map((u) => resolveMediaUrl(u)))
@@ -117,8 +137,9 @@ const headerChips = computed(() => {
   const type = propertyTypeLabel.value
   if (type) items.push({ label: type, cls: 'chip' })
   const st = statusChipLabel.value
-  if (st && st !== '—') items.push({ label: st, cls: statusChipClass.value })
-  if (d.company) items.push({ label: d.company, cls: 'chip' })
+  if (st && st !== '—' && d.auditKey !== 'live') {
+    items.push({ label: st, cls: statusChipClass.value })
+  }
   const out: { label: string; cls: string }[] = []
   for (const it of items) {
     if (out.length && out[out.length - 1].label === it.label) continue
@@ -182,21 +203,22 @@ async function load() {
   loadError.value = ''
   detail.value = null
   try {
-    const [payload, form] = await Promise.all([
-      fetchPropertyDetail(routeKey.value),
-      fetchPropertyEditForm(routeKey.value).catch(() => null),
-    ])
-    if (form) {
-      payload.kv = buildPropertyDetailKvFromForm(form, {
-        type: payload.propertyType,
-        district: payload.district,
-        company: payload.company,
-        statusTag: payload.externalStatus || payload.leaseChip,
-        priceLine: payload.priceLine,
-        submitterName: typeof form.submitterName === 'string' ? form.submitterName : undefined,
-      })
-    } else if (isLegacyPropertyDetailKv(payload.kv)) {
-      uni.showToast({ title: '表单数据加载失败，Tab 可能不完整', icon: 'none' })
+    const payload = await fetchPropertyDetail(routeKey.value)
+    const mayViewPrivacy = payload.canViewPrivacy !== false
+    if (mayViewPrivacy) {
+      const form = await fetchPropertyEditForm(routeKey.value).catch(() => null)
+      if (form) {
+        payload.kv = buildPropertyDetailKvFromForm(form, {
+          type: payload.propertyType,
+          district: payload.district,
+          company: payload.company,
+          statusTag: payload.externalStatus || payload.leaseChip,
+          priceLine: payload.priceLine,
+          submitterName: typeof form.submitterName === 'string' ? form.submitterName : undefined,
+        })
+      } else if (isLegacyPropertyDetailKv(payload.kv)) {
+        uni.showToast({ title: '表单数据加载失败，Tab 可能不完整', icon: 'none' })
+      }
     }
     detail.value = payload
   } catch (e) {
@@ -367,20 +389,9 @@ function openVideoFullscreen(url: string) {
             </view>
           </view>
 
-          <view v-if="canChangeListingStatus" class="pf-kv-card" style="margin-top: 24rpx">
-            <view class="section-title">租售状态</view>
-            <view class="pf-cell pf-cell--col">
-              <picker
-                mode="selector"
-                :range="[...LIVE_LISTING_STATUSES]"
-                :value="listingStatusIdx"
-                :disabled="listingStatusSaving"
-                @change="onListingStatusPick"
-              >
-                <view class="picker-like">{{ currentListingStatus }}</view>
-              </picker>
-              <text v-if="rentSaleHint" class="hint" style="display: block; margin-top: 12rpx">{{ rentSaleHint }}</text>
-              <text class="hint" style="display: block; margin-top: 8rpx">不可改为草稿、待审核或驳回</text>
+          <view v-if="privacyRestricted" class="pf-detail-audit-wrap">
+            <view class="prop-detail-audit-strip audit-pending">
+              <text>公司名称、业主联系人未授权查看，请联系管理员在「房源隐私」中开通。</text>
             </view>
           </view>
 
@@ -389,11 +400,11 @@ function openVideoFullscreen(url: string) {
             <text class="pf-reject-box__body">{{ detail.rejectReason }}</text>
           </view>
 
-          <view v-else-if="showAuditHintStrip" class="pf-detail-audit-wrap">
+          <!-- <view v-else-if="showAuditHintStrip" class="pf-detail-audit-wrap">
             <view class="prop-detail-audit-strip" :class="auditClass">
               <text>{{ detail.auditHint }}</text>
             </view>
-          </view>
+          </view> -->
 
           <view v-else-if="detail.auditKey === 'rejected'" class="pf-detail-audit-wrap">
             <view class="prop-detail-audit-strip audit-rejected">
@@ -414,7 +425,32 @@ function openVideoFullscreen(url: string) {
             </view>
           </view>
 
-          <view v-if="kvRows.length" class="pf-kv-card">
+          <view v-if="showBasicTabKvCard && tab === 0" class="pf-kv-card">
+            <view v-if="canChangeListingStatus" class="pf-kv-row pf-kv-row--stack">
+              <text class="pf-kv-dt">租售状态</text>
+              <picker
+                mode="selector"
+                :range="[...LIVE_LISTING_STATUSES]"
+                :value="listingStatusIdx"
+                :disabled="listingStatusSaving"
+                @change="onListingStatusPick"
+              >
+                <view class="pf-kv-dd picker-like">{{ currentListingStatus }}</view>
+              </picker>
+              <!-- <text v-if="rentSaleHint" class="hint pf-kv-row-hint">{{ rentSaleHint }}</text>
+              <text class="hint pf-kv-row-hint">不可改为草稿、待审核或驳回</text> -->
+            </view>
+            <view v-else-if="listingStatusLabel && listingStatusLabel !== '—'" class="pf-kv-row">
+              <text class="pf-kv-dt">租售状态</text>
+              <text class="pf-kv-dd">{{ listingStatusLabel }}</text>
+            </view>
+            <view v-for="(row, i) in kvRows" :key="'kv-' + i" class="pf-kv-row">
+              <text class="pf-kv-dt">{{ row.dt }}</text>
+              <text class="pf-kv-dd">{{ row.dd }}</text>
+            </view>
+          </view>
+
+          <view v-else-if="kvRows.length" class="pf-kv-card">
             <view v-for="(row, i) in kvRows" :key="i" class="pf-kv-row">
               <text class="pf-kv-dt">{{ row.dt }}</text>
               <text class="pf-kv-dd">{{ row.dd }}</text>
@@ -477,7 +513,12 @@ function openVideoFullscreen(url: string) {
           </view>
 
           <text
-            v-if="!kvRows.length && tab !== 1 && !(tab === 2 && showMediaTab)"
+            v-if="tab === 0 && !showBasicTabKvCard"
+            class="hint pf-detail-empty"
+            >暂无数据</text
+          >
+          <text
+            v-else-if="!kvRows.length && tab !== 0 && tab !== 1 && !(tab === 2 && showMediaTab)"
             class="hint pf-detail-empty"
             >暂无数据</text
           >
@@ -506,3 +547,18 @@ function openVideoFullscreen(url: string) {
     </view>
   </view>
 </template>
+
+<style scoped>
+.pf-kv-row--stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+.pf-kv-row--stack .pf-kv-dd {
+  width: 100%;
+}
+.pf-kv-row-hint {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+}
+</style>

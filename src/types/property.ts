@@ -31,6 +31,8 @@ export interface PropertyDetailKv {
 
 export interface PropertyDetailPayload {
   id: string
+  /** Whether mini staff may see privacy fields on this property */
+  canViewPrivacy?: boolean
   auditKey: 'live' | 'pending' | 'draft' | 'rejected'
   auditBadge: string
   auditHint: string

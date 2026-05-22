@@ -2,7 +2,7 @@ import type { PropertyDetailKv, PropertyEditForm, PropertyKvRow } from '@/types/
 
 /** dt labels hidden per tab — shown in detail header / hero / map */
 const TAB_OMIT: Partial<Record<keyof PropertyDetailKv, string[]>> = {
-  s1: ['挂牌标题', '公司名称', '对外状态', '租售类型'],
+  s1: ['挂牌标题', '对外状态', '租售类型'],
   s2: ['详细地址', '纬度', '经度'],
   s3: ['图片数量', '视频数量'],
   s8: ['租金挂牌', '租金挂牌（元/㎡·月）'],
@@ -58,6 +58,7 @@ export function buildPropertyDetailKvFromForm(
 
   const s1: PropertyKvRow[] = [
     { dt: '房源类型', dd: typesJoined !== '—' ? typesJoined : rowOrDash(meta.type) },
+    { dt: '公司名称', dd: rowOrDash(form.companyName || meta.company) },
     { dt: '业主联系人', dd: rowOrDash(form.ownerContact) },
     { dt: '风险标签', dd: rowOrDash(form.riskTag) },
   ]
