@@ -78,10 +78,16 @@ function filterMockCustomerList(query: Record<string, string>) {
   const scope = (query.scope || '').trim()
   if (scope === 'mine') rows = rows.filter((c) => c.scope === '私有')
   else if (scope === 'public') rows = rows.filter((c) => c.scope === '公有')
+  const regionId = Number(query.districtRegionId)
+  if (Number.isFinite(regionId) && regionId > 0) {
+    rows = rows.filter((c) => c.districtRegionId === regionId)
+  }
   const q = (query.q || '').trim().toLowerCase()
   if (q) {
     rows = rows.filter((c) =>
-      [c.company, c.contactName, c.titleLine, c.id].some((s) => String(s).toLowerCase().includes(q)),
+      [c.company, c.contactName, c.titleLine, c.id, c.district].some((s) =>
+        String(s || '').toLowerCase().includes(q),
+      ),
     )
   }
   return rows

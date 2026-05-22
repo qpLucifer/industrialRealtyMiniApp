@@ -86,6 +86,7 @@ function goFollow() {
               <text class="chip">{{ d.dealStatus }}</text>
             </view>
             <view class="cust-meta">电话 {{ d.phone }}</view>
+            <view v-if="d.district" class="cust-meta">所属区域 {{ d.district }}</view>
             <view v-if="d.ownerName" class="cust-meta">负责人 {{ d.ownerName }}</view>
             <view class="cust-meta">最近跟进 {{ formatBeijingDisplay(d.lastFollow) || d.lastFollow || '—' }}</view>
           </view>
@@ -94,7 +95,9 @@ function goFollow() {
           <view class="card">
             <view class="cust-block-label">需求摘要</view>
             <text class="cust-block-text">{{ d.demandSummary || '—' }}</text>
-            <view class="cust-block-label" style="margin-top: 16rpx">地址 / 区域</view>
+            <view v-if="d.district" class="cust-block-label" style="margin-top: 16rpx">所属区域</view>
+            <text v-if="d.district" class="cust-block-text">{{ d.district }}</text>
+            <view class="cust-block-label" style="margin-top: 16rpx">地址提示</view>
             <text class="cust-block-text">{{ d.addressHint || '—' }}</text>
           </view>
 

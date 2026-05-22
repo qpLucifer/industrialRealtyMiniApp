@@ -6,7 +6,11 @@ import type {
   CustomerListItem,
 } from '@/types/customer'
 
-export function fetchCustomerList(query?: { q?: string; scope?: 'mine' | 'public' | '' }) {
+export function fetchCustomerList(query?: {
+  q?: string
+  scope?: 'mine' | 'public' | ''
+  districtRegionId?: number | null
+}) {
   return get<{ list: CustomerListItem[] }>('/api/customer/list', query)
 }
 

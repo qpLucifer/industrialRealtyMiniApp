@@ -16,6 +16,8 @@ export interface CustomerListItem {
   nextReminder: string
   ownerName: string
   scope: CustomerScope
+  district?: string
+  districtRegionId?: number | null
 }
 
 export interface CustomerDetail {
@@ -30,6 +32,8 @@ export interface CustomerDetail {
   dealStatus: string
   demandSummary: string
   addressHint: string
+  district?: string
+  districtRegionId?: number | null
   ownerName: string
   ownerStaffIds?: string[]
   scope: CustomerScope
@@ -56,6 +60,8 @@ export interface CustomerFormPayload {
   dealStatus: string
   demandSummary?: string
   addressHint?: string
+  district?: string
+  districtRegionId?: number | null
   scope: CustomerScope
   ownerName?: string
   /** Public pool: optional assignee; private pool: omit (server uses current staff). */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
@@ -7,7 +7,8 @@ import { fetchCustomerDetail, updateCustomer } from '@/api/customer'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
-import { isPhone11Cn } from '@/utils/propertyPublish'
+import { fetchRegionDefs } from '@/utils/request'
+import { isPhone11Cn, pickerIdx, type PickerChange } from '@/utils/propertyPublish'
 
 const id = ref('')
 const saving = ref(false)
@@ -24,9 +25,14 @@ const form = reactive({
   grade: 'B 类' as CustomerGrade,
   dealStatus: '洽谈中' as CustomerDealStatus,
   demandSummary: '',
+  district: '',
+  districtRegionId: undefined as number | undefined,
   addressHint: '',
   scope: '私有' as CustomerScope,
 })
+
+const regionDefs = ref<{ id: number; name: string }[]>([])
+const regionNames = computed(() => regionDefs.value.map((r) => r.name))
 
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 const deals: CustomerDealStatus[] = ['洽谈中', '已成交', '搁置']
@@ -36,10 +42,12 @@ onLoad(async (q) => {
   if (q?.id) id.value = String(q.id)
   if (!id.value) return
   try {
-    const [d, staff] = await Promise.all([
+    const [d, staff, regions] = await Promise.all([
       fetchCustomerDetail(id.value),
       fetchStaffPeers().catch(() => ({ list: [], selfId: '', selfName: '' })),
+      fetchRegionDefs().catch(() => ({ list: [] as { id: number; name: string }[] })),
     ])
+    regionDefs.value = regions.list ?? []
     selfId.value = staff.selfId
     selfName.value = staff.selfName
     staffOptions.value = staff.list
@@ -55,6 +63,11 @@ onLoad(async (q) => {
     form.grade = (d.grade as CustomerGrade) || 'B 类'
     form.dealStatus = (d.dealStatus as CustomerDealStatus) || '洽谈中'
     form.demandSummary = d.demandSummary
+    form.district = d.district || ''
+    form.districtRegionId = d.districtRegionId ?? undefined
+    if (form.districtRegionId && !regionDefs.value.some((r) => r.id === form.districtRegionId)) {
+      regionDefs.value = [...regionDefs.value, { id: form.districtRegionId, name: form.district }]
+    }
     form.addressHint = d.addressHint
     form.scope = d.scope
     publicOwnerStaffIds.value = d.scope === '公有' && d.ownerStaffIds?.length ? [...d.ownerStaffIds] : []
@@ -75,6 +88,15 @@ function onDealPick(e: { detail: { value: string | number } }) {
 function onScopePick(e: { detail: { value: string | number } }) {
   form.scope = scopes[Number(e.detail.value)] ?? '私有'
   if (form.scope === '私有') publicOwnerStaffIds.value = []
+}
+
+function pickDistrict(e: PickerChange) {
+  const i = Number(e.detail.value)
+  const row = regionDefs.value[i]
+  if (row) {
+    form.district = row.name
+    form.districtRegionId = row.id
+  }
 }
 
 function ownerPayload(): { ownerStaffIds?: string[] } {
@@ -108,6 +130,8 @@ async function submit() {
       grade: form.grade,
       dealStatus: form.dealStatus,
       demandSummary: form.demandSummary.trim(),
+      district: form.district.trim(),
+      districtRegionId: form.districtRegionId,
       addressHint: form.addressHint.trim(),
       scope: form.scope,
       ...ownerPayload(),
@@ -209,13 +233,29 @@ function back() {
               hint="公海客户可不指定；可多选多名员工"
               :min-count="0"
             />
+            <picker
+              v-if="regionNames.length"
+              mode="selector"
+              :range="regionNames"
+              :value="pickerIdx(regionNames, form.district || '')"
+              @change="pickDistrict"
+            >
+              <view class="form-group">
+                <text class="label">所属区域</text>
+                <view class="picker-like">{{ form.district || '请选择区县' }}</view>
+              </view>
+            </picker>
+            <view v-else class="form-group">
+              <text class="label">所属区域</text>
+              <view class="form-field-readonly">暂无负责区域</view>
+            </view>
             <view class="form-group">
-              <text class="label">地址 / 区域</text>
+              <text class="label">地址提示</text>
               <input
                 v-model="form.addressHint"
                 type="text"
                 class="field-input"
-                placeholder="意向区域、地址提示"
+                placeholder="意向地段、路口等补充"
                 :cursor-spacing="120"
               />
             </view>

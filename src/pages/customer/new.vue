@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
@@ -8,7 +8,8 @@ import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { markCustomerListStale } from '@/utils/customerNav'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
-import { isPhone11Cn } from '@/utils/propertyPublish'
+import { fetchRegionDefs } from '@/utils/request'
+import { isPhone11Cn, pickerIdx, type PickerChange } from '@/utils/propertyPublish'
 
 const saving = ref(false)
 const selfId = ref('')
@@ -24,9 +25,14 @@ const form = reactive({
   grade: 'B 类' as CustomerGrade,
   dealStatus: '洽谈中' as CustomerDealStatus,
   demandSummary: '',
+  district: '',
+  districtRegionId: undefined as number | undefined,
   addressHint: '',
   scope: '私有' as CustomerScope,
 })
+
+const regionDefs = ref<{ id: number; name: string }[]>([])
+const regionNames = computed(() => regionDefs.value.map((r) => r.name))
 
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 const deals: CustomerDealStatus[] = ['洽谈中', '已成交', '搁置']
@@ -34,14 +40,27 @@ const scopes: CustomerScope[] = ['私有', '公有']
 
 onLoad(async () => {
   try {
-    const staff = await fetchStaffPeers()
+    const [staff, regions] = await Promise.all([
+      fetchStaffPeers(),
+      fetchRegionDefs().catch(() => ({ list: [] as { id: number; name: string }[] })),
+    ])
     selfId.value = staff.selfId
     selfName.value = staff.selfName
     staffOptions.value = staff.list
+    regionDefs.value = regions.list ?? []
   } catch {
     /* optional */
   }
 })
+
+function pickDistrict(e: PickerChange) {
+  const i = Number(e.detail.value)
+  const row = regionDefs.value[i]
+  if (row) {
+    form.district = row.name
+    form.districtRegionId = row.id
+  }
+}
 
 function onGradePick(e: { detail: { value: string | number } }) {
   form.grade = grades[Number(e.detail.value)] ?? 'B 类'
@@ -87,6 +106,8 @@ async function submit() {
       grade: form.grade,
       dealStatus: form.dealStatus,
       demandSummary: form.demandSummary.trim(),
+      district: form.district.trim(),
+      districtRegionId: form.districtRegionId,
       addressHint: form.addressHint.trim(),
       scope: form.scope,
       ...ownerPayload(),
@@ -193,13 +214,29 @@ function back() {
               hint="公海客户可不指定；可多选多名员工"
               :min-count="0"
             />
+            <picker
+              v-if="regionNames.length"
+              mode="selector"
+              :range="regionNames"
+              :value="pickerIdx(regionNames, form.district || '')"
+              @change="pickDistrict"
+            >
+              <view class="form-group">
+                <text class="label">所属区域</text>
+                <view class="picker-like">{{ form.district || '请选择区县' }}</view>
+              </view>
+            </picker>
+            <view v-else class="form-group">
+              <text class="label">所属区域</text>
+              <view class="form-field-readonly">暂无负责区域，请联系管理员配置</view>
+            </view>
             <view class="form-group">
-              <text class="label">地址 / 区域</text>
+              <text class="label">地址提示</text>
               <input
                 v-model="form.addressHint"
                 type="text"
                 class="field-input"
-                placeholder="意向区域"
+                placeholder="意向地段、路口等补充"
                 :cursor-spacing="120"
               />
             </view>

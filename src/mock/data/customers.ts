@@ -18,6 +18,8 @@ export const mockCustomerList: CustomerListItem[] = [
     nextReminder: '2026-05-13 10:00',
     ownerName: '张晨',
     scope: '私有',
+    district: '黄埔区',
+    districtRegionId: 1,
   },
   {
     id: 'wangli',
@@ -33,6 +35,8 @@ export const mockCustomerList: CustomerListItem[] = [
     nextReminder: '2026-05-16 14:00',
     ownerName: '王莉',
     scope: '私有',
+    district: '花都区',
+    districtRegionId: 2,
   },
   {
     id: 'linuo',
@@ -48,6 +52,8 @@ export const mockCustomerList: CustomerListItem[] = [
     nextReminder: '2026-05-20 09:30',
     ownerName: '公海',
     scope: '公有',
+    district: '南沙区',
+    districtRegionId: 3,
   },
 ]
 
@@ -65,6 +71,8 @@ function buildDetail(id: string): CustomerDetail {
     grade: base.grade,
     dealStatus: base.dealStatus,
     demandSummary: isZhang ? '3000–5000㎡ 丙二类厂房，黄埔/增城' : '2000㎡ 左右仓库，台州近高速',
+    district: base.district || '',
+    districtRegionId: base.districtRegionId ?? null,
     addressHint: isZhang ? '黄埔 / 增城交界' : '台州 · 近高速口',
     ownerName: base.ownerName,
     scope: base.scope,
@@ -76,7 +84,8 @@ function buildDetail(id: string): CustomerDetail {
     reminderTone: 'warn',
     kv: [
       { dt: '需求摘要', dd: isZhang ? '3000–5000㎡ 丙二类' : '2000㎡ 仓库' },
-      { dt: '地址 / 区域', dd: isZhang ? '黄埔 / 增城' : '台州' },
+      { dt: '所属区域', dd: base.district || '—' },
+      { dt: '地址提示', dd: isZhang ? '黄埔 / 增城交界' : '台州 · 近高速口' },
       { dt: '成交状态', dd: '洽谈中' },
     ],
     timeline: isZhang
