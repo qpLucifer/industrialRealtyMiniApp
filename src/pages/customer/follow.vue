@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useKeyboardScrollPad } from '@/composables/useKeyboardScrollPad'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import DateTimeField from '@/components/DateTimeField.vue'
@@ -18,11 +17,6 @@ const followNextAt = ref('')
 const saving = ref(false)
 
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
-
-const { keyboardPadPx } = useKeyboardScrollPad()
-const keyboardPadStyle = computed(() =>
-  keyboardPadPx.value > 0 ? { paddingBottom: `${keyboardPadPx.value + 16}px` } : {},
-)
 
 onLoad((q) => {
   if (q?.id) id.value = String(q.id)
@@ -75,12 +69,21 @@ async function onSaveFollow() {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="写跟进" @back="back" />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll" :enable-flex="true">
-        <view class="page-scroll__inner page-scroll__inner--keyboard-pad" :style="keyboardPadStyle">
-          <view class="card">
+      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll customer-form-scroll">
+        <view class="page-scroll__inner">
+          <view class="card customer-form">
             <view class="form-group">
               <text class="label">跟进内容<text class="req">*</text></text>
-              <textarea :adjust-position="false" :cursor-spacing="80" :auto-height="false" v-model="followNote" placeholder="事实描述、客户原话、下一步" />
+              <textarea
+                v-model="followNote"
+                class="field-textarea"
+                placeholder="事实描述、客户原话、下一步"
+                :cursor-spacing="160"
+                :show-confirm-bar="true"
+                :adjust-position="true"
+                :hold-keyboard="true"
+                :auto-height="false"
+              />
             </view>
             <DateTimeField v-model="followOccurredAt" label="跟进时间" placeholder="选择跟进时间" />
             <view class="form-group">
@@ -99,3 +102,15 @@ async function onSaveFollow() {
     </view>
   </view>
 </template>
+
+<style scoped>
+.customer-form-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 0;
+}
+
+.page-scroll__inner {
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+</style>
