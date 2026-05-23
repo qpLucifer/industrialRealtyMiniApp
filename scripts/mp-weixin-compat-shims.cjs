@@ -106,6 +106,7 @@ writeRemovedComponentStub('PropertyMediaHero')
 writeRemovedComponentStub('PropertyMediaEditor')
 writeRemovedComponentStub('PfFieldInput')
 writeRemovedComponentStub('PfFieldTextarea')
+writeRemovedComponentStub('DateTimeField')
 
 function scrubStaleComponentRefs(dir) {
   if (!fs.existsSync(dir)) return 0
@@ -123,7 +124,7 @@ function scrubStaleComponentRefs(dir) {
     } catch {
       continue
     }
-    if (!/PropertyMedia|property-media-|PfField/i.test(raw)) continue
+    if (!/PropertyMedia|property-media-|PfField|DateTimeField|date-time-field/i.test(raw)) continue
     try {
       const j = JSON.parse(raw)
       if (!j.usingComponents || typeof j.usingComponents !== 'object') continue
@@ -134,7 +135,10 @@ function scrubStaleComponentRefs(dir) {
           /PropertyMedia|property-media-/i.test(k) ||
           /PropertyMedia/i.test(val) ||
           /PfField/i.test(k) ||
-          /PfField/i.test(val)
+          /PfField/i.test(val) ||
+          /DateTimeField/i.test(k) ||
+          /DateTimeField/i.test(val) ||
+          /date-time-field/i.test(k)
         ) {
           delete j.usingComponents[k]
           changed = true
@@ -175,6 +179,6 @@ if (fs.existsSync(projCfgPath)) {
 }
 
 console.log(
-  '[mp-weixin-compat-shims] wrote request shims + removed-component stubs (PfField*, PropertyMedia*)',
+  '[mp-weixin-compat-shims] wrote request shims + removed-component stubs (PfField*, PropertyMedia*, DateTimeField)',
 )
 

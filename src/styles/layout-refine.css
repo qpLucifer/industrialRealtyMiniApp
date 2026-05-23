@@ -510,8 +510,7 @@ button[plain]::after {
 .form-group input,
 .form-group textarea,
 .form-group :deep(textarea),
-.form-group :deep(input),
-.picker-value {
+.form-group :deep(input) {
   width: 100%;
   box-sizing: border-box;
   min-height: 88rpx;
@@ -520,6 +519,22 @@ button[plain]::after {
   background: #f8fafc;
   border: 1rpx solid #e2e8f0;
   border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+}
+
+/* Same chrome as picker-like — use inside picker slots on MP */
+.picker-value {
+  width: 100%;
+  padding: 20rpx 24rpx;
+  min-height: 88rpx;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  background: #f8fafc;
   font-size: 28rpx;
   color: #0f172a;
 }

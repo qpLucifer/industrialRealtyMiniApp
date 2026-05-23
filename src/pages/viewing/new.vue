@@ -2,8 +2,8 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
-import DateTimeField from '@/components/DateTimeField.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
+import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerList } from '@/api/customer'
 import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
@@ -15,8 +15,10 @@ import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 import { defaultViewingSlotBeijing, formatBeijingDisplay } from '@/utils/beijingTime'
 
-const start = ref('')
-const end = ref('')
+const startDate = ref('')
+const startTime = ref('')
+const endDate = ref('')
+const endTime = ref('')
 const propertyId = ref('')
 const propLocked = ref(false)
 const propertyTitle = ref('')
@@ -52,10 +54,42 @@ const propertyLabel = computed(() => {
   return p ? `${p.code || p.id} · ${p.title}` : '请选择房源'
 })
 
+function applyStartEndStrings(startStr: string, endStr: string) {
+  const s = splitYmdHm(startStr, '14:00')
+  const e = splitYmdHm(endStr, '15:30')
+  startDate.value = s.date
+  startTime.value = s.time
+  endDate.value = e.date
+  endTime.value = e.time
+}
+
 function defaultSlot() {
   const { start: s, end: e } = defaultViewingSlotBeijing()
-  start.value = s
-  end.value = e
+  applyStartEndStrings(s, e)
+}
+
+function startPayload() {
+  return joinYmdHm(startDate.value, startTime.value)
+}
+
+function endPayload() {
+  return joinYmdHm(endDate.value, endTime.value)
+}
+
+function onStartDateChange(ev: { detail: { value: string } }) {
+  startDate.value = ev.detail.value
+}
+
+function onStartTimeChange(ev: { detail: { value: string } }) {
+  startTime.value = ev.detail.value
+}
+
+function onEndDateChange(ev: { detail: { value: string } }) {
+  endDate.value = ev.detail.value
+}
+
+function onEndTimeChange(ev: { detail: { value: string } }) {
+  endTime.value = ev.detail.value
 }
 
 function syncPickersFromCode() {
@@ -106,8 +140,7 @@ onLoad(async (q) => {
     if (viewingId.value) {
       pageTitle.value = '编辑带看'
       const v = await fetchViewingDetail(viewingId.value)
-      start.value = v.start
-      end.value = v.end
+      applyStartEndStrings(v.start, v.end)
       grade.value = v.score || 'B'
       customerSlug.value = v.customerSlug || ''
       propertyId.value = v.propertyId || v.propertyRef || v.miniPropCode || ''
@@ -156,8 +189,8 @@ async function submit() {
     markListStale('viewing-list')
     markWorkbenchStale()
     const payload = {
-      start: start.value,
-      end: end.value,
+      start: startPayload(),
+      end: endPayload(),
       propertyId: propertyId.value,
       propertyRef: properties.value.find((p) => p.id === propertyId.value)?.code,
       prop: properties.value.find((p) => p.id === propertyId.value)?.code,
@@ -190,7 +223,7 @@ function back() {
       <NavIconBar :title="pageTitle" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-          <view class="card">
+          <view class="card customer-form">
             <view class="form-group">
               <text class="label">房源</text>
               <view v-if="propLocked" class="form-field-readonly">{{ propertyLabel }}</view>
@@ -202,7 +235,7 @@ function back() {
                 :value="propertyIdx"
                 @change="onPropertyPick"
               >
-                <view class="picker-value">{{ propertyLabel }}</view>
+                <view class="picker-like">{{ propertyLabel }}</view>
               </picker>
             </view>
             <view class="form-group">
@@ -213,11 +246,33 @@ function back() {
                 :value="customerIdx"
                 @change="onCustomerPick"
               >
-                <view class="picker-value">{{ customerLabel }}</view>
+                <view class="picker-like">{{ customerLabel }}</view>
               </picker>
             </view>
-            <DateTimeField v-model="start" label="开始时间" placeholder="选择带看开始时间" />
-            <DateTimeField v-model="end" label="结束时间" placeholder="选择带看结束时间" />
+            <view class="form-group">
+              <text class="label">开始日期</text>
+              <picker mode="date" :value="startDate" @change="onStartDateChange">
+                <view class="picker-like">{{ startDate }}</view>
+              </picker>
+            </view>
+            <view class="form-group">
+              <text class="label">开始时刻</text>
+              <picker mode="time" :value="startTime" @change="onStartTimeChange">
+                <view class="picker-like">{{ startTime }}</view>
+              </picker>
+            </view>
+            <view class="form-group">
+              <text class="label">结束日期</text>
+              <picker mode="date" :value="endDate" @change="onEndDateChange">
+                <view class="picker-like">{{ endDate }}</view>
+              </picker>
+            </view>
+            <view class="form-group">
+              <text class="label">结束时刻</text>
+              <picker mode="time" :value="endTime" @change="onEndTimeChange">
+                <view class="picker-like">{{ endTime }}</view>
+              </picker>
+            </view>
             <StaffMultiPickField
               v-model="selectedStaffIds"
               :options="staffOptions"

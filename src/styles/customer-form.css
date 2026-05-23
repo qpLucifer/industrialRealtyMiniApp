@@ -48,6 +48,21 @@
   width: 100%;
 }
 
+/* WeChat native date/time picker — one per form-group (Android-safe) */
+.customer-form .form-group picker,
+.page-scroll .form-group picker {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-scroll .form-group .picker-like,
+.page-scroll .form-group .picker-value,
+.customer-form .form-group .picker-like {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .customer-form .form-field-readonly {
   padding: 20rpx 24rpx;
   min-height: 88rpx;

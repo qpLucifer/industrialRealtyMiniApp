@@ -64,7 +64,7 @@ function confirmSheet() {
 <template>
   <view class="form-group staff-multi-field">
     <text v-if="label" class="label">{{ label }}</text>
-    <view class="picker-value" @click="openSheet">{{ displayText }}</view>
+    <view class="picker-like" @click="openSheet">{{ displayText }}</view>
     <text v-if="hint" class="hint staff-multi-field__hint">{{ hint }}</text>
 
     <view v-if="visible" class="modal-overlay show" @click.self="closeSheet">

@@ -13,7 +13,7 @@
     "dev:mp-qq": "uni -p mp-qq",
     "dev:mp-toutiao": "uni -p mp-toutiao",
     "dev:mp-harmony": "uni -p mp-harmony",
-    "predev:mp-weixin": "node scripts/render-tab-icons-svg.cjs",
+    "predev:mp-weixin": "node scripts/render-tab-icons-svg.cjs && node scripts/clean-mp-weixin-dist.cjs",
     "dev:mp-weixin": "uni -p mp-weixin",
     "dev:mp-xhs": "uni -p mp-xhs",
     "dev:quickapp-webview": "uni -p quickapp-webview",

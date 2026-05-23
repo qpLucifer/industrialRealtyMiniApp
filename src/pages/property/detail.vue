@@ -389,11 +389,11 @@ function openVideoFullscreen(url: string) {
             </view>
           </view>
 
-          <view v-if="privacyRestricted" class="pf-detail-audit-wrap">
+          <!-- <view v-if="privacyRestricted" class="pf-detail-audit-wrap">
             <view class="prop-detail-audit-strip audit-pending">
               <text>公司名称、业主联系人未授权查看，请联系管理员在「房源隐私」中开通。</text>
             </view>
-          </view>
+          </view> -->
 
           <view v-if="detail.auditKey === 'rejected' && detail.rejectReason" class="pf-reject-box">
             <text class="pf-reject-box__title">驳回原因</text>
