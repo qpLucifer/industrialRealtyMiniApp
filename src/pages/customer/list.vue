@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchCustomerList, type CustomerListReminderFilter } from '@/api/customer'
+import { tabBrandTitle } from '@/constants/brand'
 import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
 import type { CustomerDealStatus, CustomerGrade, CustomerListItem } from '@/types/customer'
@@ -205,7 +206,7 @@ function goVideoFaq() {
     <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
-          <view class="tb-title">客户池</view>
+          <view class="tb-title">{{ tabBrandTitle('客户池') }}</view>
           <view class="sub">点选等级与状态 · 筛选里可选区域与提醒</view>
         </view>
       </view>

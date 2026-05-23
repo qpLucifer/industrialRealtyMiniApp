@@ -10,6 +10,7 @@ import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
 import { pickActivePopupAnnouncements } from '@/utils/announcement'
+import { tabBrandTitle } from '@/constants/brand'
 import { setTabNavIntent } from '@/utils/tabNavIntent'
 
 function asRecord(v: unknown): Record<string, unknown> | null {
@@ -253,7 +254,7 @@ function todoHighlightStyle(highlight: boolean | undefined) {
       <view class="top-bar" :style="topBarInsetStyle">
         <view class="top-bar__home-row">
           <view class="top-bar__titles">
-            <view class="h1-title">工作台</view>
+            <view class="h1-title">{{ tabBrandTitle('工作台') }}</view>
             <view class="sub">{{ data?.regionLine }}</view>
           </view>
           <view class="top-bar__home-icon" @click="goAnnounce">

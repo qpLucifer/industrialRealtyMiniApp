@@ -12,6 +12,7 @@ import {
 import type { PropertyListItem } from '@/types/property'
 import { fetchRegionDefs, resolveMediaUrl } from '@/utils/request'
 import { consumeListStale } from '@/utils/listStale'
+import { tabBrandTitle } from '@/constants/brand'
 import { consumeTabNavIntent } from '@/utils/tabNavIntent'
 
 const topBarInsetStyle = useTopBarInsetStyle()
@@ -192,7 +193,7 @@ function applyFilter() {
     <view class="page-frame screen active screen--tab">
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
-          <view class="tb-title">房源库</view>
+          <view class="tb-title">{{ tabBrandTitle('房源库') }}</view>
           <view class="sub">品类全 · 已按区域隔离</view>
         </view>
       </view>
