@@ -7,8 +7,16 @@ import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
 import type { CustomerDealStatus, CustomerGrade, CustomerListItem } from '@/types/customer'
 
-const GRADE_OPTIONS = ['全部等级', 'A 类', 'B 类', 'C 类'] as const
-const DEAL_OPTIONS = ['全部状态', '洽谈中', '已成交', '搁置'] as const
+const GRADE_CHIPS: { value: '' | CustomerGrade; label: string; chipClass: string }[] = [
+  { value: '', label: '全部', chipClass: '' },
+  { value: 'A 类', label: 'A 类', chipClass: 'grade-a' },
+  { value: 'B 类', label: 'B 类', chipClass: 'grade-b' },
+  { value: 'C 类', label: 'C 类', chipClass: 'grade-c' },
+]
+const DEAL_CHIPS: { value: CustomerDealStatus; label: string }[] = [
+  { value: '洽谈中', label: '洽谈' },
+  { value: '已成交', label: '已成交' },
+]
 const REMINDER_OPTIONS = ['全部提醒', '有待提醒', '已到期', '近7天待跟'] as const
 const REMINDER_VALUES: ('' | CustomerListReminderFilter)[] = ['', 'due', 'overdue', 'week']
 
@@ -22,7 +30,7 @@ const filterOpen = ref(false)
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
 
-const filterDraft = ref({ regionIdx: 0, gradeIdx: 0, dealIdx: 0, reminderIdx: 0 })
+const filterDraft = ref({ regionIdx: 0, reminderIdx: 0 })
 const filterApplied = ref({
   districtRegionId: null as number | null,
   grade: '' as '' | CustomerGrade,
@@ -38,6 +46,10 @@ const hasActiveFilters = computed(
     !!filterApplied.value.reminder,
 )
 
+const hasModalFilters = computed(
+  () => filterApplied.value.districtRegionId != null || !!filterApplied.value.reminder,
+)
+
 const filterSummary = computed(() => {
   const parts: string[] = []
   if (filterApplied.value.districtRegionId != null) {
@@ -45,7 +57,10 @@ const filterSummary = computed(() => {
     parts.push(name ? `区域：${name}` : '区域已选')
   }
   if (filterApplied.value.grade) parts.push(filterApplied.value.grade)
-  if (filterApplied.value.dealStatus) parts.push(filterApplied.value.dealStatus)
+  if (filterApplied.value.dealStatus) {
+    const dealLabel = DEAL_CHIPS.find((d) => d.value === filterApplied.value.dealStatus)?.label
+    parts.push(dealLabel || filterApplied.value.dealStatus)
+  }
   if (filterApplied.value.reminder === 'due') parts.push('有待提醒')
   else if (filterApplied.value.reminder === 'overdue') parts.push('已到期')
   else if (filterApplied.value.reminder === 'week') parts.push('近7天待跟')
@@ -112,18 +127,22 @@ function onSeg(i: number) {
   void reload()
 }
 
+function onGradeChip(value: '' | CustomerGrade) {
+  filterApplied.value.grade = filterApplied.value.grade === value ? '' : value
+  void reload()
+}
+
+function onDealChip(value: CustomerDealStatus) {
+  filterApplied.value.dealStatus = filterApplied.value.dealStatus === value ? '' : value
+  void reload()
+}
+
 function syncFilterDraftFromApplied() {
   filterDraft.value.regionIdx = 0
   if (filterApplied.value.districtRegionId != null) {
     const i = regionDefs.value.findIndex((r) => r.id === filterApplied.value.districtRegionId)
     filterDraft.value.regionIdx = i >= 0 ? i + 1 : 0
   }
-  filterDraft.value.gradeIdx = filterApplied.value.grade
-    ? Math.max(0, GRADE_OPTIONS.indexOf(filterApplied.value.grade as (typeof GRADE_OPTIONS)[number]))
-    : 0
-  filterDraft.value.dealIdx = filterApplied.value.dealStatus
-    ? Math.max(0, DEAL_OPTIONS.indexOf(filterApplied.value.dealStatus as (typeof DEAL_OPTIONS)[number]))
-    : 0
   const ri = REMINDER_VALUES.indexOf(filterApplied.value.reminder)
   filterDraft.value.reminderIdx = ri >= 0 ? ri : 0
 }
@@ -137,21 +156,21 @@ function onFilterRegionPick(e: { detail: { value: string | number } }) {
   filterDraft.value.regionIdx = Number(e.detail.value)
 }
 
-function onFilterGradePick(e: { detail: { value: string | number } }) {
-  filterDraft.value.gradeIdx = Number(e.detail.value)
-}
-
-function onFilterDealPick(e: { detail: { value: string | number } }) {
-  filterDraft.value.dealIdx = Number(e.detail.value)
-}
-
 function onFilterReminderPick(e: { detail: { value: string | number } }) {
   filterDraft.value.reminderIdx = Number(e.detail.value)
 }
 
 function resetFilter() {
-  filterDraft.value = { regionIdx: 0, gradeIdx: 0, dealIdx: 0, reminderIdx: 0 }
+  filterDraft.value = { regionIdx: 0, reminderIdx: 0 }
   filterApplied.value = { districtRegionId: null, grade: '', dealStatus: '', reminder: '' }
+  filterOpen.value = false
+  void reload()
+}
+
+function resetModalFilters() {
+  filterApplied.value.districtRegionId = null
+  filterApplied.value.reminder = ''
+  filterDraft.value = { regionIdx: 0, reminderIdx: 0 }
   filterOpen.value = false
   void reload()
 }
@@ -163,10 +182,6 @@ function applyFilter() {
     const row = regionDefs.value[filterDraft.value.regionIdx - 1]
     filterApplied.value.districtRegionId = row?.id ?? null
   }
-  filterApplied.value.grade =
-    filterDraft.value.gradeIdx > 0 ? (GRADE_OPTIONS[filterDraft.value.gradeIdx] as CustomerGrade) : ''
-  filterApplied.value.dealStatus =
-    filterDraft.value.dealIdx > 0 ? (DEAL_OPTIONS[filterDraft.value.dealIdx] as CustomerDealStatus) : ''
   filterApplied.value.reminder = REMINDER_VALUES[filterDraft.value.reminderIdx] ?? ''
   filterOpen.value = false
   void reload()
@@ -191,7 +206,7 @@ function goVideoFaq() {
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">客户池</view>
-          <view class="sub">ABC 分级 · 成交状态 · 下次提醒</view>
+          <view class="sub">点选等级与状态 · 筛选里可选区域与提醒</view>
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
@@ -199,6 +214,26 @@ function goVideoFaq() {
           <view class="segmented">
             <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">我的私有</button>
             <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">公司公有</button>
+          </view>
+          <view class="chip-row cust-quick-chips">
+            <text
+              v-for="g in GRADE_CHIPS"
+              :key="'g-' + (g.value || 'all')"
+              class="chip"
+              :class="[g.chipClass, { on: filterApplied.grade === g.value }]"
+              @tap="onGradeChip(g.value)"
+            >
+              {{ g.label }}
+            </text>
+            <text
+              v-for="d in DEAL_CHIPS"
+              :key="'d-' + d.value"
+              class="chip"
+              :class="{ on: filterApplied.dealStatus === d.value }"
+              @tap="onDealChip(d.value)"
+            >
+              {{ d.label }}
+            </text>
           </view>
           <view class="search-bar search-bar--suffix">
             <input
@@ -209,7 +244,7 @@ function goVideoFaq() {
               @confirm="reload"
             />
             <view class="search-bar__suffix" @click="openFilter">
-              <view class="ic-filter" :class="{ 'ic-filter--on': hasActiveFilters }" />
+              <view class="ic-filter" :class="{ 'ic-filter--on': hasModalFilters }" />
             </view>
           </view>
           <view v-if="hasActiveFilters" class="filter-active-bar">
@@ -289,18 +324,6 @@ function goVideoFaq() {
             <view class="picker-like">{{ regionNames[filterDraft.regionIdx] || '全部区域' }}</view>
           </picker>
         </view>
-        <view class="section-title">客户等级</view>
-        <view class="form-group">
-          <picker mode="selector" :range="GRADE_OPTIONS" :value="filterDraft.gradeIdx" @change="onFilterGradePick">
-            <view class="picker-like">{{ GRADE_OPTIONS[filterDraft.gradeIdx] }}</view>
-          </picker>
-        </view>
-        <view class="section-title">成交状态</view>
-        <view class="form-group">
-          <picker mode="selector" :range="DEAL_OPTIONS" :value="filterDraft.dealIdx" @change="onFilterDealPick">
-            <view class="picker-like">{{ DEAL_OPTIONS[filterDraft.dealIdx] }}</view>
-          </picker>
-        </view>
         <view class="section-title">下次提醒</view>
         <view class="form-group">
           <picker
@@ -313,7 +336,7 @@ function goVideoFaq() {
           </picker>
         </view>
         <view class="filter-sheet-actions">
-          <button class="btn-secondary" @click="resetFilter">重置</button>
+          <button class="btn-secondary" @click="resetModalFilters">重置</button>
           <button class="btn-primary" @click="applyFilter">应用筛选</button>
         </view>
       </view>
@@ -327,6 +350,10 @@ function goVideoFaq() {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+.cust-quick-chips {
+  margin-bottom: 16rpx;
 }
 
 .ic-filter {
