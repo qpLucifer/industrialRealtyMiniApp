@@ -2,8 +2,10 @@
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { fetchMyPublished, navigateToPropertyDetail, navigateToPropertyPublish } from '@/api/property'
 import { consumeListStale } from '@/utils/listStale'
+import { usePagedList } from '@/utils/pagedList'
 
 type Row = {
   code: string
@@ -13,22 +15,25 @@ type Row = {
   meta: string
 }
 
-const list = ref<Row[]>([])
-const loading = ref(false)
 const loadError = ref('')
 const skipNextShow = ref(false)
 
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchMyPublished({ page }))
+
 async function load() {
-  loading.value = true
   loadError.value = ''
   try {
-    const r = await fetchMyPublished()
-    list.value = r.list as Row[]
+    await loadFirst()
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: loadError.value, icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -82,33 +87,35 @@ function back() {
         @back="back"
         @action="goPublish()"
       />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-if="loading && !list.length" class="card" style="margin-bottom: 24rpx">
-          <text class="hint">加载中…</text>
-        </view>
-        <view v-else-if="loadError && !list.length" class="card" style="margin-bottom: 24rpx">
-          <text class="hint">{{ loadError }}</text>
-          <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
-        </view>
-        <view v-else-if="!list.length" class="card" style="margin-bottom: 24rpx">
-          <text class="hint">暂无发布记录</text>
-        </view>
-        <view
-          v-for="p in list"
-          :key="p.code"
-          class="prop-list-card"
-          @click="goDetail(p.code)"
-        >
-          <view class="thumb" />
-          <view style="flex: 1; min-width: 0">
-            <view style="display: flex; justify-content: space-between; gap: 8px">
-              <view class="list-title-strong" style="flex: 1">{{ p.title }}</view>
-              <view :class="chipClass(p.statusTone)" :style="chipStyle(p.statusTone)">{{ p.status }}</view>
+      <view v-if="loadError && !list.length" class="card page-scroll__inner" style="margin-bottom: 24rpx">
+        <text class="hint">{{ loadError }}</text>
+        <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
+      </view>
+      <PagedVirtualList
+        v-else
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        empty-text="暂无发布记录"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: p }">
+          <view class="prop-list-card" @click="goDetail((p as Row).code)">
+            <view class="thumb" />
+            <view style="flex: 1; min-width: 0">
+              <view style="display: flex; justify-content: space-between; gap: 8px">
+                <view class="list-title-strong" style="flex: 1">{{ (p as Row).title }}</view>
+                <view :class="chipClass((p as Row).statusTone)" :style="chipStyle((p as Row).statusTone)">
+                  {{ (p as Row).status }}
+                </view>
+              </view>
+              <text class="hint" style="display: block; margin-top: 8rpx">{{ (p as Row).meta }}</text>
             </view>
-            <text class="hint" style="display: block; margin-top: 8rpx">{{ p.meta }}</text>
           </view>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
     </view>
   </view>
 </template>

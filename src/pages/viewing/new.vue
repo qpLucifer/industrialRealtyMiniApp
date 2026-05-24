@@ -144,7 +144,7 @@ onLoad(async (q) => {
   try {
     const [cr, pr, staff] = await Promise.all([
       fetchCustomerPickerList(),
-      fetchPropertyList(),
+      fetchPropertyList({ page: 1, pageSize: 200 }),
       fetchStaffPeers(),
     ])
     customers.value = cr.list ?? []

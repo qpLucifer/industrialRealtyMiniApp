@@ -2,18 +2,26 @@
 import { ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import SwipeRow from '@/components/SwipeRow.vue'
 import { deleteViewing, fetchViewingList } from '@/api/extra'
 import { consumeListStale, markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import { consumeTabNavIntent } from '@/utils/tabNavIntent'
+import { usePagedList } from '@/utils/pagedList'
 import type { ViewingListItem } from '@/types/viewingDeal'
 
-const list = ref<ViewingListItem[]>([])
-const loading = ref(false)
 const loadError = ref('')
 const skipNextShow = ref(false)
 const weekOnly = ref(false)
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchViewingList({ week: weekOnly.value || undefined, page }))
 
 function propLabel(v: ViewingListItem) {
   return String(v.propertyRef || v.miniPropCode || '—').trim()
@@ -27,16 +35,12 @@ function gradeClass(g: string) {
 }
 
 async function load() {
-  loading.value = true
   loadError.value = ''
   try {
-    const r = await fetchViewingList({ week: weekOnly.value || undefined })
-    list.value = r.list
+    await loadFirst()
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: loadError.value, icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -78,7 +82,7 @@ async function onCancel(v: ViewingListItem) {
   if (!ok) return
   try {
     await deleteViewing(v.id)
-    list.value = list.value.filter((x) => x.id !== v.id)
+    await loadFirst()
     markListStale('viewing-list')
     markWorkbenchStale()
     uni.showToast({ title: '已取消', icon: 'none' })
@@ -106,68 +110,75 @@ function back() {
         @back="back"
         @action="goNew"
       />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner viewing-page">
-          <text class="viewing-page__hint">
-            {{ weekOnly ? '仅显示近 7 天带看 · ' : '' }}左滑可编辑或取消带看 · 进行中会高亮
-          </text>
-
-          <view v-if="loading && !list.length" class="viewing-empty card">
-            <text class="hint">加载中…</text>
-          </view>
-          <view v-else-if="loadError && !list.length" class="viewing-empty card">
-            <text class="hint">{{ loadError }}</text>
-            <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
-          </view>
-          <view v-else-if="!list.length" class="viewing-empty card">
-            <text class="viewing-empty__title">暂无带看记录</text>
-            <text class="hint">点击右上角新建带看</text>
-          </view>
-
+      <view class="list-page-head page-scroll__inner viewing-page">
+        <text class="viewing-page__hint">
+          {{ weekOnly ? '仅显示近 7 天带看 · ' : '' }}左滑可编辑或取消带看 · 进行中会高亮
+        </text>
+        <view v-if="loadError && !list.length" class="viewing-empty card">
+          <text class="hint">{{ loadError }}</text>
+          <button class="btn-primary" style="margin-top: 24rpx" @click="load">重试</button>
+        </view>
+      </view>
+      <PagedVirtualList
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        empty-text="暂无带看记录，点击右上角新建"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: v }">
           <SwipeRow
-            v-for="v in list"
-            :key="v.id"
             :actions="[
               { key: 'edit', label: '编辑', tone: 'primary' },
               { key: 'cancel', label: '取消', tone: 'danger' },
             ]"
-            @action="onRowAction($event, v)"
+            @action="onRowAction($event, v as ViewingListItem)"
           >
-            <view class="viewing-card" :class="{ 'viewing-card--active': v.active }">
+            <view
+              class="viewing-card card"
+              :class="{ 'viewing-card--active': (v as ViewingListItem).active }"
+            >
               <view class="viewing-card__head">
                 <view class="viewing-card__time">
-                  <text class="viewing-card__date">{{ v.start }}</text>
+                  <text class="viewing-card__date">{{ (v as ViewingListItem).start }}</text>
                   <text class="viewing-card__sep">至</text>
-                  <text class="viewing-card__date">{{ v.end }}</text>
+                  <text class="viewing-card__date">{{ (v as ViewingListItem).end }}</text>
                 </view>
                 <view class="viewing-card__badges">
-                  <text v-if="v.active" class="chip on ok">进行中</text>
-                  <text :class="gradeClass(v.score)">等级 {{ v.score }}</text>
+                  <text v-if="(v as ViewingListItem).active" class="chip on ok">进行中</text>
+                  <text :class="gradeClass((v as ViewingListItem).score)">等级 {{ (v as ViewingListItem).score }}</text>
                 </view>
               </view>
               <view class="viewing-card__row">
                 <text class="viewing-card__label">房源</text>
-                <text class="viewing-card__value">{{ propLabel(v) }}</text>
+                <text class="viewing-card__value">{{ propLabel(v as ViewingListItem) }}</text>
               </view>
               <view class="viewing-card__row">
                 <text class="viewing-card__label">客户</text>
-                <text class="viewing-card__value">{{ v.customerName || '—' }}</text>
+                <text class="viewing-card__value">{{ (v as ViewingListItem).customerName || '—' }}</text>
               </view>
               <view class="viewing-card__row">
                 <text class="viewing-card__label">陪同</text>
-                <text class="viewing-card__value">{{ v.companions || v.miniStaff || '—' }}</text>
+                <text class="viewing-card__value">{{
+                  (v as ViewingListItem).companions || (v as ViewingListItem).miniStaff || '—'
+                }}</text>
               </view>
             </view>
           </SwipeRow>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
     </view>
   </view>
 </template>
 
 <style scoped>
+.list-page-head {
+  flex-shrink: 0;
+}
 .viewing-page {
-  padding-bottom: 32rpx;
+  padding-bottom: 12rpx;
 }
 
 .viewing-page__hint {

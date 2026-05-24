@@ -1,31 +1,34 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
+import { usePagedList } from '@/utils/pagedList'
 import type { AnnouncementItem } from '@/types/message'
 
-const list = ref<AnnouncementItem[]>([])
-const loading = ref(false)
 const loadError = ref('')
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
 
-const items = computed(() => list.value)
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchAnnouncementList({ page }))
 
 useTabPageShow(() => loadList())
 
 async function loadList() {
-  loading.value = true
   loadError.value = ''
   try {
-    const r = await fetchAnnouncementList()
-    list.value = Array.isArray(r.list) ? r.list : []
+    await loadFirst()
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: loadError.value, icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -63,27 +66,33 @@ function previewBody(body: string, max = 72) {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="公告" @back="back" />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner">
-          <view v-if="items.length === 0" class="card">
-            <text class="hint">暂无公告</text>
-          </view>
+      <PagedVirtualList
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        empty-text="暂无公告"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: a }">
           <view
-            v-for="a in items"
-            :key="a.id || a.title"
             class="announce-row card"
-            :class="{ 'announce-row--unread': !a.read, 'announce-row--read': a.read }"
-            @click="openItem(a)"
+            :class="{
+              'announce-row--unread': !(a as AnnouncementItem).read,
+              'announce-row--read': (a as AnnouncementItem).read,
+            }"
+            @click="openItem(a as AnnouncementItem)"
           >
             <view class="announce-row__head">
-              <view v-if="!a.read" class="announce-row__dot" />
-              <text class="announce-row__title">{{ a.title }}</text>
-              <view v-if="!a.read" class="chip warn announce-row__chip">未读</view>
+              <view v-if="!(a as AnnouncementItem).read" class="announce-row__dot" />
+              <text class="announce-row__title">{{ (a as AnnouncementItem).title }}</text>
+              <view v-if="!(a as AnnouncementItem).read" class="chip warn announce-row__chip">未读</view>
             </view>
-            <text class="announce-row__preview">{{ previewBody(a.body) }}</text>
+            <text class="announce-row__preview">{{ previewBody((a as AnnouncementItem).body) }}</text>
           </view>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
     </view>
 
     <view v-if="popupVisible && popupItem" class="modal-overlay show" @click.self="closePopup">

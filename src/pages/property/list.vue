@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import {
@@ -14,10 +15,17 @@ import { fetchRegionDefs, resolveMediaUrl } from '@/utils/request'
 import { consumeListStale } from '@/utils/listStale'
 import { tabBrandTitle } from '@/constants/brand'
 import { consumeTabNavIntent } from '@/utils/tabNavIntent'
+import { usePagedList } from '@/utils/pagedList'
 
 const topBarInsetStyle = useTopBarInsetStyle()
-const list = ref<PropertyListItem[]>([])
-const loading = ref(false)
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchPropertyList({ ...buildListQuery(), page }))
 const filterOpen = ref(false)
 const seg = ref(0)
 const keyword = ref('')
@@ -81,14 +89,10 @@ function buildListQuery(): PropertyListQuery {
 }
 
 async function reload() {
-  loading.value = true
   try {
-    const r = await fetchPropertyList(buildListQuery())
-    list.value = r.list
+    await loadFirst()
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -197,8 +201,7 @@ function applyFilter() {
           <view class="sub">品类全 · 已按区域隔离</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner">
+      <view class="list-page-head page-scroll__inner">
         <view class="search-bar search-bar--suffix">
           <input v-model="keyword" type="text" placeholder="关键词：区位 / 配电 / 行车 / 行业…" confirm-type="search" @confirm="onSearchConfirm" />
           <view class="search-bar__suffix" @click="openFilter">
@@ -216,46 +219,58 @@ function applyFilter() {
           <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待售</button>
           <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">待租售</button>
         </view>
-        <view v-if="loading && !list.length" class="card">
-          <text class="hint">加载中…</text>
-        </view>
-        <view
-          v-for="p in list"
-          :key="p.id"
-          class="prop-list-card"
-          @click="onPropertyRow(p)"
-        >
-          <image
-            v-if="p.thumbUrl"
-            class="thumb thumb--cover"
-            :src="resolveMediaUrl(p.thumbUrl)"
-            mode="aspectFill"
-          />
-          <view v-else class="thumb" />
-          <view style="flex: 1; min-width: 0">
-            <view style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
-              <view class="list-title-strong" style="flex: 1; min-width: 0">{{ p.title }}</view>
+      </view>
+      <PagedVirtualList
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        :empty-text="hasActiveFilters ? '无匹配房源，可调整筛选' : '暂无房源，点击右下角发布'"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: p }">
+          <view class="prop-list-card" @click="onPropertyRow(p as PropertyListItem)">
+            <image
+              v-if="(p as PropertyListItem).thumbUrl"
+              class="thumb thumb--cover"
+              :src="resolveMediaUrl((p as PropertyListItem).thumbUrl!)"
+              mode="aspectFill"
+            />
+            <view v-else class="thumb" />
+            <view style="flex: 1; min-width: 0">
+              <view style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
+                <view class="list-title-strong" style="flex: 1; min-width: 0">{{ (p as PropertyListItem).title }}</view>
+                <view
+                  class="chip"
+                  :class="
+                    (p as PropertyListItem).statusTone === 'ok'
+                      ? 'ok'
+                      : (p as PropertyListItem).statusTone === 'warn'
+                        ? 'warn'
+                        : ''
+                  "
+                  :style="
+                    (p as PropertyListItem).statusTone === 'draft'
+                      ? 'background:#e2e8f0;color:#475569;border-color:rgba(100,116,139,0.25);flex-shrink:0'
+                      : 'flex-shrink:0'
+                  "
+                  >{{ (p as PropertyListItem).status }}</view
+                >
+              </view>
+              <view class="list-meta-muted" style="margin-top: 6px">{{ (p as PropertyListItem).metaLine }}</view>
               <view
-                class="chip"
-                :class="p.statusTone === 'ok' ? 'ok' : p.statusTone === 'warn' ? 'warn' : ''"
-                :style="
-                  p.statusTone === 'draft'
-                    ? 'background:#e2e8f0;color:#475569;border-color:rgba(100,116,139,0.25);flex-shrink:0'
-                    : 'flex-shrink:0'
-                "
-                >{{ p.status }}</view
+                v-if="(p as PropertyListItem).draftHint"
+                style="font-size: 12px; color: var(--amber); margin-top: 4px; line-height: 1.45"
+                >{{ (p as PropertyListItem).draftHint }}</view
               >
+              <view v-if="(p as PropertyListItem).priceLine" class="list-price-line" style="margin-top: 8px">{{
+                (p as PropertyListItem).priceLine
+              }}</view>
             </view>
-            <view class="list-meta-muted" style="margin-top: 6px">{{ p.metaLine }}</view>
-            <view v-if="p.draftHint" style="font-size: 12px; color: var(--amber); margin-top: 4px; line-height: 1.45">{{ p.draftHint }}</view>
-            <view v-if="p.priceLine" class="list-price-line" style="margin-top: 8px">{{ p.priceLine }}</view>
           </view>
-        </view>
-        <view v-if="!loading && !list.length" class="hint" style="text-align: center; padding: 80rpx 0">
-          {{ hasActiveFilters ? '无匹配房源，可调整筛选' : '暂无房源，点击右下角发布' }}
-        </view>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
       <button class="fab fab--tab" @click="goPublish(true)">＋</button>
     </view>
 
@@ -341,5 +356,8 @@ function applyFilter() {
 .thumb--cover {
   flex-shrink: 0;
   background: #f1f5f9;
+}
+.list-page-head {
+  flex-shrink: 0;
 }
 </style>

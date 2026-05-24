@@ -1,4 +1,6 @@
 import { get, post, put } from '@/utils/request'
+import type { PagedListResponse } from '@/utils/pagedList'
+import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
 import type {
   CustomerDetail,
   CustomerFollowUpPayload,
@@ -17,13 +19,18 @@ export function fetchCustomerList(query?: {
   grade?: string
   dealStatus?: string
   reminder?: CustomerListReminderFilter
+  page?: number
+  pageSize?: number
 }) {
-  return get<{ list: CustomerListItem[] }>('/api/customer/list', query)
+  const params: Record<string, string | number | undefined> = { ...query }
+  params.page = query?.page ?? 1
+  params.pageSize = query?.pageSize ?? MINI_LIST_PAGE_SIZE
+  return get<PagedListResponse<CustomerListItem>>('/api/customer/list', params)
 }
 
 /** Viewing pickers: public + own private customers only. */
 export function fetchCustomerPickerList() {
-  return fetchCustomerList({ scope: 'visible' })
+  return fetchCustomerList({ scope: 'visible', page: 1, pageSize: 200 })
 }
 
 export function fetchCustomerDetail(id: string) {

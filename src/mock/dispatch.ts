@@ -37,6 +37,15 @@ function buildMockAnnouncementList() {
   return { list, unreadCount: list.filter((x) => !x.read).length }
 }
 
+function paginateMockRows<T>(rows: T[], query: Record<string, string>) {
+  const page = Math.max(1, Number(query.page) || 1)
+  const pageSize = Math.min(50, Math.max(1, Number(query.pageSize) || 10))
+  const total = rows.length
+  const start = (page - 1) * pageSize
+  const list = rows.slice(start, start + pageSize)
+  return { list, total, page, pageSize, hasMore: page * pageSize < total }
+}
+
 function parseMockBuildingArea(p: { buildingArea?: number; metaLine?: string }) {
   if (p.buildingArea != null && Number.isFinite(Number(p.buildingArea))) return Number(p.buildingArea)
   const m = String(p.metaLine || '').match(/(\d+(?:\.\d+)?)\s*㎡/)
@@ -289,7 +298,7 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/property/list') {
-    return okResult({ list: filterMockPropertyList(query) })
+    return okResult(paginateMockRows(filterMockPropertyList(query), query))
   }
 
   if (method === 'GET' && path === '/api/property/detail') {
@@ -307,11 +316,11 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/property/my-published') {
-    return okResult({ list: mockMyPublishedProperties })
+    return okResult(paginateMockRows(mockMyPublishedProperties, query))
   }
 
   if (method === 'GET' && path === '/api/customer/list') {
-    return okResult({ list: filterMockCustomerList(query) })
+    return okResult(paginateMockRows(filterMockCustomerList(query), query))
   }
 
   if (method === 'GET' && path === '/api/customer/detail') {
@@ -333,7 +342,7 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/message/list') {
-    return okResult({ list: mockMessages })
+    return okResult(paginateMockRows(mockMessages, query))
   }
 
   if (method === 'GET' && path === '/api/user/profile') {
@@ -347,7 +356,9 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/announcement/list') {
-    return okResult(buildMockAnnouncementList())
+    const full = buildMockAnnouncementList()
+    const paged = paginateMockRows(full.list, query)
+    return okResult({ ...paged, unreadCount: full.unreadCount })
   }
 
   const announceReadMatch = method === 'POST' && path.match(/^\/api\/announcement\/([^/]+)\/read$/)
@@ -360,12 +371,12 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/video-faq/list') {
-    const list = mockVideoFaqList.filter((x) => x.miniProgramSearch !== false)
-    return okResult({ list })
+    const rows = mockVideoFaqList.filter((x) => x.miniProgramSearch !== false)
+    return okResult(paginateMockRows(rows, query))
   }
 
   if (method === 'GET' && path === '/api/viewing/list') {
-    return okResult({ list: mockViewingList })
+    return okResult(paginateMockRows(mockViewingList, query))
   }
 
   if (method === 'GET' && path === '/api/deal/form-defaults') {

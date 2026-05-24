@@ -551,7 +551,6 @@ page::after {
 .search-bar {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
 .search-bar input {
@@ -596,7 +595,6 @@ page::after {
   background: #f1f5f9;
   border-radius: 12px;
   padding: 4px;
-  margin-bottom: 12px;
   border: 1px solid var(--border);
 }
 

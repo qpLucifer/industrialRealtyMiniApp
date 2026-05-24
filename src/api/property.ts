@@ -1,4 +1,6 @@
 import { get, put } from '@/utils/request'
+import type { PagedListResponse } from '@/utils/pagedList'
+import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
 import type { LiveListingStatus } from '@/utils/propertyListingStatus'
 import type { MyPublishedProperty, PropertyDetailPayload, PropertyEditForm, PropertyListItem } from '@/types/property'
 
@@ -26,6 +28,8 @@ export type PropertyListQuery = {
   districtRegionId?: number
   minArea?: number
   maxArea?: number
+  page?: number
+  pageSize?: number
 }
 
 export function fetchPropertyList(query?: PropertyListQuery) {
@@ -38,7 +42,9 @@ export function fetchPropertyList(query?: PropertyListQuery) {
   }
   if (query?.minArea != null && Number.isFinite(query.minArea)) params.minArea = query.minArea
   if (query?.maxArea != null && Number.isFinite(query.maxArea)) params.maxArea = query.maxArea
-  return get<{ list: PropertyListItem[] }>('/api/property/list', params)
+  params.page = query?.page ?? 1
+  params.pageSize = query?.pageSize ?? MINI_LIST_PAGE_SIZE
+  return get<PagedListResponse<PropertyListItem>>('/api/property/list', params)
 }
 
 export function fetchPropertyDetail(key: string) {
@@ -53,8 +59,11 @@ export function fetchPropertyLogs(key: string) {
   return get<{ list: { line: string; sub: string }[] }>('/api/property/logs', apiQueryKey(key))
 }
 
-export function fetchMyPublished() {
-  return get<{ list: MyPublishedProperty[] }>('/api/property/my-published')
+export function fetchMyPublished(query?: { page?: number; pageSize?: number }) {
+  return get<PagedListResponse<MyPublishedProperty>>('/api/property/my-published', {
+    page: query?.page ?? 1,
+    pageSize: query?.pageSize ?? MINI_LIST_PAGE_SIZE,
+  })
 }
 
 export function updatePropertyListingStatus(code: string, externalStatus: LiveListingStatus) {

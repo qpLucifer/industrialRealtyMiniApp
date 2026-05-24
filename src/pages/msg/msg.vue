@@ -1,26 +1,29 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import SwipeRow from '@/components/SwipeRow.vue'
 import { dismissMessage, fetchMessageList } from '@/api/message'
 import { navigateToPropertyDetail } from '@/api/property'
+import { usePagedList } from '@/utils/pagedList'
 import type { MessageItem } from '@/types/message'
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
-const list = ref<MessageItem[]>([])
-const loading = ref(false)
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchMessageList({ page }))
 
 async function reload() {
-  loading.value = true
   try {
-    const r = await fetchMessageList()
-    list.value = r.list
+    await loadFirst()
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
@@ -57,7 +60,7 @@ function open(m: MessageItem) {
 async function onDelete(m: MessageItem) {
   try {
     await dismissMessage(m.id)
-    list.value = list.value.filter((x) => x.id !== m.id)
+    await loadFirst()
     uni.showToast({ title: '已删除', icon: 'none' })
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '删除失败', icon: 'none' })
@@ -74,34 +77,40 @@ async function onDelete(m: MessageItem) {
           <view class="sub">左滑可删除 · 审核与任务提醒</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner msg-page">
-          <view v-if="loading && !list.length" class="msg-empty">
-            <text class="hint">加载中…</text>
-          </view>
-          <view v-else-if="!list.length" class="msg-empty">
+      <PagedVirtualList
+        class="page-scroll"
+        inner-class="msg-page"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        empty-text="暂无消息"
+        @load-more="loadMore"
+      >
+        <template #empty>
+          <view class="msg-empty">
             <text class="msg-empty__title">暂无消息</text>
             <text class="hint">审核结果、客户跟进与带看提醒会出现在这里</text>
           </view>
+        </template>
+        <template #item="{ item: m }">
           <SwipeRow
-            v-for="m in list"
-            :key="m.id"
             :actions="[{ key: 'delete', label: '删除', tone: 'danger' }]"
-            @action="(key) => key === 'delete' && onDelete(m)"
+            @action="(key) => key === 'delete' && onDelete(m as MessageItem)"
           >
-            <view class="msg-card" @tap="open(m)">
-              <view :class="iconClass(m.iconTone)">{{ m.icon }}</view>
+            <view class="msg-card" @tap="open(m as MessageItem)">
+              <view :class="iconClass((m as MessageItem).iconTone)">{{ (m as MessageItem).icon }}</view>
               <view class="msg-card__body">
                 <view class="msg-card__top">
-                  <text class="msg-card__title">{{ m.title }}</text>
-                  <text v-if="m.time" class="msg-card__time">{{ m.time }}</text>
+                  <text class="msg-card__title">{{ (m as MessageItem).title }}</text>
+                  <text v-if="(m as MessageItem).time" class="msg-card__time">{{ (m as MessageItem).time }}</text>
                 </view>
-                <text class="msg-card__hint">{{ m.hint }}</text>
+                <text class="msg-card__hint">{{ (m as MessageItem).hint }}</text>
               </view>
             </view>
           </SwipeRow>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
     </view>
   </view>
 </template>

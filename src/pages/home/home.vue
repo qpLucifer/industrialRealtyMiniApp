@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { fetchWorkbench } from '@/api/home'
@@ -102,37 +102,39 @@ const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
 const popupQueue = ref<AnnouncementItem[]>([])
 
-const skipAnnounceOnNextShow = ref(false)
+const isFirstShow = ref(true)
+let workbenchInflight: Promise<void> | null = null
 
 async function loadWorkbench(force = false) {
   if (!ensureMiniSession()) return
   if (!force && !shouldRefreshWorkbench() && data.value) return
-  try {
-    const raw = await fetchWorkbench()
-    data.value = normalizeWorkbenchSummary(raw)
-    loadError.value = ''
-    touchWorkbenchFetched()
-  } catch (e) {
-    loadError.value = e instanceof Error ? e.message : '加载失败'
-    if (!data.value) {
-      uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
+  if (workbenchInflight) return workbenchInflight
+  workbenchInflight = (async () => {
+    try {
+      const raw = await fetchWorkbench()
+      data.value = normalizeWorkbenchSummary(raw)
+      loadError.value = ''
+      touchWorkbenchFetched()
+    } catch (e) {
+      loadError.value = e instanceof Error ? e.message : '加载失败'
+      if (!data.value) {
+        uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
+      }
+    } finally {
+      workbenchInflight = null
     }
-  }
+  })()
+  return workbenchInflight
 }
 
-onMounted(async () => {
-  skipAnnounceOnNextShow.value = true
-  await loadWorkbench(true)
-  await refreshAnnouncements()
-})
-
 onShow(() => {
-  void loadWorkbench()
-  if (skipAnnounceOnNextShow.value) {
-    skipAnnounceOnNextShow.value = false
-    return
-  }
-  void refreshAnnouncements()
+  if (!ensureMiniSession()) return
+  const force = isFirstShow.value
+  if (force) isFirstShow.value = false
+  void (async () => {
+    await loadWorkbench(force)
+    await refreshAnnouncements()
+  })()
 })
 
 const EMPTY_FOLLOW_REMIND = '系统提醒 · 近期暂无需要跟进'

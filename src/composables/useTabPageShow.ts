@@ -1,4 +1,3 @@
-import { onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { ensureMiniSession } from '@/utils/session'
 
@@ -8,27 +7,15 @@ type TabPageShowOptions = {
 }
 
 /**
- * Avoid duplicate fetch on first paint: onMounted runs once, the immediate onShow is skipped.
- * Later tab switches still invoke onShow.
+ * Run load when the page becomes visible (including first entry).
+ * Use onShow only: on first paint uni-app fires onShow before Vue onMounted,
+ * so pairing onMounted + onShow duplicates requests.
  */
 export function useTabPageShow(load: () => void | Promise<void>, opts?: TabPageShowOptions) {
-  const skipNextShow = ref(false)
-
-  async function run() {
-    if (opts?.requireAuth && !ensureMiniSession()) return
-    await load()
-  }
-
-  onMounted(() => {
-    skipNextShow.value = true
-    void run()
-  })
-
   onShow(() => {
-    if (skipNextShow.value) {
-      skipNextShow.value = false
-      return
-    }
-    void run()
+    void (async () => {
+      if (opts?.requireAuth && !ensureMiniSession()) return
+      await load()
+    })()
   })
 }

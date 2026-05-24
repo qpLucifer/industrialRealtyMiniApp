@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchCustomerList, type CustomerListReminderFilter } from '@/api/customer'
+import { usePagedList } from '@/utils/pagedList'
 import { tabBrandTitle } from '@/constants/brand'
 import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
@@ -23,8 +25,24 @@ const REMINDER_VALUES: ('' | CustomerListReminderFilter)[] = ['', 'due', 'overdu
 
 const topBarInsetStyle = useTopBarInsetStyle()
 
-const list = ref<CustomerListItem[]>([])
-const loading = ref(false)
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) =>
+  fetchCustomerList({
+    scope: seg.value === 0 ? 'mine' : 'public',
+    q: keyword.value.trim() || undefined,
+    districtRegionId: filterApplied.value.districtRegionId,
+    grade: filterApplied.value.grade || undefined,
+    dealStatus: filterApplied.value.dealStatus || undefined,
+    reminder: filterApplied.value.reminder || undefined,
+    page,
+  }),
+)
 const seg = ref(0)
 const keyword = ref('')
 const filterOpen = ref(false)
@@ -96,31 +114,17 @@ async function loadRegions() {
 }
 
 async function reload() {
-  loading.value = true
   try {
-    const scope = seg.value === 0 ? 'mine' : 'public'
-    const r = await fetchCustomerList({
-      scope,
-      q: keyword.value.trim() || undefined,
-      districtRegionId: filterApplied.value.districtRegionId,
-      grade: filterApplied.value.grade || undefined,
-      dealStatus: filterApplied.value.dealStatus || undefined,
-      reminder: filterApplied.value.reminder || undefined,
-    })
-    list.value = r.list
+    await loadFirst()
   } catch (e) {
     uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
-  } finally {
-    loading.value = false
   }
 }
 
-useTabPageShow(() => {
-  if (consumeCustomerListStale()) {
-    /* explicit stale after create/edit */
-  }
-  void loadRegions().then(() => reload())
-  return reload()
+useTabPageShow(async () => {
+  consumeCustomerListStale()
+  await loadRegions()
+  await reload()
 }, { requireAuth: true })
 
 function onSeg(i: number) {
@@ -210,8 +214,7 @@ function goVideoFaq() {
           <view class="sub">点选等级与状态 · 筛选里可选区域与提醒</view>
         </view>
       </view>
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view class="page-scroll__inner">
+      <view class="list-page-head page-scroll__inner">
           <view class="segmented">
             <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">我的私有</button>
             <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">公司公有</button>
@@ -252,56 +255,63 @@ function goVideoFaq() {
             <text class="filter-active-bar__text">{{ filterSummary }}</text>
             <text class="filter-active-bar__clear" @click="resetFilter">清除</text>
           </view>
-          <view v-if="loading && !list.length" class="card">
-            <text class="hint">加载中…</text>
-          </view>
-          <view v-else-if="!list.length" class="card">
-            <text class="hint">{{ hasActiveFilters ? '无匹配客户，可调整筛选' : '暂无客户' }}</text>
-          </view>
+      </view>
+      <PagedVirtualList
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        :empty-text="hasActiveFilters ? '无匹配客户，可调整筛选' : '暂无客户'"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: c }">
           <view
-            v-for="c in list"
-            :key="c.id"
             class="prop-list-card"
             style="align-items: flex-start"
-            @click="goDetail(c.id)"
+            @click="goDetail((c as CustomerListItem).id)"
           >
-            <view :style="avatarStyle(c)" />
+            <view :style="avatarStyle(c as CustomerListItem)" />
             <view style="flex: 1; min-width: 0">
               <view style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
                 <view style="min-width: 0; flex: 1">
-                  <view class="list-meta-muted">{{ c.company }}</view>
+                  <view class="list-meta-muted">{{ (c as CustomerListItem).company }}</view>
                   <view class="list-title-strong" style="display: block; margin-top: 2px">
-                    {{ c.contactName || c.titleLine }}
+                    {{ (c as CustomerListItem).contactName || (c as CustomerListItem).titleLine }}
                   </view>
                 </view>
                 <view
                   class="chip"
-                  :class="gradeChipClass(c)"
+                  :class="gradeChipClass(c as CustomerListItem)"
                   :style="
-                    gradeChipClass(c)
+                    gradeChipClass(c as CustomerListItem)
                       ? ''
                       : 'background:#f1f5f9;color:#475569;border-color:var(--border);flex-shrink:0'
                   "
                 >
-                  {{ c.grade }}
+                  {{ (c as CustomerListItem).grade }}
                 </view>
               </view>
-              <view v-if="c.district" class="list-meta-muted" style="margin-top: 4px">{{ c.district }}</view>
+              <view v-if="(c as CustomerListItem).district" class="list-meta-muted" style="margin-top: 4px">{{
+                (c as CustomerListItem).district
+              }}</view>
               <view class="list-meta-muted" style="margin-top: 6px">
-                {{ c.dealStatus }}
-                <text v-if="c.ownerName"> · {{ c.ownerName }}</text>
+                {{ (c as CustomerListItem).dealStatus }}
+                <text v-if="(c as CustomerListItem).ownerName"> · {{ (c as CustomerListItem).ownerName }}</text>
               </view>
-              <view class="list-meta-muted" style="margin-top: 4px">{{ c.recent ? c.recent : '暂无最近跟进' }}</view>
+              <view class="list-meta-muted" style="margin-top: 4px">{{
+                (c as CustomerListItem).recent ? (c as CustomerListItem).recent : '暂无最近跟进'
+              }}</view>
               <view
-                v-if="c.nextReminder && c.nextReminder !== '—'"
+                v-if="(c as CustomerListItem).nextReminder && (c as CustomerListItem).nextReminder !== '—'"
                 style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45"
               >
-                下次沟通 {{ c.nextReminder }}
+                下次沟通 {{ (c as CustomerListItem).nextReminder }}
               </view>
             </view>
           </view>
-        </view>
-      </scroll-view>
+        </template>
+      </PagedVirtualList>
       <view class="fab-col">
         <view
           class="fab fab--view"
@@ -353,6 +363,9 @@ function goVideoFaq() {
   letter-spacing: 0.04em;
 }
 
+.list-page-head {
+  flex-shrink: 0;
+}
 .cust-quick-chips {
   margin-bottom: 16rpx;
 }

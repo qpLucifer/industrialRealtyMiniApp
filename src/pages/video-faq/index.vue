@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
+import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { fetchVideoFaqList } from '@/api/extra'
+import { usePagedList } from '@/utils/pagedList'
 import type { VideoFaqItem } from '@/types/videoFaq'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
-const list = ref<VideoFaqItem[]>([])
-const loading = ref(false)
 const loadError = ref('')
 const active = ref<VideoFaqItem | null>(null)
+
+const {
+  items: list,
+  loading,
+  loadingMore,
+  hasMore,
+  loadFirst,
+  loadMore,
+} = usePagedList((page) => fetchVideoFaqList({ page }))
 
 const activePlayUrl = computed(() => {
   const v = active.value
@@ -17,16 +26,12 @@ const activePlayUrl = computed(() => {
 })
 
 onMounted(async () => {
-  loading.value = true
   loadError.value = ''
   try {
-    const r = await fetchVideoFaqList()
-    list.value = r.list
+    await loadFirst()
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: loadError.value, icon: 'none' })
-  } finally {
-    loading.value = false
   }
 })
 
@@ -62,19 +67,29 @@ function playActiveFullscreen() {
   <view class="app-shell">
     <view class="page-frame screen active screen--sub">
       <NavIconBar title="视频话术" @back="back" />
-      <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
-        <view v-if="loading && !list.length" class="card" style="margin-bottom: 24rpx">
-          <text class="hint">加载中…</text>
-        </view>
-        <view v-else-if="loadError && !list.length" class="card" style="margin-bottom: 24rpx">
-          <text class="hint">{{ loadError }}</text>
-        </view>
-        <view v-for="v in list" :key="v.id" class="card" style="margin-bottom: 24rpx" @click="openItem(v)">
-          <text style="display: block; font-size: 30rpx; font-weight: 700">{{ v.title }}</text>
-          <text class="hint" style="display: block; margin-top: 12rpx; line-height: 1.55">{{ v.summary }}</text>
-          <text style="display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--cyan)">关键词：{{ v.keywords }}</text>
-        </view>
-      </scroll-view>
+      <view v-if="loadError && !list.length" class="card page-scroll__inner" style="margin-bottom: 24rpx">
+        <text class="hint">{{ loadError }}</text>
+      </view>
+      <PagedVirtualList
+        v-else
+        class="page-scroll"
+        :items="list"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        empty-text="暂无视频话术"
+        @load-more="loadMore"
+      >
+        <template #item="{ item: v }">
+          <view class="card" style="margin-bottom: 24rpx" @click="openItem(v as VideoFaqItem)">
+            <text style="display: block; font-size: 30rpx; font-weight: 700">{{ (v as VideoFaqItem).title }}</text>
+            <text class="hint" style="display: block; margin-top: 12rpx; line-height: 1.55">{{ (v as VideoFaqItem).summary }}</text>
+            <text style="display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--cyan)">
+              关键词：{{ (v as VideoFaqItem).keywords }}
+            </text>
+          </view>
+        </template>
+      </PagedVirtualList>
     </view>
 
     <view v-if="active" class="modal-overlay show" @click.self="closeSheet">
