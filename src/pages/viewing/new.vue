@@ -4,7 +4,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
-import { fetchCustomerList } from '@/api/customer'
+import { fetchCustomerPickerList } from '@/api/customer'
 import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
 import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
@@ -34,6 +34,8 @@ const propertyIdx = ref(0)
 
 const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
+const optionsLoading = ref(true)
+const optionsError = ref('')
 
 function customerPickLabel(c: CustomerListItem) {
   const name = String(c.contactName || '').trim() || '—'
@@ -43,15 +45,25 @@ function customerPickLabel(c: CustomerListItem) {
 
 const customerPickerLabels = computed(() => customers.value.map(customerPickLabel))
 
+/** Android MP: selector range must be string[], not object[] */
+const propertyPickerLabels = computed(() =>
+  properties.value.map((p) => {
+    const code = String(p.code || p.id || '').trim() || '—'
+    const title = String(p.title || '').trim() || '—'
+    return `${code} · ${title}`
+  }),
+)
+
 const customerLabel = computed(() => {
+  if (!customers.value.length) return optionsLoading.value ? '加载中…' : '暂无可选客户'
   const c = customers.value[customerIdx.value]
   return c ? customerPickLabel(c) : '请选择客户'
 })
 
 const propertyLabel = computed(() => {
   if (propLocked.value && propertyTitle.value) return propertyTitle.value
-  const p = properties.value[propertyIdx.value]
-  return p ? `${p.code || p.id} · ${p.title}` : '请选择房源'
+  if (!properties.value.length) return optionsLoading.value ? '加载中…' : '暂无可选房源'
+  return propertyPickerLabels.value[propertyIdx.value] || '请选择房源'
 })
 
 function applyStartEndStrings(startStr: string, endStr: string) {
@@ -127,15 +139,22 @@ onLoad(async (q) => {
     if (q?.customerId) customerSlug.value = String(q.customerId)
   }
 
+  optionsLoading.value = true
+  optionsError.value = ''
   try {
     const [cr, pr, staff] = await Promise.all([
-      fetchCustomerList(),
+      fetchCustomerPickerList(),
       fetchPropertyList(),
       fetchStaffPeers(),
     ])
-    customers.value = cr.list
-    properties.value = pr.list
-    initStaffSelection(staff.list, staff.selfId)
+    customers.value = cr.list ?? []
+    properties.value = pr.list ?? []
+    initStaffSelection(staff.list ?? [], staff.selfId)
+    if (!properties.value.length && !propLocked.value) {
+      optionsError.value = '暂无可见房源，请确认区域权限或先发布房源'
+    } else if (!customers.value.length) {
+      optionsError.value = '暂无可选客户（公海或本人负责）'
+    }
 
     if (viewingId.value) {
       pageTitle.value = '编辑带看'
@@ -153,8 +172,11 @@ onLoad(async (q) => {
       syncPickersFromCode()
     }
   } catch (e) {
-    uni.showToast({ title: e instanceof Error ? e.message : '加载选项失败', icon: 'none' })
+    optionsError.value = e instanceof Error ? e.message : '加载选项失败'
+    uni.showToast({ title: optionsError.value, icon: 'none' })
     if (viewingId.value) setTimeout(() => uni.navigateBack(), 400)
+  } finally {
+    optionsLoading.value = false
   }
 })
 
@@ -164,16 +186,16 @@ function propLabelFromViewing(v: { propertyRef?: string | null; miniPropCode?: s
   return p ? `${p.code || p.id} · ${p.title}` : code || '—'
 }
 
-function onCustomerPick(e: { detail: { value: string } }) {
+function onCustomerPick(e: { detail: { value: string | number } }) {
   customerIdx.value = Number(e.detail.value)
   customerSlug.value = customers.value[customerIdx.value]?.id || ''
 }
 
-function onPropertyPick(e: { detail: { value: string } }) {
+function onPropertyPick(e: { detail: { value: string | number } }) {
   propertyIdx.value = Number(e.detail.value)
   const p = properties.value[propertyIdx.value]
   propertyId.value = p ? propertyNavKey(p) : ''
-  propertyTitle.value = p ? `${p.code || p.id} · ${p.title}` : ''
+  propertyTitle.value = p ? propertyPickerLabels.value[propertyIdx.value] || '' : ''
 }
 
 async function submit() {
@@ -230,9 +252,9 @@ function back() {
               <picker
                 v-else
                 mode="selector"
-                :range="properties"
-                range-key="title"
+                :range="propertyPickerLabels"
                 :value="propertyIdx"
+                :disabled="optionsLoading || !propertyPickerLabels.length"
                 @change="onPropertyPick"
               >
                 <view class="picker-like">{{ propertyLabel }}</view>
@@ -244,11 +266,13 @@ function back() {
                 mode="selector"
                 :range="customerPickerLabels"
                 :value="customerIdx"
+                :disabled="optionsLoading || !customerPickerLabels.length"
                 @change="onCustomerPick"
               >
                 <view class="picker-like">{{ customerLabel }}</view>
               </picker>
             </view>
+            <view v-if="optionsError" class="hint viewing-options-hint">{{ optionsError }}</view>
             <view class="form-group">
               <text class="label">开始日期</text>
               <picker mode="date" :value="startDate" @change="onStartDateChange">
@@ -294,3 +318,15 @@ function back() {
     </view>
   </view>
 </template>
+
+<style scoped>
+.viewing-options-hint {
+  display: block;
+  margin: 0 0 20rpx;
+  padding: 16rpx 20rpx;
+  font-size: 24rpx;
+  color: #b45309;
+  background: #fffbeb;
+  border-radius: 12rpx;
+}
+</style>

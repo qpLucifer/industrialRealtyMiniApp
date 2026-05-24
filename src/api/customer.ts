@@ -8,15 +8,22 @@ import type {
 
 export type CustomerListReminderFilter = 'due' | 'overdue' | 'week'
 
+export type CustomerListScope = 'mine' | 'public' | 'visible' | ''
+
 export function fetchCustomerList(query?: {
   q?: string
-  scope?: 'mine' | 'public' | ''
+  scope?: CustomerListScope
   districtRegionId?: number | null
   grade?: string
   dealStatus?: string
   reminder?: CustomerListReminderFilter
 }) {
   return get<{ list: CustomerListItem[] }>('/api/customer/list', query)
+}
+
+/** Viewing pickers: public + own private customers only. */
+export function fetchCustomerPickerList() {
+  return fetchCustomerList({ scope: 'visible' })
 }
 
 export function fetchCustomerDetail(id: string) {

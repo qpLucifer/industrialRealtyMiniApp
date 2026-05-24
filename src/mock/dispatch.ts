@@ -90,6 +90,7 @@ function filterMockCustomerList(query: Record<string, string>) {
   const scope = (query.scope || '').trim()
   if (scope === 'mine') rows = rows.filter((c) => c.scope === '私有')
   else if (scope === 'public') rows = rows.filter((c) => c.scope === '公有')
+  else if (scope === 'visible') rows = rows.filter((c) => c.scope === '公有' || c.scope === '私有')
   const regionId = Number(query.districtRegionId)
   if (Number.isFinite(regionId) && regionId > 0) {
     rows = rows.filter((c) => c.districtRegionId === regionId)
@@ -264,11 +265,18 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/mini/staff-peers') {
+    const all = [
+      { id: 'mock-peer-1', name: '王莉', regionIds: [1] },
+      { id: 'mock-peer-2', name: '刘洋', regionIds: [2, 3] },
+    ]
+    const regionRaw = query.districtRegionId ?? query.regionId
+    const regionId = regionRaw != null && regionRaw !== '' ? Number(regionRaw) : NaN
+    const list =
+      Number.isFinite(regionId) && regionId > 0
+        ? all.filter((p) => p.regionIds.includes(regionId)).map(({ id, name }) => ({ id, name }))
+        : all.map(({ id, name }) => ({ id, name }))
     return okResult({
-      list: [
-        { id: 'mock-peer-1', name: '王莉' },
-        { id: 'mock-peer-2', name: '刘洋' },
-      ],
+      list,
       selfId: 'mock-self',
       selfName: mockUserProfile.name || '陈思远',
     })

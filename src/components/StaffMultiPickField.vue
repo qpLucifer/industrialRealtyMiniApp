@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+defineOptions({
+  options: {
+    virtualHost: true,
+    styleIsolation: 'shared',
+  },
+})
+
 export type StaffPickOption = { id: string; name: string }
 
 const model = defineModel<string[]>({ default: () => [] })

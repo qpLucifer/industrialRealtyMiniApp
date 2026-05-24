@@ -4,17 +4,19 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { createCustomer } from '@/api/customer'
-import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { markCustomerListStale } from '@/utils/customerNav'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerDealStatus, CustomerGrade, CustomerScope } from '@/types/customer'
 import { fetchRegionDefs } from '@/utils/request'
-import { isPhone11Cn, pickerIdx, type PickerChange } from '@/utils/propertyPublish'
+import {
+  customerRegionPickerIndex,
+  customerRegionPickerLabels,
+  useCustomerStaffPeers,
+} from '@/utils/customerStaffPeers'
+import { isPhone11Cn, type PickerChange } from '@/utils/propertyPublish'
 
 const saving = ref(false)
-const selfId = ref('')
-const selfName = ref('')
-const staffOptions = ref<StaffPeerOption[]>([])
+const { staffOptions, selfId, selfName, reloadStaffPeers, prunePublicOwners } = useCustomerStaffPeers()
 const publicOwnerStaffIds = ref<string[]>([])
 
 const form = reactive({
@@ -33,6 +35,7 @@ const form = reactive({
 
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => regionDefs.value.map((r) => r.name))
+const regionPickerLabels = computed(() => customerRegionPickerLabels(regionNames.value))
 
 const grades: CustomerGrade[] = ['A 类', 'B 类', 'C 类']
 const deals: CustomerDealStatus[] = ['洽谈中', '已成交', '搁置']
@@ -40,25 +43,31 @@ const scopes: CustomerScope[] = ['私有', '公有']
 
 onLoad(async () => {
   try {
-    const [staff, regions] = await Promise.all([
-      fetchStaffPeers(),
+    const [regions] = await Promise.all([
       fetchRegionDefs().catch(() => ({ list: [] as { id: number; name: string }[] })),
+      reloadStaffPeers(),
     ])
-    selfId.value = staff.selfId
-    selfName.value = staff.selfName
-    staffOptions.value = staff.list
     regionDefs.value = regions.list ?? []
   } catch {
     /* optional */
   }
 })
 
-function pickDistrict(e: PickerChange) {
+async function pickDistrict(e: PickerChange) {
   const i = Number(e.detail.value)
-  const row = regionDefs.value[i]
+  if (i === 0) {
+    form.district = ''
+    form.districtRegionId = undefined
+    await reloadStaffPeers()
+    publicOwnerStaffIds.value = prunePublicOwners(publicOwnerStaffIds.value)
+    return
+  }
+  const row = regionDefs.value[i - 1]
   if (row) {
     form.district = row.name
     form.districtRegionId = row.id
+    await reloadStaffPeers(row.id)
+    publicOwnerStaffIds.value = prunePublicOwners(publicOwnerStaffIds.value)
   }
 }
 
@@ -211,19 +220,25 @@ function back() {
               label="负责人（可选）"
               placeholder="不指定"
               sheet-title="选择负责人"
-              hint="公海客户可不指定；可多选多名员工"
+              hint="已选区域时仅显示该区域员工；未选区域时可选全部员工"
               :min-count="0"
             />
             <picker
               v-if="regionNames.length"
               mode="selector"
-              :range="regionNames"
-              :value="pickerIdx(regionNames, form.district || '')"
+              :range="regionPickerLabels"
+              :value="
+                customerRegionPickerIndex(
+                  regionPickerLabels,
+                  form.district,
+                  form.districtRegionId != null,
+                )
+              "
               @change="pickDistrict"
             >
               <view class="form-group">
                 <text class="label">所属区域</text>
-                <view class="picker-like">{{ form.district || '请选择区县' }}</view>
+                <view class="picker-like">{{ form.district || '不指定' }}</view>
               </view>
             </picker>
             <view v-else class="form-group">
