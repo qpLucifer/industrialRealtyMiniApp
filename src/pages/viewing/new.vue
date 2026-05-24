@@ -5,16 +5,16 @@ import NavIconBar from '@/components/NavIconBar.vue'
 import SearchableOptionPicker from '@/components/SearchableOptionPicker.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
-import { fetchCustomerPickerList } from '@/api/customer'
-import { fetchPropertyList, parsePropertyRouteKey, propertyNavKey } from '@/api/property'
-import { fetchStaffPeers, type StaffPeerOption } from '@/api/staff'
+import { fetchCustomerDetail, searchCustomerPicker } from '@/api/customer'
+import { parsePropertyRouteKey, propertyNavKey, searchPropertyPicker } from '@/api/property'
+import { fetchStaffPeers, searchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
 import { fetchViewingDetail, updateViewing } from '@/api/extra'
 import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
-import { defaultViewingSlotBeijing, formatBeijingDisplay } from '@/utils/beijingTime'
+import { defaultViewingSlotBeijing } from '@/utils/beijingTime'
 
 const startDate = ref('')
 const startTime = ref('')
@@ -22,14 +22,12 @@ const endDate = ref('')
 const endTime = ref('')
 const propertyId = ref('')
 const propLocked = ref(false)
-const propertyTitle = ref('')
+const propertySelectedLabel = ref('')
 const customerSlug = ref('')
+const customerSelectedLabel = ref('')
 const grade = ref('B')
 const viewingId = ref<number | null>(null)
 const pageTitle = ref('新建带看')
-
-const customers = ref<CustomerListItem[]>([])
-const properties = ref<PropertyListItem[]>([])
 
 const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
@@ -42,18 +40,19 @@ function customerPickLabel(c: CustomerListItem) {
   return `${name} · ${company}`
 }
 
+function customerSubline(c: CustomerListItem) {
+  const parts = [c.grade, c.district, c.ownerName].filter(Boolean)
+  return parts.join(' · ') || c.id
+}
+
 function propertyPickLabel(p: PropertyListItem) {
   const code = String(p.code || p.id || '').trim() || '—'
   const title = String(p.title || '').trim() || '—'
   return `${code} · ${title}`
 }
 
-function propertySearchText(p: PropertyListItem) {
-  return `${p.metaLine || ''} ${p.status || ''} ${p.draftHint || ''}`
-}
-
-function customerSearchText(c: CustomerListItem) {
-  return `${c.company || ''} ${c.district || ''} ${c.ownerName || ''} ${c.grade || ''}`
+function propertySubline(p: PropertyListItem) {
+  return [p.metaLine, p.status].filter(Boolean).join(' · ')
 }
 
 function customerRowKey(c: CustomerListItem) {
@@ -61,10 +60,8 @@ function customerRowKey(c: CustomerListItem) {
 }
 
 const propertyLabel = computed(() => {
-  if (propLocked.value && propertyTitle.value) return propertyTitle.value
-  if (!propertyId.value) return optionsLoading.value ? '加载中…' : '请选择房源'
-  const p = properties.value.find((x) => propertyNavKey(x) === propertyId.value)
-  return p ? propertyPickLabel(p) : propertyTitle.value || propertyId.value
+  if (propLocked.value && propertySelectedLabel.value) return propertySelectedLabel.value
+  return propertySelectedLabel.value || propertyId.value || '—'
 })
 
 function applyStartEndStrings(startStr: string, endStr: string) {
@@ -105,19 +102,33 @@ function onEndTimeChange(ev: { detail: { value: string } }) {
   endTime.value = ev.detail.value
 }
 
-function syncPickersFromCode() {
-  if (propertyId.value) {
-    const p = properties.value.find((x) => x.id === propertyId.value || x.code === propertyId.value)
-    if (p) {
-      propertyId.value = propertyNavKey(p)
-      propertyTitle.value = propertyPickLabel(p)
-    }
-  }
-}
-
 function initStaffSelection(list: StaffPeerOption[], selfId: string) {
   staffOptions.value = list
   selectedStaffIds.value = selfId && list.some((s) => s.id === selfId) ? [selfId] : list[0] ? [list[0].id] : []
+}
+
+async function resolvePropertyLabel(key: string) {
+  const k = String(key || '').trim()
+  if (!k) return
+  try {
+    const r = await searchPropertyPicker(k, 1)
+    const hit = r.list.find((p) => propertyNavKey(p) === k || p.code === k || p.id === k)
+    propertySelectedLabel.value = hit ? propertyPickLabel(hit) : k
+    if (hit) propertyId.value = propertyNavKey(hit)
+  } catch {
+    propertySelectedLabel.value = k
+  }
+}
+
+async function resolveCustomerLabel(slug: string) {
+  const id = String(slug || '').trim()
+  if (!id) return
+  try {
+    const d = await fetchCustomerDetail(id)
+    customerSelectedLabel.value = `${String(d.contactName || '—').trim()} · ${String(d.company || '—').trim()}`
+  } catch {
+    customerSelectedLabel.value = id
+  }
 }
 
 onLoad(async (q) => {
@@ -137,19 +148,8 @@ onLoad(async (q) => {
   optionsLoading.value = true
   optionsError.value = ''
   try {
-    const [cr, pr, staff] = await Promise.all([
-      fetchCustomerPickerList(),
-      fetchPropertyList({ page: 1, pageSize: 200 }),
-      fetchStaffPeers(),
-    ])
-    customers.value = cr.list ?? []
-    properties.value = pr.list ?? []
+    const staff = await fetchStaffPeers()
     initStaffSelection(staff.list ?? [], staff.selfId)
-    if (!properties.value.length && !propLocked.value) {
-      optionsError.value = '暂无可见房源，请确认区域权限或先发布房源'
-    } else if (!customers.value.length) {
-      optionsError.value = '暂无可选客户（公海或本人负责）'
-    }
 
     if (viewingId.value) {
       pageTitle.value = '编辑带看'
@@ -159,27 +159,26 @@ onLoad(async (q) => {
       customerSlug.value = v.customerSlug || ''
       propertyId.value = v.propertyId || v.propertyRef || v.miniPropCode || ''
       propLocked.value = true
-      propertyTitle.value = propLabelFromViewing(v)
       selectedStaffIds.value =
         v.companionStaffIds?.length ? [...v.companionStaffIds] : staff.selfId ? [staff.selfId] : []
-      syncPickersFromCode()
+      await Promise.all([
+        resolvePropertyLabel(propertyId.value),
+        customerSlug.value ? resolveCustomerLabel(customerSlug.value) : Promise.resolve(),
+      ])
     } else {
-      syncPickersFromCode()
+      await Promise.all([
+        propertyId.value && propLocked.value ? resolvePropertyLabel(propertyId.value) : Promise.resolve(),
+        customerSlug.value ? resolveCustomerLabel(customerSlug.value) : Promise.resolve(),
+      ])
     }
   } catch (e) {
-    optionsError.value = e instanceof Error ? e.message : '加载选项失败'
+    optionsError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: optionsError.value, icon: 'none' })
     if (viewingId.value) setTimeout(() => uni.navigateBack(), 400)
   } finally {
     optionsLoading.value = false
   }
 })
-
-function propLabelFromViewing(v: { propertyRef?: string | null; miniPropCode?: string | null; propertyId?: string | null }) {
-  const code = String(v.propertyRef || v.miniPropCode || v.propertyId || '').trim()
-  const p = properties.value.find((x) => x.id === code || x.code === code)
-  return p ? `${p.code || p.id} · ${p.title}` : code || '—'
-}
 
 async function submit() {
   if (!propertyId.value || !customerSlug.value) {
@@ -197,8 +196,8 @@ async function submit() {
       start: startPayload(),
       end: endPayload(),
       propertyId: propertyId.value,
-      propertyRef: properties.value.find((p) => p.id === propertyId.value)?.code,
-      prop: properties.value.find((p) => p.id === propertyId.value)?.code,
+      propertyRef: propertyId.value,
+      prop: propertyId.value,
       customerSlug: customerSlug.value,
       customerId: customerSlug.value,
       companionStaffIds: selectedStaffIds.value,
@@ -228,37 +227,38 @@ function back() {
       <NavIconBar :title="pageTitle" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-          <view class="card customer-form">
+          <view v-if="optionsLoading" class="card">
+            <text class="hint">加载中…</text>
+          </view>
+          <view v-else class="card customer-form">
             <view class="form-group">
               <text class="label">房源</text>
               <view v-if="propLocked" class="form-field-readonly">{{ propertyLabel }}</view>
               <SearchableOptionPicker
                 v-else
                 v-model="propertyId"
-                :options="properties"
+                v-model:selected-label="propertySelectedLabel"
+                :search="searchPropertyPicker"
                 :get-key="propertyNavKey"
                 :get-label="propertyPickLabel"
-                :get-search-text="propertySearchText"
-                :disabled="optionsLoading"
+                :get-subline="propertySubline"
                 placeholder="请选择房源"
                 sheet-title="选择房源"
                 search-placeholder="搜索编号 / 标题 / 区位…"
               />
             </view>
-            <view class="form-group">
-              <SearchableOptionPicker
-                v-model="customerSlug"
-                label="客户"
-                :options="customers"
-                :get-key="customerRowKey"
-                :get-label="customerPickLabel"
-                :get-search-text="customerSearchText"
-                :disabled="optionsLoading"
-                placeholder="请选择客户"
-                sheet-title="选择客户"
-                search-placeholder="搜索姓名 / 公司…"
-              />
-            </view>
+            <SearchableOptionPicker
+              v-model="customerSlug"
+              v-model:selected-label="customerSelectedLabel"
+              label="客户"
+              :search="searchCustomerPicker"
+              :get-key="customerRowKey"
+              :get-label="customerPickLabel"
+              :get-subline="customerSubline"
+              placeholder="请选择客户"
+              sheet-title="选择客户"
+              search-placeholder="搜索姓名 / 公司 / 手机…"
+            />
             <view v-if="optionsError" class="hint viewing-options-hint">{{ optionsError }}</view>
             <view class="form-group">
               <text class="label">开始日期</text>
@@ -287,8 +287,9 @@ function back() {
             <StaffMultiPickField
               v-model="selectedStaffIds"
               :options="staffOptions"
+              :search-fn="searchStaffPeers"
               label="陪同员工"
-              hint="点击展开列表，勾选多名员工后点确定；默认含本人"
+              hint="可搜索姓名；勾选后点确定，默认含本人"
             />
             <view class="form-group">
               <text class="label">意向等级</text>

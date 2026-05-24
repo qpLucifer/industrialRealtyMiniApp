@@ -16,7 +16,8 @@ import { isPhone11Cn, type PickerChange } from '@/utils/propertyPublish'
 
 const id = ref('')
 const saving = ref(false)
-const { staffOptions, selfId, selfName, reloadStaffPeers, prunePublicOwners } = useCustomerStaffPeers()
+const { staffOptions, selfId, selfName, reloadStaffPeers, staffSearchFn, prunePublicOwners } =
+  useCustomerStaffPeers()
 const publicOwnerStaffIds = ref<string[]>([])
 
 const form = reactive({
@@ -239,10 +240,12 @@ function back() {
               v-else
               v-model="publicOwnerStaffIds"
               :options="staffOptions"
+              :search-fn="staffSearchFn(form.districtRegionId)"
               label="负责人（可选）"
               placeholder="不指定"
               sheet-title="选择负责人"
-              hint="已选区域时仅显示该区域员工；未选区域时可选全部员工"
+              search-placeholder="搜索员工姓名…"
+              hint="已选区域时仅显示该区域员工；可搜索姓名"
               :min-count="0"
             />
             <picker

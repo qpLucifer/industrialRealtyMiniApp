@@ -1,6 +1,7 @@
 import { get, put } from '@/utils/request'
 import type { PagedListResponse } from '@/utils/pagedList'
 import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
+import { PICKER_SEARCH_PAGE_SIZE, type PickerSearchPage } from '@/utils/pickerSearch'
 import type { LiveListingStatus } from '@/utils/propertyListingStatus'
 import type { MyPublishedProperty, PropertyDetailPayload, PropertyEditForm, PropertyListItem } from '@/types/property'
 
@@ -57,6 +58,16 @@ export function fetchPropertyEditForm(key: string) {
 
 export function fetchPropertyLogs(key: string) {
   return get<{ list: { line: string; sub: string }[] }>('/api/property/logs', apiQueryKey(key))
+}
+
+/** Form picker: server search over visible properties for current staff. */
+export async function searchPropertyPicker(q: string, page = 1): Promise<PickerSearchPage<PropertyListItem>> {
+  const r = await fetchPropertyList({
+    q: q.trim() || undefined,
+    page,
+    pageSize: PICKER_SEARCH_PAGE_SIZE,
+  })
+  return { list: r.list ?? [], hasMore: Boolean(r.hasMore) }
 }
 
 export function fetchMyPublished(query?: { page?: number; pageSize?: number }) {

@@ -1,6 +1,7 @@
 import { get, post, put } from '@/utils/request'
 import type { PagedListResponse } from '@/utils/pagedList'
 import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
+import { PICKER_SEARCH_PAGE_SIZE, type PickerSearchPage } from '@/utils/pickerSearch'
 import type {
   CustomerDetail,
   CustomerFollowUpPayload,
@@ -28,9 +29,15 @@ export function fetchCustomerList(query?: {
   return get<PagedListResponse<CustomerListItem>>('/api/customer/list', params)
 }
 
-/** Viewing pickers: public + own private customers only. */
-export function fetchCustomerPickerList() {
-  return fetchCustomerList({ scope: 'visible', page: 1, pageSize: 200 })
+/** Form picker: server search (public + own private customers). */
+export async function searchCustomerPicker(q: string, page = 1): Promise<PickerSearchPage<CustomerListItem>> {
+  const r = await fetchCustomerList({
+    scope: 'visible',
+    q: q.trim() || undefined,
+    page,
+    pageSize: PICKER_SEARCH_PAGE_SIZE,
+  })
+  return { list: r.list ?? [], hasMore: Boolean(r.hasMore) }
 }
 
 export function fetchCustomerDetail(id: string) {

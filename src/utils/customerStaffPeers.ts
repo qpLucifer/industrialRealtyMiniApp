@@ -27,11 +27,12 @@ export function useCustomerStaffPeers() {
   const selfId = ref('')
   const selfName = ref('')
 
-  async function reloadStaffPeers(districtRegionId?: number) {
+  async function reloadStaffPeers(districtRegionId?: number, q?: string) {
     try {
-      const staff = await fetchStaffPeers(
-        districtRegionId != null && districtRegionId > 0 ? { districtRegionId } : undefined,
-      )
+      const staff = await fetchStaffPeers({
+        ...(districtRegionId != null && districtRegionId > 0 ? { districtRegionId } : {}),
+        ...(q?.trim() ? { q: q.trim() } : {}),
+      })
       selfId.value = staff.selfId
       selfName.value = staff.selfName
       staffOptions.value = staff.list
@@ -45,11 +46,20 @@ export function useCustomerStaffPeers() {
     return publicOwnerStaffIds.filter((id) => allowed.has(id))
   }
 
+  function staffSearchFn(districtRegionId?: number) {
+    return (q: string) =>
+      fetchStaffPeers({
+        ...(districtRegionId != null && districtRegionId > 0 ? { districtRegionId } : {}),
+        q,
+      }).then((r) => r.list ?? [])
+  }
+
   return {
     staffOptions,
     selfId,
     selfName,
     reloadStaffPeers,
+    staffSearchFn,
     prunePublicOwners,
     REGION_UNSET_LABEL,
   }

@@ -287,10 +287,14 @@ export async function dispatchMock(
     ]
     const regionRaw = query.districtRegionId ?? query.regionId
     const regionId = regionRaw != null && regionRaw !== '' ? Number(regionRaw) : NaN
-    const list =
+    let list =
       Number.isFinite(regionId) && regionId > 0
         ? all.filter((p) => p.regionIds.includes(regionId)).map(({ id, name }) => ({ id, name }))
         : all.map(({ id, name }) => ({ id, name }))
+    const q = String(query.q || '')
+      .trim()
+      .toLowerCase()
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q))
     return okResult({
       list,
       selfId: 'mock-self',
