@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 defineOptions({
   options: {
@@ -30,6 +30,13 @@ const props = withDefaults(
 
 const visible = ref(false)
 const draft = ref<string[]>([])
+const keyword = ref('')
+
+const filteredOptions = computed(() => {
+  const q = keyword.value.trim().toLowerCase()
+  if (!q) return props.options
+  return props.options.filter((s) => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q))
+})
 
 const displayText = computed(() => {
   const names = model.value
@@ -38,12 +45,17 @@ const displayText = computed(() => {
   return names.length ? names.join('、') : props.placeholder
 })
 
+watch(visible, (open) => {
+  if (!open) keyword.value = ''
+})
+
 function openSheet() {
   if (!props.options.length) {
     uni.showToast({ title: '暂无可选员工', icon: 'none' })
     return
   }
   draft.value = [...model.value]
+  keyword.value = ''
   visible.value = true
 }
 
@@ -81,9 +93,21 @@ function confirmSheet() {
           <text class="staff-multi-sheet__title">{{ sheetTitle }}</text>
           <text class="staff-multi-sheet__action staff-multi-sheet__action--ok" @click="confirmSheet">确定</text>
         </view>
+        <view class="staff-multi-sheet__search">
+          <input
+            v-model="keyword"
+            type="text"
+            class="staff-multi-sheet__input"
+            placeholder="搜索姓名…"
+            confirm-type="search"
+          />
+        </view>
         <scroll-view scroll-y class="staff-multi-sheet__list" :show-scrollbar="false">
+          <view v-if="!filteredOptions.length" class="staff-multi-sheet__empty">
+            <text class="hint">暂无匹配员工</text>
+          </view>
           <checkbox-group @change="onCheckboxChange">
-            <label v-for="s in options" :key="s.id" class="staff-multi-sheet__row">
+            <label v-for="s in filteredOptions" :key="s.id" class="staff-multi-sheet__row">
               <checkbox :value="s.id" :checked="draft.includes(s.id)" color="#1a3a6c" />
               <text class="staff-multi-sheet__name">{{ s.name }}</text>
             </label>
@@ -131,9 +155,27 @@ function confirmSheet() {
   font-weight: 600;
 }
 
+.staff-multi-sheet__search {
+  padding: 0 28rpx 16rpx;
+}
+
+.staff-multi-sheet__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: #f1f5f9;
+  font-size: 28rpx;
+}
+
 .staff-multi-sheet__list {
   max-height: 52vh;
   padding: 8rpx 0 24rpx;
+}
+
+.staff-multi-sheet__empty {
+  padding: 32rpx;
+  text-align: center;
 }
 
 .staff-multi-sheet__row {

@@ -1,5 +1,7 @@
 /** Mini home workbench — aligned with GET /api/workbench/summary result shape. */
 
+import type { AnnouncementItem } from '@/types/message'
+
 export interface WorkbenchTodo {
   id: string
   title: string
@@ -23,4 +25,8 @@ export interface WorkbenchSummary {
   remindCustomerId?: string | null
   todos: WorkbenchTodo[]
   stats: WorkbenchStat[]
+  /** Unread published announcements for badge */
+  unreadAnnounceCount?: number
+  /** Active popup window + unread; null when none to show */
+  popupAnnouncement?: AnnouncementItem | null
 }

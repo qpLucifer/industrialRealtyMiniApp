@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
+import SearchableOptionPicker from '@/components/SearchableOptionPicker.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerPickerList } from '@/api/customer'
@@ -29,8 +30,6 @@ const pageTitle = ref('新建带看')
 
 const customers = ref<CustomerListItem[]>([])
 const properties = ref<PropertyListItem[]>([])
-const customerIdx = ref(0)
-const propertyIdx = ref(0)
 
 const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
@@ -43,27 +42,29 @@ function customerPickLabel(c: CustomerListItem) {
   return `${name} · ${company}`
 }
 
-const customerPickerLabels = computed(() => customers.value.map(customerPickLabel))
+function propertyPickLabel(p: PropertyListItem) {
+  const code = String(p.code || p.id || '').trim() || '—'
+  const title = String(p.title || '').trim() || '—'
+  return `${code} · ${title}`
+}
 
-/** Android MP: selector range must be string[], not object[] */
-const propertyPickerLabels = computed(() =>
-  properties.value.map((p) => {
-    const code = String(p.code || p.id || '').trim() || '—'
-    const title = String(p.title || '').trim() || '—'
-    return `${code} · ${title}`
-  }),
-)
+function propertySearchText(p: PropertyListItem) {
+  return `${p.metaLine || ''} ${p.status || ''} ${p.draftHint || ''}`
+}
 
-const customerLabel = computed(() => {
-  if (!customers.value.length) return optionsLoading.value ? '加载中…' : '暂无可选客户'
-  const c = customers.value[customerIdx.value]
-  return c ? customerPickLabel(c) : '请选择客户'
-})
+function customerSearchText(c: CustomerListItem) {
+  return `${c.company || ''} ${c.district || ''} ${c.ownerName || ''} ${c.grade || ''}`
+}
+
+function customerRowKey(c: CustomerListItem) {
+  return c.id
+}
 
 const propertyLabel = computed(() => {
   if (propLocked.value && propertyTitle.value) return propertyTitle.value
-  if (!properties.value.length) return optionsLoading.value ? '加载中…' : '暂无可选房源'
-  return propertyPickerLabels.value[propertyIdx.value] || '请选择房源'
+  if (!propertyId.value) return optionsLoading.value ? '加载中…' : '请选择房源'
+  const p = properties.value.find((x) => propertyNavKey(x) === propertyId.value)
+  return p ? propertyPickLabel(p) : propertyTitle.value || propertyId.value
 })
 
 function applyStartEndStrings(startStr: string, endStr: string) {
@@ -109,14 +110,8 @@ function syncPickersFromCode() {
     const p = properties.value.find((x) => x.id === propertyId.value || x.code === propertyId.value)
     if (p) {
       propertyId.value = propertyNavKey(p)
-      propertyTitle.value = `${p.code || p.id} · ${p.title}`
-      const i = properties.value.findIndex((x) => x.id === p.id)
-      if (i >= 0) propertyIdx.value = i
+      propertyTitle.value = propertyPickLabel(p)
     }
-  }
-  if (customerSlug.value) {
-    const i = customers.value.findIndex((c) => c.id === customerSlug.value)
-    if (i >= 0) customerIdx.value = i
   }
 }
 
@@ -186,18 +181,6 @@ function propLabelFromViewing(v: { propertyRef?: string | null; miniPropCode?: s
   return p ? `${p.code || p.id} · ${p.title}` : code || '—'
 }
 
-function onCustomerPick(e: { detail: { value: string | number } }) {
-  customerIdx.value = Number(e.detail.value)
-  customerSlug.value = customers.value[customerIdx.value]?.id || ''
-}
-
-function onPropertyPick(e: { detail: { value: string | number } }) {
-  propertyIdx.value = Number(e.detail.value)
-  const p = properties.value[propertyIdx.value]
-  propertyId.value = p ? propertyNavKey(p) : ''
-  propertyTitle.value = p ? propertyPickerLabels.value[propertyIdx.value] || '' : ''
-}
-
 async function submit() {
   if (!propertyId.value || !customerSlug.value) {
     uni.showToast({ title: '请选择房源与客户', icon: 'none' })
@@ -249,28 +232,32 @@ function back() {
             <view class="form-group">
               <text class="label">房源</text>
               <view v-if="propLocked" class="form-field-readonly">{{ propertyLabel }}</view>
-              <picker
+              <SearchableOptionPicker
                 v-else
-                mode="selector"
-                :range="propertyPickerLabels"
-                :value="propertyIdx"
-                :disabled="optionsLoading || !propertyPickerLabels.length"
-                @change="onPropertyPick"
-              >
-                <view class="picker-like">{{ propertyLabel }}</view>
-              </picker>
+                v-model="propertyId"
+                :options="properties"
+                :get-key="propertyNavKey"
+                :get-label="propertyPickLabel"
+                :get-search-text="propertySearchText"
+                :disabled="optionsLoading"
+                placeholder="请选择房源"
+                sheet-title="选择房源"
+                search-placeholder="搜索编号 / 标题 / 区位…"
+              />
             </view>
             <view class="form-group">
-              <text class="label">客户</text>
-              <picker
-                mode="selector"
-                :range="customerPickerLabels"
-                :value="customerIdx"
-                :disabled="optionsLoading || !customerPickerLabels.length"
-                @change="onCustomerPick"
-              >
-                <view class="picker-like">{{ customerLabel }}</view>
-              </picker>
+              <SearchableOptionPicker
+                v-model="customerSlug"
+                label="客户"
+                :options="customers"
+                :get-key="customerRowKey"
+                :get-label="customerPickLabel"
+                :get-search-text="customerSearchText"
+                :disabled="optionsLoading"
+                placeholder="请选择客户"
+                sheet-title="选择客户"
+                search-placeholder="搜索姓名 / 公司…"
+              />
             </view>
             <view v-if="optionsError" class="hint viewing-options-hint">{{ optionsError }}</view>
             <view class="form-group">

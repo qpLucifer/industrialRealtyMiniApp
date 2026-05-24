@@ -16,6 +16,7 @@ import { defaultStatusLabelForRentSale } from '@/utils/propertyListingStatus'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
+import { pickActivePopupAnnouncements } from '@/utils/announcement'
 
 /** Mock DB: announcement id -> content updatedAt snapshot when marked read */
 const mockAnnouncementReadContentAt: Record<string, string> = {}
@@ -260,7 +261,13 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/workbench/summary') {
-    return okResult(mockWorkbench)
+    const ann = buildMockAnnouncementList()
+    const popup = pickActivePopupAnnouncements(ann.list)[0] ?? null
+    return okResult({
+      ...mockWorkbench,
+      unreadAnnounceCount: ann.unreadCount,
+      popupAnnouncement: popup,
+    })
   }
 
   if (method === 'GET' && path === '/api/meta/regions') {

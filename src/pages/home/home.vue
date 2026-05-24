@@ -6,10 +6,9 @@ import { fetchWorkbench } from '@/api/home'
 import { shouldRefreshWorkbench, touchWorkbenchFetched } from '@/utils/workbenchRefresh'
 import { ensureMiniSession } from '@/utils/session'
 import { navigateToPropertyPublish } from '@/api/property'
-import { fetchAnnouncementList, markAnnouncementReadApi } from '@/api/message'
+import { markAnnouncementReadApi } from '@/api/message'
 import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
-import { pickActivePopupAnnouncements } from '@/utils/announcement'
 import { tabBrandTitle } from '@/constants/brand'
 import { setTabNavIntent } from '@/utils/tabNavIntent'
 
@@ -81,6 +80,20 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
       ? statsParsed.slice(0, 3)
       : defaultStats.map((d, i) => statsParsed[i] ?? d)
 
+  const popupRaw = o.popupAnnouncement
+  const popupRec = asRecord(popupRaw)
+  const popupAnnouncement: AnnouncementItem | null = popupRec
+    ? {
+        id: str(popupRec.id),
+        title: str(popupRec.title),
+        body: str(popupRec.body),
+        popup: str(popupRec.popup),
+        popupStart: str(popupRec.popupStart),
+        popupEnd: str(popupRec.popupEnd),
+        read: Boolean(popupRec.read),
+      }
+    : null
+
   return {
     regionLine: str(o.regionLine, '工作台'),
     followCount: num(o.followCount, todos.length),
@@ -89,6 +102,8 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
     remindCustomerId: remindCustomerId || null,
     todos,
     stats,
+    unreadAnnounceCount: num(o.unreadAnnounceCount, 0),
+    popupAnnouncement: popupAnnouncement?.id ? popupAnnouncement : null,
   }
 }
 
@@ -96,11 +111,8 @@ const topBarInsetStyle = useTopBarInsetStyle()
 
 const data = ref<WorkbenchSummary | null>(null)
 const loadError = ref('')
-const announceCount = ref(0)
-const lastAnnounceList = ref<AnnouncementItem[]>([])
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
-const popupQueue = ref<AnnouncementItem[]>([])
 
 const isFirstShow = ref(true)
 let workbenchInflight: Promise<void> | null = null
@@ -112,9 +124,11 @@ async function loadWorkbench(force = false) {
   workbenchInflight = (async () => {
     try {
       const raw = await fetchWorkbench()
-      data.value = normalizeWorkbenchSummary(raw)
+      const summary = normalizeWorkbenchSummary(raw)
+      data.value = summary
       loadError.value = ''
       touchWorkbenchFetched()
+      applyPopupFromSummary(summary)
     } catch (e) {
       loadError.value = e instanceof Error ? e.message : '加载失败'
       if (!data.value) {
@@ -131,11 +145,19 @@ onShow(() => {
   if (!ensureMiniSession()) return
   const force = isFirstShow.value
   if (force) isFirstShow.value = false
-  void (async () => {
-    await loadWorkbench(force)
-    await refreshAnnouncements()
-  })()
+  void loadWorkbench(force)
 })
+
+function applyPopupFromSummary(summary: WorkbenchSummary) {
+  const popup = summary.popupAnnouncement
+  if (popup?.id && !popup.read) {
+    popupItem.value = popup
+    popupVisible.value = true
+    return
+  }
+  popupVisible.value = false
+  popupItem.value = null
+}
 
 const EMPTY_FOLLOW_REMIND = '系统提醒 · 近期暂无需要跟进'
 
@@ -151,58 +173,24 @@ const remindParts = computed(() => {
 })
 
 const announceBadgeText = computed(() => {
-  const n = announceCount.value
+  const n = data.value?.unreadAnnounceCount ?? 0
   if (n <= 0) return ''
   return n > 99 ? '99+' : String(n)
 })
 
-async function refreshAnnouncements() {
-  try {
-    const r = await fetchAnnouncementList()
-    const list = Array.isArray(r.list) ? r.list : []
-    lastAnnounceList.value = list
-    announceCount.value = typeof r.unreadCount === 'number' ? r.unreadCount : list.filter((a) => !a.read).length
-    const active = pickActivePopupAnnouncements(list)
-    if (!active.length) {
-      popupQueue.value = []
-      if (!popupVisible.value) popupItem.value = null
-      return
-    }
-    popupQueue.value = active
-    if (!popupVisible.value) showNextPopup()
-  } catch {
-    /* keep badge / popup state on transient errors */
-  }
-}
-
-function showNextPopup() {
-  const next = popupQueue.value[0]
-  if (!next) {
-    popupVisible.value = false
-    popupItem.value = null
-    return
-  }
-  popupItem.value = next
-  popupVisible.value = true
-}
-
 async function onPopupDismiss() {
   const cur = popupItem.value
-  if (cur?.id) {
-    try {
-      await markAnnouncementReadApi(String(cur.id))
-      const id = String(cur.id)
-      lastAnnounceList.value = lastAnnounceList.value.map((a) => (a.id === id ? { ...a, read: true } : a))
-      announceCount.value = Math.max(0, announceCount.value - 1)
-    } catch {
-      /* badge refreshes on next onShow */
-    }
-  }
-  popupQueue.value = popupQueue.value.slice(1)
   popupVisible.value = false
   popupItem.value = null
-  if (popupQueue.value.length) {
-    setTimeout(() => showNextPopup(), 80)
+  if (!cur?.id) return
+  try {
+    await markAnnouncementReadApi(String(cur.id))
+    if (data.value) {
+      data.value.unreadAnnounceCount = Math.max(0, (data.value.unreadAnnounceCount ?? 0) - 1)
+      data.value.popupAnnouncement = null
+    }
+  } catch {
+    /* badge refreshes on next onShow */
   }
 }
 
