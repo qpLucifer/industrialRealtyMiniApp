@@ -6,7 +6,13 @@ import SearchableOptionPicker from '@/components/SearchableOptionPicker.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerDetail, searchCustomerPicker } from '@/api/customer'
-import { parsePropertyRouteKey, propertyNavKey, searchPropertyPicker } from '@/api/property'
+import {
+  fetchPropertyDetail,
+  fetchPropertyEditForm,
+  parsePropertyRouteKey,
+  propertyNavKey,
+  searchPropertyPicker,
+} from '@/api/property'
 import { fetchStaffPeers, searchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
 import { fetchViewingDetail, updateViewing } from '@/api/extra'
@@ -33,6 +39,7 @@ const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
 const optionsLoading = ref(true)
 const optionsError = ref('')
+const propertyResolving = ref(false)
 
 function customerPickLabel(c: CustomerListItem) {
   const name = String(c.contactName || '').trim() || '—'
@@ -45,10 +52,14 @@ function customerSubline(c: CustomerListItem) {
   return parts.join(' · ') || c.id
 }
 
+function formatPropertyDisplayLabel(code: string, title: string) {
+  const c = String(code || '').trim() || '—'
+  const t = String(title || '').trim()
+  return t ? `${c} · ${t}` : c
+}
+
 function propertyPickLabel(p: PropertyListItem) {
-  const code = String(p.code || p.id || '').trim() || '—'
-  const title = String(p.title || '').trim() || '—'
-  return `${code} · ${title}`
+  return formatPropertyDisplayLabel(String(p.code || p.id || ''), String(p.title || ''))
 }
 
 function propertySubline(p: PropertyListItem) {
@@ -60,8 +71,9 @@ function customerRowKey(c: CustomerListItem) {
 }
 
 const propertyLabel = computed(() => {
-  if (propLocked.value && propertySelectedLabel.value) return propertySelectedLabel.value
-  return propertySelectedLabel.value || propertyId.value || '—'
+  if (propertyResolving.value) return '加载中…'
+  if (propertySelectedLabel.value) return propertySelectedLabel.value
+  return '—'
 })
 
 function applyStartEndStrings(startStr: string, endStr: string) {
@@ -74,8 +86,19 @@ function applyStartEndStrings(startStr: string, endStr: string) {
 }
 
 function defaultSlot() {
-  const { start: s, end: e } = defaultViewingSlotBeijing()
-  applyStartEndStrings(s, e)
+  try {
+    const { start: s, end: e } = defaultViewingSlotBeijing()
+    applyStartEndStrings(s, e)
+  } catch {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const d = String(now.getDate() + 1).padStart(2, '0')
+    startDate.value = `${y}-${m}-${d}`
+    startTime.value = '14:00'
+    endDate.value = startDate.value
+    endTime.value = '15:30'
+  }
 }
 
 function startPayload() {
@@ -110,13 +133,29 @@ function initStaffSelection(list: StaffPeerOption[], selfId: string) {
 async function resolvePropertyLabel(key: string) {
   const k = String(key || '').trim()
   if (!k) return
+  propertyResolving.value = true
   try {
-    const r = await searchPropertyPicker(k, 1)
-    const hit = r.list.find((p) => propertyNavKey(p) === k || p.code === k || p.id === k)
-    propertySelectedLabel.value = hit ? propertyPickLabel(hit) : k
-    if (hit) propertyId.value = propertyNavKey(hit)
+    const detail = await fetchPropertyDetail(k)
+    const form = await fetchPropertyEditForm(k).catch(() => null)
+    const code = String(form?.code || detail.id || k).trim()
+    const title = String(detail.detailTitle || '').trim()
+    propertySelectedLabel.value = formatPropertyDisplayLabel(code, title)
+    propertyId.value = propertyNavKey({ id: detail.id, code: form?.code })
   } catch {
-    propertySelectedLabel.value = k
+    try {
+      const r = await searchPropertyPicker(k, 1)
+      const hit = r.list.find((p) => propertyNavKey(p) === k || p.code === k || p.id === k)
+      if (hit) {
+        propertySelectedLabel.value = propertyPickLabel(hit)
+        propertyId.value = propertyNavKey(hit)
+      } else {
+        propertySelectedLabel.value = ''
+      }
+    } catch {
+      propertySelectedLabel.value = ''
+    }
+  } finally {
+    propertyResolving.value = false
   }
 }
 
@@ -131,7 +170,7 @@ async function resolveCustomerLabel(slug: string) {
   }
 }
 
-onLoad(async (q) => {
+onLoad((q) => {
   const editId = q?.id != null ? Number(q.id) : NaN
   if (Number.isFinite(editId)) viewingId.value = editId
 
@@ -141,11 +180,17 @@ onLoad(async (q) => {
     if (routeKey) {
       propertyId.value = routeKey
       propLocked.value = true
+      propertyResolving.value = true
     }
     if (q?.customerId) customerSlug.value = String(q.customerId)
+    optionsLoading.value = false
   }
 
-  optionsLoading.value = true
+  void bootstrapPage(q)
+})
+
+async function bootstrapPage(q: Record<string, string | undefined> | undefined) {
+  if (viewingId.value) optionsLoading.value = true
   optionsError.value = ''
   try {
     const staff = await fetchStaffPeers()
@@ -161,15 +206,14 @@ onLoad(async (q) => {
       propLocked.value = true
       selectedStaffIds.value =
         v.companionStaffIds?.length ? [...v.companionStaffIds] : staff.selfId ? [staff.selfId] : []
-      await Promise.all([
+      void Promise.all([
         resolvePropertyLabel(propertyId.value),
         customerSlug.value ? resolveCustomerLabel(customerSlug.value) : Promise.resolve(),
       ])
     } else {
-      await Promise.all([
-        propertyId.value && propLocked.value ? resolvePropertyLabel(propertyId.value) : Promise.resolve(),
-        customerSlug.value ? resolveCustomerLabel(customerSlug.value) : Promise.resolve(),
-      ])
+      const routeKey = parsePropertyRouteKey(q)
+      if (routeKey) void resolvePropertyLabel(routeKey)
+      if (customerSlug.value) void resolveCustomerLabel(customerSlug.value)
     }
   } catch (e) {
     optionsError.value = e instanceof Error ? e.message : '加载失败'
@@ -178,7 +222,7 @@ onLoad(async (q) => {
   } finally {
     optionsLoading.value = false
   }
-})
+}
 
 async function submit() {
   if (!propertyId.value || !customerSlug.value) {
@@ -227,7 +271,7 @@ function back() {
       <NavIconBar :title="pageTitle" @back="back" />
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="page-scroll__inner">
-          <view v-if="optionsLoading" class="card">
+          <view v-if="optionsLoading && viewingId" class="card">
             <text class="hint">加载中…</text>
           </view>
           <view v-else class="card customer-form">

@@ -57,7 +57,9 @@ export function defaultViewingSlotBeijing() {
   p.hour = '14'
   p.minute = '00'
   const startStr = `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`
-  const end = new Date(parseBeijingNaiveToInstant(startStr)!.getTime() + 90 * 60 * 1000)
+  const startInst = parseBeijingNaiveToInstant(startStr)
+  if (!startInst) return { start: startStr, end: startStr }
+  const end = new Date(startInst.getTime() + 90 * 60 * 1000)
   return { start: startStr, end: formatBeijingYmdHm(end) }
 }
 
