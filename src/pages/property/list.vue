@@ -198,7 +198,6 @@ function applyFilter() {
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">{{ tabBrandTitle('房源库') }}</view>
-          <view class="sub">品类全 · 已按区域隔离</view>
         </view>
       </view>
       <view class="list-page-head page-scroll__inner">

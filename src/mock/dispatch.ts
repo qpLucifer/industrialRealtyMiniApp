@@ -16,6 +16,8 @@ import { defaultStatusLabelForRentSale } from '@/utils/propertyListingStatus'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
+import { mockLandAuctionItems, mockLandAuctionStats } from '@/mock/data/landAuction'
+import type { LandAuctionStatus } from '@/types/landAuction'
 import { pickActivePopupAnnouncements } from '@/utils/announcement'
 
 /** Mock DB: announcement id -> content updatedAt snapshot when marked read */
@@ -354,6 +356,37 @@ export async function dispatchMock(
 
   if (method === 'GET' && path === '/api/message/list') {
     return okResult(paginateMockRows(mockMessages, query))
+  }
+
+  if (method === 'GET' && path === '/api/land-auction/summary') {
+    const rid =
+      query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
+        ? Number(query.districtRegionId)
+        : null
+    let rows = mockLandAuctionItems
+    if (rid != null && Number.isFinite(rid) && rid > 0) {
+      rows = rows.filter((r) => r.districtRegionId === rid)
+    }
+    const stats = {
+      upcoming: rows.filter((r) => r.auctionStatus === 'upcoming').length,
+      auctioning: rows.filter((r) => r.auctionStatus === 'auctioning').length,
+      completed: rows.filter((r) => r.auctionStatus === 'completed').length,
+      total: rows.length,
+    }
+    return okResult({ stats })
+  }
+
+  if (method === 'GET' && path === '/api/land-auction/list') {
+    const status = String(query?.status || 'upcoming').trim() as LandAuctionStatus
+    const rid =
+      query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
+        ? Number(query.districtRegionId)
+        : null
+    let rows = mockLandAuctionItems.filter((r) => r.auctionStatus === status)
+    if (rid != null && Number.isFinite(rid) && rid > 0) {
+      rows = rows.filter((r) => r.districtRegionId === rid)
+    }
+    return okResult(paginateMockRows(rows, query))
   }
 
   if (method === 'GET' && path === '/api/user/profile') {

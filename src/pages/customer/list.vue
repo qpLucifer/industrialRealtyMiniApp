@@ -211,7 +211,6 @@ function goVideoFaq() {
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">{{ tabBrandTitle('客户池') }}</view>
-          <view class="sub">点选等级与状态 · 筛选里可选区域与提醒</view>
         </view>
       </view>
       <view class="list-page-head page-scroll__inner">

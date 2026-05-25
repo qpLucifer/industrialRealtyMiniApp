@@ -5,6 +5,8 @@
     { "path": "pages/property/list", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/list", "style": { "navigationStyle": "custom" } },
     { "path": "pages/msg/msg", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/land-auction/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/me/messages", "style": { "navigationStyle": "custom" } },
     { "path": "pages/me/me", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/detail", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/publish", "style": { "navigationStyle": "custom" } },
@@ -52,10 +54,10 @@
         "selectedIconPath": "static/tab/customer-active.png"
       },
       {
-        "pagePath": "pages/msg/msg",
-        "text": "消息",
-        "iconPath": "static/tab/msg.png",
-        "selectedIconPath": "static/tab/msg-active.png"
+        "pagePath": "pages/land-auction/index",
+        "text": "土地",
+        "iconPath": "static/tab/land.png",
+        "selectedIconPath": "static/tab/land-active.png"
       },
       {
         "pagePath": "pages/me/me",
