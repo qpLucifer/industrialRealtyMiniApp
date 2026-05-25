@@ -1,4 +1,8 @@
-import { okResult } from '@/utils/result'
+import { okResult, type ApiResult } from '@/utils/result'
+
+function failResult(code: number, message: string): ApiResult<null> {
+  return { code, message, result: null }
+}
 import { getCustomerDetail, mockCustomerList } from '@/mock/data/customers'
 import { mockAnnouncements, mockMessages } from '@/mock/data/messages'
 import {
@@ -16,8 +20,14 @@ import { defaultStatusLabelForRentSale } from '@/utils/propertyListingStatus'
 import { mockVideoFaqList } from '@/mock/data/videoFaq'
 import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
-import { mockLandAuctionItems, mockLandAuctionStats } from '@/mock/data/landAuction'
-import type { LandAuctionStatus } from '@/types/landAuction'
+import {
+  filterMockLandAuctionRows,
+  getMockLandAuctionDetail,
+  landAuctionDetailToListItem,
+  mockLandAuctionDetails,
+  mockLandAuctionStatsFromRows,
+} from '@/mock/data/landAuction'
+import type { LandAuctionDetail, LandAuctionStatus } from '@/types/landAuction'
 import { pickActivePopupAnnouncements } from '@/utils/announcement'
 
 /** Mock DB: announcement id -> content updatedAt snapshot when marked read */
@@ -363,30 +373,85 @@ export async function dispatchMock(
       query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
         ? Number(query.districtRegionId)
         : null
-    let rows = mockLandAuctionItems
+    let rows = mockLandAuctionDetails
     if (rid != null && Number.isFinite(rid) && rid > 0) {
       rows = rows.filter((r) => r.districtRegionId === rid)
     }
-    const stats = {
-      upcoming: rows.filter((r) => r.auctionStatus === 'upcoming').length,
-      auctioning: rows.filter((r) => r.auctionStatus === 'auctioning').length,
-      completed: rows.filter((r) => r.auctionStatus === 'completed').length,
-      total: rows.length,
-    }
-    return okResult({ stats })
+    return okResult({ stats: mockLandAuctionStatsFromRows(rows) })
   }
 
   if (method === 'GET' && path === '/api/land-auction/list') {
-    const status = String(query?.status || 'upcoming').trim() as LandAuctionStatus
-    const rid =
-      query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
-        ? Number(query.districtRegionId)
-        : null
-    let rows = mockLandAuctionItems.filter((r) => r.auctionStatus === status)
-    if (rid != null && Number.isFinite(rid) && rid > 0) {
-      rows = rows.filter((r) => r.districtRegionId === rid)
+    const rows = filterMockLandAuctionRows(mockLandAuctionDetails, query)
+    const list = rows.map(landAuctionDetailToListItem)
+    return okResult(paginateMockRows(list, query))
+  }
+
+  const landDetailMatch = method === 'GET' && path.match(/^\/api\/land-auction\/(\d+)$/)
+  if (landDetailMatch) {
+    const id = Number(landDetailMatch[1])
+    const row = getMockLandAuctionDetail(id)
+    if (!row) return failResult(404, '记录不存在或无权查看')
+    return okResult(row)
+  }
+
+  if (method === 'POST' && path === '/api/land-auction') {
+    const nextId = Math.max(0, ...mockLandAuctionDetails.map((r) => r.id)) + 1
+    const status = (body?.auctionStatus as LandAuctionStatus) || 'upcoming'
+    const row: LandAuctionDetail = {
+      id: nextId,
+      title: String(body?.title || '未命名地块'),
+      districtRegionId: Number(body?.districtRegionId) || null,
+      region: String(body?.region || ''),
+      areaMu: body?.areaMu != null && body.areaMu !== '' ? Number(body.areaMu) : null,
+      startPriceWan:
+        body?.startPriceWan != null && body.startPriceWan !== '' ? Number(body.startPriceWan) : null,
+      dealPriceWan:
+        body?.dealPriceWan != null && body.dealPriceWan !== '' ? Number(body.dealPriceWan) : null,
+      auctionStatus: status,
+      listingDate: String(body?.listingDate || ''),
+      auctionStartAt: String(body?.auctionStartAt || ''),
+      auctionEndAt: String(body?.auctionEndAt || ''),
+      completedAt: String(body?.completedAt || ''),
+      remark: String(body?.remark || ''),
+      published: body?.published === false ? false : true,
+      sortOrder: Number(body?.sortOrder) || 0,
+      updatedAt: '2026-05-25 12:00',
+      canEdit: true,
     }
-    return okResult(paginateMockRows(rows, query))
+    mockLandAuctionDetails.unshift(row)
+    return okResult({ success: true, id: nextId })
+  }
+
+  const landPutMatch = method === 'PUT' && path.match(/^\/api\/land-auction\/(\d+)$/)
+  if (landPutMatch) {
+    const id = Number(landPutMatch[1])
+    const idx = mockLandAuctionDetails.findIndex((r) => r.id === id)
+    if (idx < 0) return failResult(404, '记录不存在')
+    const prev = mockLandAuctionDetails[idx]!
+    mockLandAuctionDetails[idx] = {
+      ...prev,
+      title: String(body?.title ?? prev.title),
+      districtRegionId:
+        body?.districtRegionId != null ? Number(body.districtRegionId) : prev.districtRegionId,
+      region: String(body?.region ?? prev.region),
+      areaMu: body?.areaMu != null && body.areaMu !== '' ? Number(body.areaMu) : prev.areaMu,
+      startPriceWan:
+        body?.startPriceWan != null && body.startPriceWan !== ''
+          ? Number(body.startPriceWan)
+          : prev.startPriceWan,
+      dealPriceWan:
+        body?.dealPriceWan != null && body.dealPriceWan !== ''
+          ? Number(body.dealPriceWan)
+          : prev.dealPriceWan,
+      auctionStatus: (body?.auctionStatus as LandAuctionStatus) || prev.auctionStatus,
+      listingDate: body?.listingDate != null ? String(body.listingDate) : prev.listingDate,
+      auctionStartAt: body?.auctionStartAt != null ? String(body.auctionStartAt) : prev.auctionStartAt,
+      auctionEndAt: body?.auctionEndAt != null ? String(body.auctionEndAt) : prev.auctionEndAt,
+      completedAt: body?.completedAt != null ? String(body.completedAt) : prev.completedAt,
+      remark: body?.remark != null ? String(body.remark) : prev.remark,
+      updatedAt: '2026-05-25 12:00',
+    }
+    return okResult({ success: true })
   }
 
   if (method === 'GET' && path === '/api/user/profile') {

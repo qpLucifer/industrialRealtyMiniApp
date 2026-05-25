@@ -360,7 +360,8 @@ function todoHighlightStyle(highlight: boolean | undefined) {
 
 .home-summary {
   flex-shrink: 0;
-  margin-bottom: 10px;
+  margin-bottom: 20rpx;
+  margin-top: 20rpx;
 }
 
 .home-stats-grid {

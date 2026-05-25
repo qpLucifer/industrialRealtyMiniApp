@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import PagedVirtualList from '@/components/PagedVirtualList.vue'
 import { useTopBarInsetStyle } from '@/composables/useTopBarInsetStyle'
 import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchLandAuctionList, fetchLandAuctionSummary } from '@/api/landAuction'
 import { usePagedList } from '@/utils/pagedList'
 import { fetchRegionDefs } from '@/utils/request'
-import type { LandAuctionStats, LandAuctionStatus } from '@/types/landAuction'
+import { consumeLandAuctionListStale } from '@/utils/landAuctionNav'
+import type { LandAuctionItem, LandAuctionStats, LandAuctionStatus } from '@/types/landAuction'
 import { tabBrandTitle } from '@/constants/brand'
 
 const topBarInsetStyle = useTopBarInsetStyle()
@@ -19,14 +20,23 @@ const SEGS: { key: LandAuctionStatus; label: string }[] = [
 
 const stats = ref<LandAuctionStats>({ upcoming: 0, auctioning: 0, completed: 0, total: 0 })
 const seg = ref(0)
+const keyword = ref('')
+const filterOpen = ref(false)
 const regionDefs = ref<{ id: number; name: string }[]>([])
-const regionFilterId = ref<number | null>(null)
+const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
+
+const filterDraft = reactive({ regionIdx: 0 })
+const filterApplied = reactive({ districtRegionId: null as number | null })
 
 const status = computed(() => SEGS[seg.value]?.key ?? 'upcoming')
 
-const regionQueryParam = computed(() =>
-  regionFilterId.value != null && regionFilterId.value > 0 ? regionFilterId.value : null,
-)
+const hasActiveFilters = computed(() => filterApplied.districtRegionId != null)
+
+const filterSummary = computed(() => {
+  if (filterApplied.districtRegionId == null) return ''
+  const name = regionDefs.value.find((r) => r.id === filterApplied.districtRegionId)?.name
+  return name ? `区域：${name}` : '区域已选'
+})
 
 const {
   items: list,
@@ -39,7 +49,8 @@ const {
   fetchLandAuctionList({
     status: status.value,
     page,
-    districtRegionId: regionQueryParam.value,
+    q: keyword.value.trim() || undefined,
+    districtRegionId: filterApplied.districtRegionId,
   }),
 )
 
@@ -60,7 +71,9 @@ async function loadRegionDefs() {
 
 async function loadSummary() {
   try {
-    const r = await fetchLandAuctionSummary({ districtRegionId: regionQueryParam.value })
+    const r = await fetchLandAuctionSummary({
+      districtRegionId: filterApplied.districtRegionId,
+    })
     if (r?.stats) stats.value = r.stats
   } catch {
     /* keep previous stats */
@@ -76,6 +89,7 @@ async function reload() {
 }
 
 useTabPageShow(() => {
+  consumeLandAuctionListStale()
   void loadRegionDefs()
   return reload()
 }, { requireAuth: true })
@@ -84,9 +98,44 @@ watch(seg, () => {
   void reload()
 })
 
-watch(regionFilterId, () => {
+function syncFilterDraftFromApplied() {
+  filterDraft.regionIdx = 0
+  if (filterApplied.districtRegionId != null) {
+    const i = regionDefs.value.findIndex((r) => r.id === filterApplied.districtRegionId)
+    filterDraft.regionIdx = i >= 0 ? i + 1 : 0
+  }
+}
+
+function openFilter() {
+  syncFilterDraftFromApplied()
+  filterOpen.value = true
+}
+
+function onFilterRegionPick(e: { detail: { value: string | number } }) {
+  filterDraft.regionIdx = Number(e.detail.value)
+}
+
+function resetFilter() {
+  filterDraft.regionIdx = 0
+  filterApplied.districtRegionId = null
+  filterOpen.value = false
   void reload()
-})
+}
+
+function applyFilter() {
+  if (filterDraft.regionIdx <= 0) {
+    filterApplied.districtRegionId = null
+  } else {
+    const row = regionDefs.value[filterDraft.regionIdx - 1]
+    filterApplied.districtRegionId = row?.id ?? null
+  }
+  filterOpen.value = false
+  void reload()
+}
+
+function onSearchConfirm() {
+  void reload()
+}
 
 function statusTone(key: LandAuctionStatus) {
   if (key === 'auctioning') return 'amber'
@@ -98,8 +147,12 @@ function pickSeg(i: number) {
   seg.value = i
 }
 
-function pickRegion(id: number | null) {
-  regionFilterId.value = id
+function goDetail(id: number) {
+  uni.navigateTo({ url: `/pages/land-auction/detail?id=${id}` })
+}
+
+function goNew() {
+  uni.navigateTo({ url: '/pages/land-auction/new' })
 }
 </script>
 
@@ -112,33 +165,35 @@ function pickRegion(id: number | null) {
         </view>
       </view>
 
-      <scroll-view v-if="regionDefs.length" scroll-x class="land-region-scroll" :show-scrollbar="false">
-        <view class="land-region-row">
-          <text
-            class="land-region-chip"
-            :class="{ 'land-region-chip--on': regionFilterId == null }"
-            @tap="pickRegion(null)"
-          >全部区域</text>
-          <text
-            v-for="r in regionDefs"
-            :key="r.id"
-            class="land-region-chip"
-            :class="{ 'land-region-chip--on': regionFilterId === r.id }"
-            @tap="pickRegion(r.id)"
-          >{{ r.name }}</text>
+      <view class="list-page-head page-scroll__inner">
+        <view class="search-bar search-bar--suffix">
+          <input
+            v-model="keyword"
+            type="text"
+            placeholder="关键词：地块名称 / 区域 / 备注…"
+            confirm-type="search"
+            @confirm="onSearchConfirm"
+          />
+          <view class="search-bar__suffix" @click="openFilter">
+            <view class="ic-filter" :class="{ 'ic-filter--on': hasActiveFilters }" />
+          </view>
         </view>
-      </scroll-view>
+        <view v-if="hasActiveFilters" class="filter-active-bar">
+          <text class="filter-active-bar__text">{{ filterSummary }}</text>
+          <text class="filter-active-bar__clear" @click="resetFilter">清除</text>
+        </view>
 
-      <view class="land-stats">
-        <view
-          v-for="(s, i) in SEGS"
-          :key="s.key"
-          class="land-stat"
-          :class="{ 'land-stat--on': seg === i }"
-          @tap="pickSeg(i)"
-        >
-          <text class="land-stat__num">{{ stats[s.key] }}</text>
-          <text class="land-stat__label">{{ s.label }}</text>
+        <view class="land-stats">
+          <view
+            v-for="(s, i) in SEGS"
+            :key="s.key"
+            class="land-stat"
+            :class="{ 'land-stat--on': seg === i }"
+            @tap="pickSeg(i)"
+          >
+            <text class="land-stat__num">{{ stats[s.key] }}</text>
+            <text class="land-stat__label">{{ s.label }}</text>
+          </view>
         </view>
       </view>
 
@@ -149,7 +204,7 @@ function pickRegion(id: number | null) {
         :loading="loading"
         :loading-more="loadingMore"
         :has-more="hasMore"
-        empty-text="暂无数据"
+        :empty-text="hasActiveFilters || keyword ? '无匹配记录，可调整筛选' : '暂无数据，点击右下角新增'"
         @load-more="loadMore"
       >
         <template #empty>
@@ -159,56 +214,112 @@ function pickRegion(id: number | null) {
           </view>
         </template>
         <template #item="{ item: row }">
-          <view class="land-card">
+          <view class="land-card" @tap="goDetail((row as LandAuctionItem).id)">
             <view class="land-card__head">
-              <text class="land-card__title">{{ row.title }}</text>
-              <text class="land-card__tag" :class="`land-card__tag--${statusTone(row.auctionStatus)}`">
-                {{ SEGS.find((x) => x.key === row.auctionStatus)?.label }}
+              <text class="land-card__title">{{ (row as LandAuctionItem).title }}</text>
+              <text
+                class="land-card__tag"
+                :class="`land-card__tag--${statusTone((row as LandAuctionItem).auctionStatus)}`"
+              >
+                {{ SEGS.find((x) => x.key === (row as LandAuctionItem).auctionStatus)?.label }}
               </text>
             </view>
-            <text v-if="row.metaLine" class="land-card__meta">{{ row.metaLine }}</text>
-            <text v-if="row.timeLine" class="land-card__time">{{ row.timeLine }}</text>
+            <text v-if="(row as LandAuctionItem).metaLine" class="land-card__meta">{{
+              (row as LandAuctionItem).metaLine
+            }}</text>
+            <text v-if="(row as LandAuctionItem).timeLine" class="land-card__time">{{
+              (row as LandAuctionItem).timeLine
+            }}</text>
           </view>
         </template>
       </PagedVirtualList>
+
+      <button class="fab fab--tab" @click="goNew">＋</button>
+    </view>
+
+    <view v-if="filterOpen" class="modal-overlay show" @click.self="filterOpen = false">
+      <view class="modal-sheet" @click.stop>
+        <view class="tb-title" style="margin-bottom: 12px">土地筛选</view>
+        <view class="section-title">所属区域</view>
+        <view class="form-group">
+          <picker mode="selector" :range="regionNames" :value="filterDraft.regionIdx" @change="onFilterRegionPick">
+            <view class="picker-like">{{ regionNames[filterDraft.regionIdx] || '全部区域' }}</view>
+          </picker>
+        </view>
+        <view class="filter-sheet-actions">
+          <button class="btn-secondary" @click="resetFilter">重置</button>
+          <button class="btn-primary" @click="applyFilter">应用筛选</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
 
 <style scoped>
-.land-region-scroll {
-  flex-shrink: 0;
-  white-space: nowrap;
-  margin-bottom: 12rpx;
-}
-
-.land-region-row {
-  display: inline-flex;
-  gap: 12rpx;
-  padding: 0 28rpx 8rpx;
-}
-
-.land-region-chip {
-  display: inline-block;
-  padding: 12rpx 24rpx;
-  border-radius: 999rpx;
-  font-size: 24rpx;
-  color: #64748b;
-  background: #fff;
-  border: 2rpx solid #e2e8f0;
-}
-
-.land-region-chip--on {
-  color: var(--brand, #1a3a6c);
-  background: rgba(26, 58, 108, 0.08);
-  border-color: rgba(26, 58, 108, 0.25);
+.tb-title {
+  font-family: var(--display);
+  font-size: 17px;
   font-weight: 600;
+}
+
+.list-page-head {
+  flex-shrink: 0;
+}
+
+.ic-filter {
+  width: 40rpx;
+  height: 40rpx;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M4 6h16M7 12h10M10 18h4'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.ic-filter--on {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a3a6c' stroke-width='2.5'%3E%3Cpath d='M4 6h16M7 12h10M10 18h4'/%3E%3C/svg%3E");
+}
+
+.filter-active-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 12rpx 20rpx;
+  margin-bottom: 16rpx;
+  border-radius: 12rpx;
+  background: rgba(26, 58, 108, 0.06);
+}
+
+.filter-active-bar__text {
+  font-size: 24rpx;
+  color: var(--navy);
+}
+
+.filter-active-bar__clear {
+  font-size: 24rpx;
+  color: var(--mint);
+}
+
+.filter-sheet-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 28rpx;
+}
+
+.filter-sheet-actions .btn-secondary,
+.filter-sheet-actions .btn-primary {
+  flex: 1;
+}
+
+.picker-like {
+  padding: 20rpx;
+  border-radius: 12rpx;
+  background: #f8fafc;
+  border: 1px solid var(--border);
 }
 
 .land-stats {
   display: flex;
   gap: 16rpx;
-  padding: 0 28rpx 20rpx;
+  padding: 20rpx 0 0;
   flex-shrink: 0;
 }
 
