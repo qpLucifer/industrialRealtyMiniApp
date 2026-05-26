@@ -241,7 +241,11 @@ function goNew() {
           </view>
         </template>
         <template #item="{ item: row }">
-          <view class="land-card" @tap="goDetail((row as LandAuctionItem).id)">
+          <view
+            class="land-card glass-list-card"
+            :class="`land-card--${(row as LandAuctionItem).auctionStatus}`"
+            @tap="goDetail((row as LandAuctionItem).id)"
+          >
             <view class="land-card__head">
               <text class="land-card__title">{{ (row as LandAuctionItem).title }}</text>
               <text
@@ -354,15 +358,20 @@ function goNew() {
   flex: 1;
   padding: 24rpx 16rpx;
   border-radius: 20rpx;
-  background: #fff;
-  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1rpx solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 6rpx 24rpx rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   text-align: center;
-  border: 2rpx solid transparent;
+  border-width: 2rpx;
+  border-style: solid;
+  border-color: transparent;
 }
 
 .land-stat--on {
-  border-color: rgba(26, 58, 108, 0.35);
-  background: rgba(26, 58, 108, 0.06);
+  border-color: rgba(26, 58, 108, 0.4);
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .land-stat__num {
@@ -403,14 +412,6 @@ function goNew() {
   margin-bottom: 12rpx;
 }
 
-.land-card {
-  margin-bottom: 20rpx;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  background: #fff;
-  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
-}
-
 .land-card__head {
   display: flex;
   align-items: flex-start;
@@ -435,18 +436,21 @@ function goNew() {
 }
 
 .land-card__tag--slate {
-  background: #f1f5f9;
+  background: rgba(241, 245, 249, 0.85);
   color: #475569;
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
 }
 
 .land-card__tag--amber {
-  background: #fffbeb;
+  background: rgba(255, 251, 235, 0.9);
   color: #b45309;
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
 }
 
 .land-card__tag--mint {
-  background: rgba(26, 58, 108, 0.1);
+  background: rgba(26, 58, 108, 0.12);
   color: var(--brand, #1a3a6c);
+  border: 1rpx solid rgba(255, 255, 255, 0.7);
 }
 
 .land-card__meta {

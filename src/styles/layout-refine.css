@@ -149,19 +149,13 @@ button[plain]::after {
   box-shadow: 0 0 0 4rpx rgba(52, 211, 153, 0.45);
 }
 
+/* Base layout; visual glass skin in glass-list-cards.css when .glass-list-card is present */
 .prop-list-card {
   display: flex;
   gap: 24rpx;
   padding: 28rpx;
   margin-bottom: 20rpx;
-  border-radius: 20rpx;
-  background: var(--surface);
-  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
-}
-
-.prop-list-card:active {
-  opacity: 0.92;
-  transform: scale(0.995);
+  border-radius: 24rpx;
 }
 
 .thumb {

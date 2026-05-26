@@ -86,13 +86,31 @@ const filterSummary = computed(() => {
   return parts.join(' · ')
 })
 
-function gradeChipClass(c: CustomerListItem) {
-  if (c.grade.startsWith('A') || c.gradeTone === 'ok') return 'ok'
+function customerGradeKey(c: CustomerListItem): 'a' | 'b' | 'c' | '' {
+  const g = String(c.grade || '').trim()
+  if (g.startsWith('A')) return 'a'
+  if (g.startsWith('B')) return 'b'
+  if (g.startsWith('C')) return 'c'
   return ''
 }
 
+function customerCardClass(c: CustomerListItem) {
+  const key = customerGradeKey(c)
+  return key ? `cust-card--grade-${key}` : 'cust-card--grade-c'
+}
+
+function gradeChipClass(c: CustomerListItem) {
+  const key = customerGradeKey(c)
+  if (key === 'a') return 'ok'
+  if (key === 'b') return 'cust-grade--b'
+  return 'cust-grade--c'
+}
+
 function avatarToneClass(c: CustomerListItem) {
-  return gradeChipClass(c) === 'ok' ? 'cust-avatar--brand' : 'cust-avatar--slate'
+  const key = customerGradeKey(c)
+  if (key === 'a') return 'cust-avatar--brand'
+  if (key === 'b') return 'cust-avatar--blue'
+  return 'cust-avatar--slate'
 }
 
 /** Up to 2 chars for placeholder avatar (contact name preferred). */
@@ -283,22 +301,18 @@ function goVideoFaq() {
         @load-more="loadMore"
       >
         <template #item="{ item: c }">
-          <view class="cust-card" @click="goDetail((c as CustomerListItem).id)">
+          <view
+            class="cust-card glass-list-card"
+            :class="customerCardClass(c as CustomerListItem)"
+            @click="goDetail((c as CustomerListItem).id)"
+          >
             <view class="cust-avatar" :class="avatarToneClass(c as CustomerListItem)">
               <text class="cust-avatar__text">{{ customerInitials(c as CustomerListItem) }}</text>
             </view>
             <view class="cust-body">
               <view class="cust-head">
                 <text class="cust-name">{{ primaryName(c as CustomerListItem) }}</text>
-                <view
-                  class="chip cust-grade"
-                  :class="gradeChipClass(c as CustomerListItem)"
-                  :style="
-                    gradeChipClass(c as CustomerListItem)
-                      ? ''
-                      : 'background:#f1f5f9;color:#475569;border-color:var(--border)'
-                  "
-                >
+                <view class="chip cust-grade" :class="gradeChipClass(c as CustomerListItem)">
                   {{ (c as CustomerListItem).grade }}
                 </view>
               </view>
@@ -442,22 +456,6 @@ function goVideoFaq() {
   padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
-.cust-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 20rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  border-radius: 20rpx;
-  background: var(--surface, #fff);
-  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
-}
-
-.cust-card:active {
-  opacity: 0.92;
-  transform: scale(0.995);
-}
-
 .cust-avatar {
   width: 88rpx;
   height: 88rpx;
@@ -470,10 +468,29 @@ function goVideoFaq() {
 
 .cust-avatar--brand {
   background: linear-gradient(145deg, #1a3a6c, #2d4f8c);
+  box-shadow: 0 6rpx 16rpx rgba(26, 58, 108, 0.28);
+}
+
+.cust-avatar--blue {
+  background: linear-gradient(145deg, #0284c7, #38bdf8);
+  box-shadow: 0 6rpx 16rpx rgba(14, 165, 233, 0.25);
 }
 
 .cust-avatar--slate {
   background: linear-gradient(145deg, #64748b, #94a3b8);
+  box-shadow: 0 6rpx 16rpx rgba(71, 85, 105, 0.2);
+}
+
+.chip.cust-grade--b {
+  background: rgba(14, 165, 233, 0.14);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.38);
+}
+
+.chip.cust-grade--c {
+  background: rgba(241, 245, 249, 0.9);
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.35);
 }
 
 .cust-avatar__text {
@@ -554,7 +571,7 @@ function goVideoFaq() {
   gap: 16rpx;
   margin-top: 12rpx;
   padding-top: 12rpx;
-  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.65);
 }
 
 .cust-foot__recent {

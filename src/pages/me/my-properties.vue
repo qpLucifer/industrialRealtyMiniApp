@@ -102,7 +102,7 @@ function back() {
         @load-more="loadMore"
       >
         <template #item="{ item: p }">
-          <view class="prop-list-card" @click="goDetail((p as Row).code)">
+          <view class="prop-list-card glass-list-card" @click="goDetail((p as Row).code)">
             <view class="thumb" />
             <view style="flex: 1; min-width: 0">
               <view style="display: flex; justify-content: space-between; gap: 8px">

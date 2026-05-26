@@ -229,7 +229,7 @@ function applyFilter() {
         @load-more="loadMore"
       >
         <template #item="{ item: p }">
-          <view class="prop-list-card" @click="onPropertyRow(p as PropertyListItem)">
+          <view class="prop-list-card glass-list-card" @click="onPropertyRow(p as PropertyListItem)">
             <image
               v-if="(p as PropertyListItem).thumbUrl"
               class="thumb thumb--cover"

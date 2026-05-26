@@ -29,6 +29,7 @@ onLaunch(async () => {
 <style src="@/styles/prototype.css"></style>
 <style src="@/styles/brand-theme.css"></style>
 <style src="@/styles/layout-refine.css"></style>
+<style src="@/styles/glass-list-cards.css"></style>
 <style src="@/styles/property-pages.css"></style>
 <style src="@/styles/property-form-ui.css"></style>
 <style src="@/styles/security.css"></style>

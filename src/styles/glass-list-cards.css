@@ -1,0 +1,122 @@
+/**
+ * Frosted-glass list cards for property, customer, and land-auction tabs.
+ * Works best over the default app gradient / light page background.
+ */
+
+.glass-list-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1rpx solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 10rpx 40rpx rgba(15, 23, 42, 0.07),
+    0 2rpx 8rpx rgba(26, 58, 108, 0.04),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px) saturate(1.35);
+  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+}
+
+.glass-list-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 48%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glass-list-card > view,
+.glass-list-card > image,
+.glass-list-card > text {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-list-card:active {
+  opacity: 0.94;
+  transform: scale(0.992);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* Property list */
+.prop-list-card.glass-list-card {
+  display: flex;
+  gap: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.prop-list-card.glass-list-card .thumb {
+  border: 1rpx solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 6rpx 20rpx rgba(15, 23, 42, 0.1),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Customer — grade accent borders */
+.cust-card.glass-list-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border-width: 3rpx;
+  border-style: solid;
+}
+
+.cust-card--grade-a.glass-list-card {
+  border-color: rgba(26, 58, 108, 0.52);
+  box-shadow:
+    0 12rpx 40rpx rgba(26, 58, 108, 0.14),
+    0 2rpx 8rpx rgba(26, 58, 108, 0.06),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.95);
+}
+
+.cust-card--grade-b.glass-list-card {
+  border-color: rgba(14, 165, 233, 0.48);
+  box-shadow:
+    0 12rpx 40rpx rgba(14, 165, 233, 0.12),
+    0 2rpx 8rpx rgba(14, 165, 233, 0.05),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.95);
+}
+
+.cust-card--grade-c.glass-list-card {
+  border-color: rgba(100, 116, 139, 0.42);
+  box-shadow:
+    0 10rpx 36rpx rgba(71, 85, 105, 0.1),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Land auction */
+.land-card.glass-list-card {
+  margin-bottom: 20rpx;
+  padding: 28rpx 28rpx 28rpx 32rpx;
+}
+
+.land-card.glass-list-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20rpx;
+  bottom: 20rpx;
+  width: 6rpx;
+  border-radius: 0 8rpx 8rpx 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.land-card--upcoming.glass-list-card::after {
+  background: linear-gradient(180deg, #64748b, #94a3b8);
+}
+
+.land-card--auctioning.glass-list-card::after {
+  background: linear-gradient(180deg, #d97706, #fbbf24);
+}
+
+.land-card--completed.glass-list-card::after {
+  background: linear-gradient(180deg, #1a3a6c, #2d4f8c);
+}
