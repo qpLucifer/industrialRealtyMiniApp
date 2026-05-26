@@ -1,4 +1,6 @@
 <script setup lang="ts" generic="T">
+import { ref, watch } from 'vue'
+
 /**
  * Paginated list inside scroll-view (no fixed-height virtual windowing).
  * Mini-program lists load 10 rows per page; native scroll is sufficient and avoids
@@ -13,19 +15,32 @@ const props = withDefaults(
     emptyText?: string
     /** Extra class on page-scroll__inner (e.g. msg-page) */
     innerClass?: string
+    /** Bump to reset scroll position after list refresh (e.g. return from create). */
+    scrollResetKey?: number
   }>(),
   {
     emptyText: '暂无数据',
     innerClass: '',
+    scrollResetKey: 0,
   },
 )
 
 const emit = defineEmits<{ loadMore: [] }>()
 
+const scrollTop = ref(0)
+
+watch(
+  () => props.scrollResetKey,
+  () => {
+    scrollTop.value = scrollTop.value === 0 ? 1 : 0
+  },
+)
+
 function rowKey(item: T, index: number) {
   const row = item as Record<string, unknown>
   const id = row.id ?? row.code ?? row.slug ?? row.messageId
-  return id != null && String(id) !== '' ? String(id) : `row-${index}`
+  const base = id != null && String(id) !== '' ? String(id) : 'row'
+  return `${base}-${index}`
 }
 
 function onScrollToLower() {
@@ -39,6 +54,7 @@ function onScrollToLower() {
     scroll-y
     :show-scrollbar="false"
     class="paged-scroll-list"
+    :scroll-top="scrollTop"
     :lower-threshold="120"
     @scrolltolower="onScrollToLower"
   >

@@ -4,7 +4,11 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { createLandAuction } from '@/api/landAuction'
 import { LAND_STATUS_OPTIONS, useLandAuctionForm } from '@/composables/useLandAuctionForm'
-import { markLandAuctionDetailStale, markLandAuctionListStale } from '@/utils/landAuctionNav'
+import {
+  markLandAuctionDetailStale,
+  markLandAuctionFocusStatus,
+  markLandAuctionListStale,
+} from '@/utils/landAuctionNav'
 
 const saving = ref(false)
 const {
@@ -41,6 +45,7 @@ async function submit() {
   try {
     const r = await createLandAuction(buildPayload())
     markLandAuctionListStale()
+    markLandAuctionFocusStatus(form.auctionStatus)
     uni.showToast({ title: '已创建', icon: 'none' })
     if (r.id) {
       markLandAuctionDetailStale(r.id)

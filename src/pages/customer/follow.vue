@@ -41,7 +41,6 @@ function back() {
 }
 
 function occurredAtPayload() {
-  if (!occurredDate.value || !occurredTime.value) return nowBeijingYmdHm()
   return `${occurredDate.value} ${occurredTime.value}`
 }
 
@@ -80,6 +79,10 @@ async function onSaveFollow() {
   if (!id.value || saving.value) return
   if (!followNote.value.trim()) {
     uni.showToast({ title: '请填写跟进内容', icon: 'none' })
+    return
+  }
+  if (!occurredDate.value.trim() || !occurredTime.value.trim()) {
+    uni.showToast({ title: '请选择跟进日期与时刻', icon: 'none' })
     return
   }
   saving.value = true
@@ -128,16 +131,16 @@ async function onSaveFollow() {
             </view>
 
             <view class="form-group">
-              <text class="label">跟进日期</text>
+              <text class="label">跟进日期<text class="req">*</text></text>
               <picker mode="date" :value="occurredDate" @change="onOccurredDateChange">
-                <view class="picker-like">{{ occurredDate }}</view>
+                <view class="picker-like">{{ occurredDate || '请选择日期' }}</view>
               </picker>
             </view>
 
             <view class="form-group">
-              <text class="label">跟进时刻</text>
+              <text class="label">跟进时刻<text class="req">*</text></text>
               <picker mode="time" :value="occurredTime" @change="onOccurredTimeChange">
-                <view class="picker-like">{{ occurredTime }}</view>
+                <view class="picker-like">{{ occurredTime || '请选择时刻' }}</view>
               </picker>
             </view>
 

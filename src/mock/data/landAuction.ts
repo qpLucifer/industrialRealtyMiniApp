@@ -135,17 +135,13 @@ export function getMockLandAuctionDetail(id: number) {
   return mockLandAuctionDetails.find((r) => r.id === id) ?? null
 }
 
-export function filterMockLandAuctionRows(
-  rows: LandAuctionDetail[],
-  query: Record<string, string>,
-) {
-  const status = String(query?.status || 'upcoming').trim() as LandAuctionDetail['auctionStatus']
+export function filterMockLandAuctionScope(rows: LandAuctionDetail[], query: Record<string, string>) {
   const rid =
     query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
       ? Number(query.districtRegionId)
       : null
   const q = String(query?.q || '').trim().toLowerCase()
-  let list = rows.filter((r) => r.published && r.auctionStatus === status)
+  let list = rows.filter((r) => r.published)
   if (rid != null && Number.isFinite(rid) && rid > 0) {
     list = list.filter((r) => r.districtRegionId === rid)
   }
@@ -158,6 +154,14 @@ export function filterMockLandAuctionRows(
     )
   }
   return list
+}
+
+export function filterMockLandAuctionRows(
+  rows: LandAuctionDetail[],
+  query: Record<string, string>,
+) {
+  const status = String(query?.status || 'upcoming').trim() as LandAuctionDetail['auctionStatus']
+  return filterMockLandAuctionScope(rows, query).filter((r) => r.auctionStatus === status)
 }
 
 export function mockLandAuctionStatsFromRows(rows: LandAuctionDetail[]) {

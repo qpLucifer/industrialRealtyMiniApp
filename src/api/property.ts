@@ -26,6 +26,8 @@ export type PropertyListQuery = {
   status?: string
   /** Filter status_tag 待租/待售 (optional; home stat uses total count without this) */
   available?: boolean
+  /** Only audit_state = live (e.g. viewing property picker) */
+  auditLive?: boolean
   districtRegionId?: number
   minArea?: number
   maxArea?: number
@@ -38,6 +40,7 @@ export function fetchPropertyList(query?: PropertyListQuery) {
   if (query?.q) params.q = query.q
   if (query?.status) params.status = query.status
   if (query?.available) params.available = '1'
+  if (query?.auditLive) params.auditLive = '1'
   if (query?.districtRegionId != null && Number.isFinite(query.districtRegionId)) {
     params.districtRegionId = query.districtRegionId
   }
@@ -66,6 +69,7 @@ export async function searchPropertyPicker(q: string, page = 1): Promise<PickerS
     q: q.trim() || undefined,
     page,
     pageSize: PICKER_SEARCH_PAGE_SIZE,
+    auditLive: true,
   })
   return { list: r.list ?? [], hasMore: Boolean(r.hasMore) }
 }

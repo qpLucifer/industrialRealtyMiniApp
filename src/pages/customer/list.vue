@@ -91,17 +91,34 @@ function gradeChipClass(c: CustomerListItem) {
   return ''
 }
 
-function avatarStyle(c: CustomerListItem) {
-  const mint = gradeChipClass(c) === 'ok'
-  return {
-    width: '46px',
-    height: '46px',
-    borderRadius: '14px',
-    flexShrink: 0,
-    background: mint
-      ? 'linear-gradient(135deg,#1a3a6c,#2d4f8c)'
-      : 'linear-gradient(135deg,#64748b,#94a3b8)',
+function avatarToneClass(c: CustomerListItem) {
+  return gradeChipClass(c) === 'ok' ? 'cust-avatar--brand' : 'cust-avatar--slate'
+}
+
+/** Up to 2 chars for placeholder avatar (contact name preferred). */
+function customerInitials(c: CustomerListItem) {
+  const name = String(c.contactName || c.titleLine?.split('·')[0]?.trim() || '').trim()
+  if (name) {
+    const compact = name.replace(/\s+/g, '')
+    if (compact.length <= 2) return compact
+    return compact.slice(-2)
   }
+  const company = String(c.company || '').trim()
+  if (company) {
+    const compact = company.replace(/\s+/g, '')
+    return compact.length <= 2 ? compact : compact.slice(0, 2)
+  }
+  return '客'
+}
+
+function primaryName(c: CustomerListItem) {
+  return String(c.contactName || c.titleLine?.split('·')[0]?.trim() || c.company || '未命名客户').trim()
+}
+
+function recentSnippet(c: CustomerListItem) {
+  const t = String(c.recent || '').trim()
+  if (!t) return ''
+  return t.replace(/^最近[：:]\s*/, '')
 }
 
 async function loadRegions() {
@@ -257,6 +274,7 @@ function goVideoFaq() {
       </view>
       <PagedVirtualList
         class="page-scroll"
+        inner-class="cust-list-page"
         :items="list"
         :loading="loading"
         :loading-more="loadingMore"
@@ -265,47 +283,48 @@ function goVideoFaq() {
         @load-more="loadMore"
       >
         <template #item="{ item: c }">
-          <view
-            class="prop-list-card"
-            style="align-items: flex-start"
-            @click="goDetail((c as CustomerListItem).id)"
-          >
-            <view :style="avatarStyle(c as CustomerListItem)" />
-            <view style="flex: 1; min-width: 0">
-              <view style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px">
-                <view style="min-width: 0; flex: 1">
-                  <view class="list-meta-muted">{{ (c as CustomerListItem).company }}</view>
-                  <view class="list-title-strong" style="display: block; margin-top: 2px">
-                    {{ (c as CustomerListItem).contactName || (c as CustomerListItem).titleLine }}
-                  </view>
-                </view>
+          <view class="cust-card" @click="goDetail((c as CustomerListItem).id)">
+            <view class="cust-avatar" :class="avatarToneClass(c as CustomerListItem)">
+              <text class="cust-avatar__text">{{ customerInitials(c as CustomerListItem) }}</text>
+            </view>
+            <view class="cust-body">
+              <view class="cust-head">
+                <text class="cust-name">{{ primaryName(c as CustomerListItem) }}</text>
                 <view
-                  class="chip"
+                  class="chip cust-grade"
                   :class="gradeChipClass(c as CustomerListItem)"
                   :style="
                     gradeChipClass(c as CustomerListItem)
                       ? ''
-                      : 'background:#f1f5f9;color:#475569;border-color:var(--border);flex-shrink:0'
+                      : 'background:#f1f5f9;color:#475569;border-color:var(--border)'
                   "
                 >
                   {{ (c as CustomerListItem).grade }}
                 </view>
               </view>
-              <view v-if="(c as CustomerListItem).district" class="list-meta-muted" style="margin-top: 4px">{{
-                (c as CustomerListItem).district
-              }}</view>
-              <view class="list-meta-muted" style="margin-top: 6px">
-                {{ (c as CustomerListItem).dealStatus }}
-                <text v-if="(c as CustomerListItem).ownerName"> · {{ (c as CustomerListItem).ownerName }}</text>
-              </view>
-              <view class="list-meta-muted" style="margin-top: 4px">{{
-                (c as CustomerListItem).recent ? (c as CustomerListItem).recent : '暂无最近跟进'
-              }}</view>
-              <view
-                v-if="(c as CustomerListItem).nextReminder && (c as CustomerListItem).nextReminder !== '—'"
-                style="font-size: 11px; color: var(--amber); margin-top: 6px; line-height: 1.45"
+              <text
+                v-if="(c as CustomerListItem).company && (c as CustomerListItem).company !== primaryName(c as CustomerListItem)"
+                class="cust-company"
               >
-                下次沟通 {{ (c as CustomerListItem).nextReminder }}
+                {{ (c as CustomerListItem).company }}
+              </text>
+              <view class="cust-tags">
+                <text v-if="(c as CustomerListItem).district" class="cust-tag">{{ (c as CustomerListItem).district }}</text>
+                <text class="cust-tag">{{ (c as CustomerListItem).dealStatus }}</text>
+                <text v-if="(c as CustomerListItem).ownerName" class="cust-tag cust-tag--muted">
+                  {{ (c as CustomerListItem).ownerName }}
+                </text>
+              </view>
+              <view class="cust-foot">
+                <text class="cust-foot__recent">
+                  {{ recentSnippet(c as CustomerListItem) || '暂无最近跟进' }}
+                </text>
+                <text
+                  v-if="(c as CustomerListItem).nextReminder && (c as CustomerListItem).nextReminder !== '—'"
+                  class="cust-foot__remind"
+                >
+                  {{ (c as CustomerListItem).nextReminder }}
+                </text>
               </view>
             </view>
           </view>
@@ -417,5 +436,146 @@ function goVideoFaq() {
   height: 40rpx;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a3a6c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='14' height='14' rx='2'/%3E%3Cpath d='M16 10l6-3v10l-6-3V10z'/%3E%3C/svg%3E")
     center / contain no-repeat;
+}
+
+.cust-list-page {
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
+}
+
+.cust-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border-radius: 20rpx;
+  background: var(--surface, #fff);
+  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.06);
+}
+
+.cust-card:active {
+  opacity: 0.92;
+  transform: scale(0.995);
+}
+
+.cust-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cust-avatar--brand {
+  background: linear-gradient(145deg, #1a3a6c, #2d4f8c);
+}
+
+.cust-avatar--slate {
+  background: linear-gradient(145deg, #64748b, #94a3b8);
+}
+
+.cust-avatar__text {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.cust-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cust-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.cust-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--ink, #0f172a);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cust-grade {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+}
+
+.cust-company {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--muted, #64748b);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cust-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.cust-tag {
+  font-size: 22rpx;
+  line-height: 1.3;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  background: rgba(26, 58, 108, 0.06);
+  color: var(--navy, #1a3a6c);
+}
+
+.cust-tag--muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cust-foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+}
+
+.cust-foot__recent {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  color: var(--muted, #64748b);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.cust-foot__remind {
+  flex-shrink: 0;
+  max-width: 42%;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #b45309;
+  line-height: 1.35;
+  text-align: right;
 }
 </style>

@@ -22,6 +22,7 @@ import { mockDealFormDefaults, mockViewingList } from '@/mock/data/viewingDeal'
 import { mockWorkbench } from '@/mock/data/workbench'
 import {
   filterMockLandAuctionRows,
+  filterMockLandAuctionScope,
   getMockLandAuctionDetail,
   landAuctionDetailToListItem,
   mockLandAuctionDetails,
@@ -369,14 +370,7 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/land-auction/summary') {
-    const rid =
-      query?.districtRegionId != null && String(query.districtRegionId).trim() !== ''
-        ? Number(query.districtRegionId)
-        : null
-    let rows = mockLandAuctionDetails
-    if (rid != null && Number.isFinite(rid) && rid > 0) {
-      rows = rows.filter((r) => r.districtRegionId === rid)
-    }
+    const rows = filterMockLandAuctionScope(mockLandAuctionDetails, query)
     return okResult({ stats: mockLandAuctionStatsFromRows(rows) })
   }
 

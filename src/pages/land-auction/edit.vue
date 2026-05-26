@@ -4,7 +4,11 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchLandAuctionDetail, updateLandAuction } from '@/api/landAuction'
 import { LAND_STATUS_OPTIONS, useLandAuctionForm } from '@/composables/useLandAuctionForm'
-import { markLandAuctionDetailStale, markLandAuctionListStale } from '@/utils/landAuctionNav'
+import {
+  markLandAuctionDetailStale,
+  markLandAuctionFocusStatus,
+  markLandAuctionListStale,
+} from '@/utils/landAuctionNav'
 
 const id = ref('')
 const saving = ref(false)
@@ -56,6 +60,7 @@ async function submit() {
   try {
     await updateLandAuction(id.value, buildPayload())
     markLandAuctionListStale()
+    markLandAuctionFocusStatus(form.auctionStatus)
     markLandAuctionDetailStale(id.value)
     uni.showToast({ title: '已保存', icon: 'none' })
     uni.navigateBack()

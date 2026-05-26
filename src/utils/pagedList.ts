@@ -18,26 +18,31 @@ export function usePagedList<T>(fetchPage: (page: number) => Promise<PagedListRe
   const hasMore = ref(false)
   const loading = ref(false)
   const loadingMore = ref(false)
+  let loadGeneration = 0
 
   async function loadFirst() {
+    const generation = ++loadGeneration
     loading.value = true
     try {
       const r = await fetchPage(1)
-      items.value = r.list ?? []
+      if (generation !== loadGeneration) return
+      items.value = Array.isArray(r.list) ? [...r.list] : []
       total.value = r.total ?? 0
       hasMore.value = Boolean(r.hasMore)
       page.value = 1
     } finally {
-      loading.value = false
+      if (generation === loadGeneration) loading.value = false
     }
   }
 
   async function loadMore() {
     if (!hasMore.value || loadingMore.value || loading.value) return
+    const generation = loadGeneration
     loadingMore.value = true
     try {
       const next = page.value + 1
       const r = await fetchPage(next)
+      if (generation !== loadGeneration) return
       items.value = [...items.value, ...(r.list ?? [])]
       total.value = r.total ?? 0
       hasMore.value = Boolean(r.hasMore)

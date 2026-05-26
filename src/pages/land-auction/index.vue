@@ -6,7 +6,10 @@ import { useTabPageShow } from '@/composables/useTabPageShow'
 import { fetchLandAuctionList, fetchLandAuctionSummary } from '@/api/landAuction'
 import { usePagedList } from '@/utils/pagedList'
 import { fetchRegionDefs } from '@/utils/request'
-import { consumeLandAuctionListStale } from '@/utils/landAuctionNav'
+import {
+  consumeLandAuctionFocusStatus,
+  consumeLandAuctionListStale,
+} from '@/utils/landAuctionNav'
 import type { LandAuctionItem, LandAuctionStats, LandAuctionStatus } from '@/types/landAuction'
 import { tabBrandTitle } from '@/constants/brand'
 
@@ -27,6 +30,9 @@ const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) 
 
 const filterDraft = reactive({ regionIdx: 0 })
 const filterApplied = reactive({ districtRegionId: null as number | null })
+const listScrollKey = ref(0)
+const suppressSegWatch = ref(false)
+let reloadTask: Promise<void> | null = null
 
 const status = computed(() => SEGS[seg.value]?.key ?? 'upcoming')
 
@@ -73,6 +79,7 @@ async function loadSummary() {
   try {
     const r = await fetchLandAuctionSummary({
       districtRegionId: filterApplied.districtRegionId,
+      q: keyword.value.trim() || undefined,
     })
     if (r?.stats) stats.value = r.stats
   } catch {
@@ -80,21 +87,40 @@ async function loadSummary() {
   }
 }
 
+function applyFocusStatusFromCreate() {
+  const focus = consumeLandAuctionFocusStatus()
+  if (!focus) return
+  const i = SEGS.findIndex((s) => s.key === focus)
+  if (i < 0 || seg.value === i) return
+  suppressSegWatch.value = true
+  seg.value = i
+  suppressSegWatch.value = false
+}
+
 async function reload() {
-  try {
-    await Promise.all([loadSummary(), loadFirst()])
-  } catch (e) {
-    uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
-  }
+  if (reloadTask) return reloadTask
+  reloadTask = (async () => {
+    try {
+      await Promise.all([loadSummary(), loadFirst()])
+      listScrollKey.value += 1
+    } catch (e) {
+      uni.showToast({ title: e instanceof Error ? e.message : '加载失败', icon: 'none' })
+    } finally {
+      reloadTask = null
+    }
+  })()
+  return reloadTask
 }
 
 useTabPageShow(() => {
   consumeLandAuctionListStale()
+  applyFocusStatusFromCreate()
   void loadRegionDefs()
   return reload()
 }, { requireAuth: true })
 
 watch(seg, () => {
+  if (suppressSegWatch.value) return
   void reload()
 })
 
@@ -204,6 +230,7 @@ function goNew() {
         :loading="loading"
         :loading-more="loadingMore"
         :has-more="hasMore"
+        :scroll-reset-key="listScrollKey"
         :empty-text="hasActiveFilters || keyword ? '无匹配记录，可调整筛选' : '暂无数据，点击右下角新增'"
         @load-more="loadMore"
       >
@@ -359,7 +386,8 @@ function goNew() {
 }
 
 .land-page {
-  padding: 0 28rpx 32rpx;
+  /* Clear FAB + native tab bar so the last card is not clipped after refresh */
+  padding: 0 28rpx calc(160rpx + env(safe-area-inset-bottom));
 }
 
 .land-empty {

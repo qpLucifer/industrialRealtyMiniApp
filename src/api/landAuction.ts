@@ -8,8 +8,12 @@ import type {
   LandAuctionSummary,
 } from '@/types/landAuction'
 
-export function fetchLandAuctionSummary(params?: { districtRegionId?: number | null }) {
+export function fetchLandAuctionSummary(params?: {
+  districtRegionId?: number | null
+  q?: string
+}) {
   return get<LandAuctionSummary>('/api/land-auction/summary', {
+    ...(params?.q?.trim() ? { q: params.q.trim() } : {}),
     ...(params?.districtRegionId != null && params.districtRegionId > 0
       ? { districtRegionId: params.districtRegionId }
       : {}),
