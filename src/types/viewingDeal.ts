@@ -4,6 +4,7 @@ export interface ViewingListItem {
   end: string
   propertyRef: string
   propertyId?: string | null
+  propertyTitle?: string | null
   miniPropCode?: string | null
   customerName: string
   customerSlug?: string | null

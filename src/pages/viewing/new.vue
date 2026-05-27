@@ -18,6 +18,7 @@ import { postAction } from '@/api/message'
 import { fetchViewingDetail, updateViewing } from '@/api/extra'
 import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
+import { markViewingDetailStale } from '@/utils/viewingNav'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 import { defaultViewingSlotBeijing } from '@/utils/beijingTime'
@@ -249,6 +250,7 @@ async function submit() {
     }
     if (viewingId.value) {
       await updateViewing({ ...payload, id: viewingId.value })
+      markViewingDetailStale(viewingId.value)
       uni.showToast({ title: '已保存', icon: 'none' })
     } else {
       await postAction('viewing-create', payload)

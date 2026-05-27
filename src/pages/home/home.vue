@@ -100,6 +100,10 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
     pendingAudit: num(o.pendingAudit, 0),
     remindHtml: str(o.remindHtml, ''),
     remindCustomerId: remindCustomerId || null,
+    remindViewingId: (() => {
+      const n = Number(o.remindViewingId)
+      return Number.isFinite(n) && n > 0 ? n : null
+    })(),
     todos,
     stats,
     unreadAnnounceCount: num(o.unreadAnnounceCount, 0),
@@ -171,6 +175,24 @@ const remindParts = computed(() => {
   if (m) return { lead: '系统提醒', body: m[1] || '' }
   return { lead: '', body: raw }
 })
+
+const hasRemindTarget = computed(() => {
+  const d = data.value
+  if (!d) return false
+  return Boolean(d.remindViewingId || d.remindCustomerId)
+})
+
+function onRemindTap() {
+  const d = data.value
+  if (!d) return
+  if (d.remindViewingId) {
+    uni.navigateTo({ url: `/pages/viewing/detail?id=${d.remindViewingId}` })
+    return
+  }
+  if (d.remindCustomerId) {
+    goCustomer(d.remindCustomerId)
+  }
+}
 
 const announceBadgeText = computed(() => {
   const n = data.value?.unreadAnnounceCount ?? 0
@@ -270,12 +292,17 @@ function todoHighlightStyle(highlight: boolean | undefined) {
             </view>
             <view class="chip warn">待审核 {{ data.pendingAudit }}</view>
           </view>
-          <view class="remind-strip-home">
+          <view
+            class="remind-strip-home"
+            :class="{ 'remind-strip-home--tap': hasRemindTarget }"
+            @tap="onRemindTap"
+          >
             <template v-if="remindParts.lead">
               <text class="remind-k">{{ remindParts.lead }}</text>
               <text> · {{ remindParts.body }}</text>
             </template>
             <text v-else>{{ remindParts.body }}</text>
+            <text v-if="hasRemindTarget" class="remind-strip-home__chev"> ›</text>
           </view>
           <view class="home-stats-grid">
             <view v-for="s in data.stats" :key="s.label" class="home-stat-cell" @tap="onStatTap(s.label)">
@@ -338,6 +365,15 @@ function todoHighlightStyle(highlight: boolean | undefined) {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
+}
+
+.remind-strip-home--tap:active {
+  opacity: 0.88;
+}
+
+.remind-strip-home__chev {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .home-screen {

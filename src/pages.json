@@ -22,6 +22,7 @@
     { "path": "pages/me/my-properties", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/settings", "style": { "navigationStyle": "custom" } },
     { "path": "pages/viewing/new", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/viewing/detail", "style": { "navigationStyle": "custom" } },
     { "path": "pages/common/single-picker", "style": { "navigationStyle": "custom", "disableScroll": true } },
     { "path": "pages/common/multi-picker", "style": { "navigationStyle": "custom", "disableScroll": true } },
     { "path": "pages/viewing/list", "style": { "navigationStyle": "custom" } },

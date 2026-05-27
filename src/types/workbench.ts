@@ -23,6 +23,8 @@ export interface WorkbenchSummary {
   remindHtml: string
   /** Slug of customer shown in system reminder (if any) */
   remindCustomerId?: string | null
+  /** Viewing id when system reminder is viewing-related */
+  remindViewingId?: number | null
   todos: WorkbenchTodo[]
   stats: WorkbenchStat[]
   /** Unread published announcements for badge */
