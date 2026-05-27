@@ -101,6 +101,26 @@ function filterMockPropertyList(query: Record<string, string>) {
   return rows
 }
 
+function beijingTodayYmdMock() {
+  return new Date().toLocaleString('en-CA', { timeZone: 'Asia/Shanghai', hour12: false }).slice(0, 10)
+}
+
+function isMockReminderOnOrAfterToday(c: { nextReminderAt?: string; nextReminder?: string }) {
+  const raw = c.nextReminderAt || c.nextReminder
+  if (!raw || raw === '—') return false
+  const normalized = String(raw).trim().replace('T', ' ').slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) && normalized >= beijingTodayYmdMock()
+}
+
+function mapMockListReminderDisplay<T extends { nextReminder?: string; nextReminderAt?: string; nextLine?: string }>(
+  c: T,
+): T {
+  if (!isMockReminderOnOrAfterToday(c)) {
+    return { ...c, nextReminder: '', nextLine: '—' }
+  }
+  return c
+}
+
 function parseMockReminderAt(c: { nextReminderAt?: string; nextReminder?: string }) {
   const raw = c.nextReminderAt || c.nextReminder
   if (!raw || raw === '—') return null
@@ -344,7 +364,8 @@ export async function dispatchMock(
   }
 
   if (method === 'GET' && path === '/api/customer/list') {
-    return okResult(paginateMockRows(filterMockCustomerList(query), query))
+    const rows = filterMockCustomerList(query).map((c) => mapMockListReminderDisplay(c))
+    return okResult(paginateMockRows(rows, query))
   }
 
   if (method === 'GET' && path === '/api/customer/detail') {

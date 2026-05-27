@@ -9,6 +9,7 @@ import { tabBrandTitle } from '@/constants/brand'
 import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
 import type { CustomerDealStatus, CustomerGrade, CustomerListItem } from '@/types/customer'
+import { isBeijingDateOnOrAfterToday } from '@/utils/beijingTime'
 
 const GRADE_CHIPS: { value: '' | CustomerGrade; label: string; chipClass: string }[] = [
   { value: '', label: '全部', chipClass: '' },
@@ -137,6 +138,14 @@ function recentSnippet(c: CustomerListItem) {
   const t = String(c.recent || '').trim()
   if (!t) return ''
   return t.replace(/^最近[：:]\s*/, '')
+}
+
+/** List card: only show follow-up date when today or later (Beijing). */
+function listNextReminderText(c: CustomerListItem) {
+  const raw = String(c.nextReminderAt || c.nextReminder || '').trim()
+  if (!raw || raw === '—') return ''
+  if (!isBeijingDateOnOrAfterToday(raw)) return ''
+  return String(c.nextReminder || '').trim()
 }
 
 async function loadRegions() {
@@ -333,11 +342,8 @@ function goVideoFaq() {
                 <text class="cust-foot__recent">
                   {{ recentSnippet(c as CustomerListItem) || '暂无最近跟进' }}
                 </text>
-                <text
-                  v-if="(c as CustomerListItem).nextReminder && (c as CustomerListItem).nextReminder !== '—'"
-                  class="cust-foot__remind"
-                >
-                  {{ (c as CustomerListItem).nextReminder }}
+                <text v-if="listNextReminderText(c as CustomerListItem)" class="cust-foot__remind">
+                  {{ listNextReminderText(c as CustomerListItem) }}
                 </text>
               </view>
             </view>

@@ -31,6 +31,17 @@ export function nowBeijingYmdHm(): string {
   return formatBeijingYmdHm()
 }
 
+export function beijingTodayYmd(): string {
+  return formatBeijingYmdHm().slice(0, 10)
+}
+
+/** Calendar date of naive Beijing datetime is today or later. */
+export function isBeijingDateOnOrAfterToday(input: unknown): boolean {
+  const mysql = toMysqlDateTime(input)
+  if (!mysql) return false
+  return mysql.slice(0, 10) >= beijingTodayYmd()
+}
+
 export function formatBeijingDisplay(input: unknown): string {
   const s = String(input ?? '').trim().replace('T', ' ')
   if (!s) return ''
