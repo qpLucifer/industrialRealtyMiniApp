@@ -11,3 +11,9 @@ export function miniLoginByPhoneDigits(phone11Digits: string) {
   const phone = String(phone11Digits || '').replace(/\D/g, '')
   return post<MiniLoginResult>('/api/auth/mini-session', { phone })
 }
+
+/** WeChat app-review entry (login page: 5 taps). Whitelist + staff; works when mini-session is disabled in prod. */
+export function miniLoginByReviewerPhoneDigits(phone11Digits: string) {
+  const phone = String(phone11Digits || '').replace(/\D/g, '')
+  return post<MiniLoginResult>('/api/auth/mini-reviewer-phone', { phone })
+}

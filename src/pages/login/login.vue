@@ -1,12 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { miniLoginByPhoneDigits, miniLoginByWechatPhoneCode } from '@/api/auth'
+import {
+  miniLoginByPhoneDigits,
+  miniLoginByReviewerPhoneDigits,
+  miniLoginByWechatPhoneCode,
+} from '@/api/auth'
 import type { MiniLoginResult } from '@/types/auth'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 
 const loading = ref(false)
 const manualPhone = ref('')
+const reviewerPhone = ref('')
 const agreed = ref(false)
+const reviewerEntryVisible = ref(false)
+
+const SECRET_TAP_GOAL = 5
+const SECRET_TAP_WINDOW_MS = 2500
+let secretTapCount = 0
+let secretTapWindowStart = 0
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const phoneFallbackEnabled = (import.meta.env.VITE_MINI_LOGIN_PHONE_FALLBACK ?? 'false') === 'true'
@@ -105,6 +116,46 @@ function toggleAgree() {
   agreed.value = !agreed.value
 }
 
+function onSecretAreaTap() {
+  const now = Date.now()
+  if (!secretTapWindowStart || now - secretTapWindowStart > SECRET_TAP_WINDOW_MS) {
+    secretTapWindowStart = now
+    secretTapCount = 1
+  } else {
+    secretTapCount += 1
+  }
+  if (secretTapCount >= SECRET_TAP_GOAL) {
+    secretTapCount = 0
+    secretTapWindowStart = 0
+    reviewerEntryVisible.value = true
+    uni.showToast({ title: '审核员登录', icon: 'none', duration: 1200 })
+  }
+}
+
+async function onReviewerPhoneLogin() {
+  if (!agreed.value) {
+    warnAgree()
+    return
+  }
+  const d = reviewerPhone.value.replace(/\D/g, '')
+  if (d.length !== 11 || !/^1\d{10}$/.test(d)) {
+    uni.showToast({ title: '请输入 11 位大陆手机号', icon: 'none' })
+    return
+  }
+  loading.value = true
+  try {
+    const r = await miniLoginByReviewerPhoneDigits(d)
+    persistSession(r)
+    toastAfterLogin(r)
+    uni.reLaunch({ url: '/pages/home/home' })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '登录失败'
+    uni.showToast({ title: msg.length > 36 ? `${msg.slice(0, 36)}…` : msg, icon: 'none', duration: 2800 })
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
   const t = uni.getStorageSync('mini_token')
   if (!t) return
@@ -119,7 +170,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <view class="login-page">
+  <view class="login-page" @tap="onSecretAreaTap">
     <view class="login-page__bg" aria-hidden="true" />
     <view class="login-page__body">
       <view class="login-hero">
@@ -130,7 +181,7 @@ onMounted(() => {
         <text class="login-hero__tag">企业内部 · 厂房 / 土地 / 园区</text>
       </view>
 
-      <view class="login-card">
+      <view class="login-card" @tap.stop>
         <text class="login-card__lead">使用微信授权手机号登录，号码须在后台白名单且与员工档案一致。</text>
 
         <view class="login-agree" @tap="toggleAgree">
@@ -157,6 +208,23 @@ onMounted(() => {
         <!-- #ifndef MP-WEIXIN -->
         <view class="login-card__note">请在微信开发者工具或真机预览中使用小程序登录。</view>
         <!-- #endif -->
+
+        <view v-if="reviewerEntryVisible" class="login-reviewer">
+          <text class="login-reviewer__title">审核员登录</text>
+          <text class="login-reviewer__hint">手机号须在后台「白名单」且与「员工与账号」中档案一致</text>
+          <input
+            v-model="reviewerPhone"
+            type="number"
+            maxlength="11"
+            placeholder="11 位手机号"
+            class="login-reviewer__input"
+            :adjust-position="false"
+            :cursor-spacing="80"
+          />
+          <button class="login-btn login-btn--reviewer" :disabled="loading" @click="onReviewerPhoneLogin">
+            手机号登录
+          </button>
+        </view>
 
         <view v-if="phoneFallbackEnabled" class="login-dev">
           <input
@@ -339,6 +407,45 @@ onMounted(() => {
   margin-top: 16rpx;
   background: #f1f5f9;
   color: #334155;
+}
+
+.login-reviewer {
+  margin-top: 28rpx;
+  padding-top: 28rpx;
+  border-top: 1rpx dashed #cbd5e1;
+}
+
+.login-reviewer__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8rpx;
+}
+
+.login-reviewer__hint {
+  display: block;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin-bottom: 20rpx;
+}
+
+.login-reviewer__input {
+  width: 100%;
+  min-height: 88rpx;
+  margin-bottom: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.login-btn--reviewer {
+  background: #475569;
+  color: #fff;
 }
 
 .login-dev {

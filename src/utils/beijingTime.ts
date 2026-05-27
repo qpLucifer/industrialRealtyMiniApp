@@ -1,24 +1,17 @@
 /** Beijing time (Asia/Shanghai) — miniapp display & pickers. */
 
-const BJ_TZ = 'Asia/Shanghai'
+const BJ_OFFSET_MS = 8 * 60 * 60 * 1000
 
+/** Wall-clock parts in UTC+8 without Intl (WeChat mini program may lack Intl). */
 function beijingParts(date: Date = new Date()) {
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone: BJ_TZ,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  const map = Object.fromEntries(dtf.formatToParts(date).map((p) => [p.type, p.value]))
+  const bj = new Date(date.getTime() + date.getTimezoneOffset() * 60_000 + BJ_OFFSET_MS)
+  const pad2 = (n: number) => String(n).padStart(2, '0')
   return {
-    year: map.year,
-    month: map.month,
-    day: map.day,
-    hour: map.hour,
-    minute: map.minute,
+    year: String(bj.getUTCFullYear()),
+    month: pad2(bj.getUTCMonth() + 1),
+    day: pad2(bj.getUTCDate()),
+    hour: pad2(bj.getUTCHours()),
+    minute: pad2(bj.getUTCMinutes()),
   }
 }
 

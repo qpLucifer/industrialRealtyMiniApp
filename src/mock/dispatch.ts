@@ -293,6 +293,15 @@ export async function dispatchMock(
     })
   }
 
+  if (method === 'POST' && path === '/api/auth/mini-reviewer-phone') {
+    return okResult({
+      token: 'mock-miniapp-token',
+      expiresAt: new Date(Date.now() + 365 * 864e5).toISOString(),
+      expiresIn: 365 * 24 * 60 * 60,
+      profile: mockUserProfile,
+    })
+  }
+
   if (method === 'GET' && path === '/api/workbench/summary') {
     const ann = buildMockAnnouncementList()
     const popup = pickActivePopupAnnouncements(ann.list)[0] ?? null
