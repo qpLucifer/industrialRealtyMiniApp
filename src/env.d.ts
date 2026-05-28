@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE?: string
   readonly VITE_OSS_PUBLIC_BASE_URL?: string
   readonly VITE_MINI_LOGIN_PHONE_FALLBACK?: string
+  readonly VITE_WX_SUBSCRIBE_TEMPLATE_WORK_TASK?: string
 }
 
 interface ImportMeta {

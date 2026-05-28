@@ -19,6 +19,7 @@ import { fetchViewingDetail, updateViewing } from '@/api/extra'
 import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import { markViewingDetailStale } from '@/utils/viewingNav'
+import { prepareWorkTaskSubscribe } from '@/utils/wechatSubscribe'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 import { defaultViewingSlotBeijing } from '@/utils/beijingTime'
@@ -235,6 +236,7 @@ async function submit() {
     return
   }
   try {
+    await prepareWorkTaskSubscribe()
     markListStale('viewing-list')
     markWorkbenchStale()
     const payload = {
