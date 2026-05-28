@@ -75,7 +75,7 @@ export interface PropertyEditForm {
   code?: string
   /** draft | pending | rejected | live — aligned with properties.audit_state */
   auditState?: string
-  /** List column status_tag: 草稿 | 待审核 | 驳回 | 待租 | … */
+  /** List column status_tag: 草稿 | 待审核 | 驳回 | 待开发 | 待租 | … */
   externalStatus?: string
   auditHint?: string
   submitterName?: string

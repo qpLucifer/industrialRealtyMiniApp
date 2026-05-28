@@ -1,6 +1,6 @@
 /** Live listing statuses — must match server propertyListingStatus.js */
 
-export const LIVE_LISTING_STATUSES = ['待租', '已租', '待售', '已售', '待租售', '意向中', '下架封存'] as const
+export const LIVE_LISTING_STATUSES = ['待开发', '待租', '已租', '待售', '已售', '待租售', '意向中', '下架封存'] as const
 
 export type LiveListingStatus = (typeof LIVE_LISTING_STATUSES)[number]
 

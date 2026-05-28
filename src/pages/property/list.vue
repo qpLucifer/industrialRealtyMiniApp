@@ -29,7 +29,7 @@ const {
 const filterOpen = ref(false)
 const seg = ref(0)
 const keyword = ref('')
-const segStatus = ['', '草稿', '待租', '待售', '待租售']
+const segStatus = ['', '草稿', '待开发', '待租', '待售', '待租售']
 
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
@@ -214,9 +214,10 @@ function applyFilter() {
         <view class="segmented">
           <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">全部</button>
           <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">草稿</button>
-          <button class="seg-btn" :class="{ active: seg === 2 }" @click="onSeg(2)">待租</button>
-          <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待售</button>
-          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">待租售</button>
+          <button class="seg-btn" :class="{ active: seg === 2 }" @click="onSeg(2)">待开发</button>
+          <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待租</button>
+          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">待售</button>
+          <button class="seg-btn" :class="{ active: seg === 5 }" @click="onSeg(5)">待租售</button>
         </view>
       </view>
       <PagedVirtualList
