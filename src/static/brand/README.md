@@ -1,5 +1,5 @@
 # Brand assets
 
-Place the company logo file here as **`logo.png`** (used on the login page).
+Login page uses **`logo.png`** in this folder (`/static/brand/logo.png`).
 
-Recommended: square or portrait PNG with transparent or white background, ~512px wide.
+Replace `logo.png` with the official 鹏基工业地产 logo (portrait PNG, white background, ~512px wide).

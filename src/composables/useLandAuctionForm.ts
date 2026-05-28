@@ -1,5 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 import type { LandAuctionDetail, LandAuctionFormPayload, LandAuctionStatus } from '@/types/landAuction'
+import { assertEndAfterStart } from '@/utils/datetimeRange'
 import { fetchRegionDefs } from '@/utils/request'
 
 export const LAND_STATUS_OPTIONS: { value: LandAuctionStatus; label: string }[] = [
@@ -122,6 +123,13 @@ export function useLandAuctionForm() {
   function validate(): string | null {
     if (!form.title.trim()) return '请填写地块/项目名称'
     if (!form.districtRegionId || form.districtRegionId <= 0) return '请选择所属区域'
+    if (form.auctionStatus === 'auctioning') {
+      const rangeErr = assertEndAfterStart(
+        joinDateTime(form.auctionStartDate, form.auctionStartTime),
+        joinDateTime(form.auctionEndDate, form.auctionEndTime),
+      )
+      if (rangeErr) return rangeErr
+    }
     return null
   }
 

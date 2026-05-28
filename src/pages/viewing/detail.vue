@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { fetchViewingDetail, deleteViewing } from '@/api/extra'
+import { prepareWorkTaskSubscribe } from '@/utils/wechatSubscribe'
 import type { ViewingDetail } from '@/types/viewingDeal'
 import { consumeViewingDetailRefresh } from '@/utils/viewingNav'
 import { markListStale } from '@/utils/listStale'
@@ -101,6 +102,7 @@ function onCancel() {
       if (!res.confirm) return
       canceling.value = true
       try {
+        await prepareWorkTaskSubscribe()
         await deleteViewing(viewingId.value)
         markListStale('viewing-list')
         markWorkbenchStale()

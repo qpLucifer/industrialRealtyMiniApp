@@ -23,6 +23,7 @@ import { prepareWorkTaskSubscribe } from '@/utils/wechatSubscribe'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 import { defaultViewingSlotBeijing } from '@/utils/beijingTime'
+import { assertEndAfterStart } from '@/utils/datetimeRange'
 
 const startDate = ref('')
 const startTime = ref('')
@@ -233,6 +234,11 @@ async function submit() {
   }
   if (!selectedStaffIds.value.length) {
     uni.showToast({ title: '请选择陪同员工', icon: 'none' })
+    return
+  }
+  const rangeErr = assertEndAfterStart(startPayload(), endPayload())
+  if (rangeErr) {
+    uni.showToast({ title: rangeErr, icon: 'none' })
     return
   }
   try {
