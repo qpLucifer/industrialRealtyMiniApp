@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import SearchableOptionPicker from '@/components/SearchableOptionPicker.vue'
-import PropertyMultiPickField from '@/components/PropertyMultiPickField.vue'
+import PropertyMultiPickField, { type PropertyPickOption } from '@/components/PropertyMultiPickField.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerDetail, searchCustomerPicker } from '@/api/customer'
@@ -14,6 +14,10 @@ import {
   propertyNavKey,
   searchPropertyPicker,
 } from '@/api/property'
+import {
+  propertyDisplayName,
+  propertyPickerNavKey,
+} from '@/utils/propertyNav'
 import { fetchStaffPeers, searchStaffPeers, type StaffPeerOption } from '@/api/staff'
 import { postAction } from '@/api/message'
 import { fetchViewingDetail, updateViewing } from '@/api/extra'
@@ -33,7 +37,7 @@ const endTime = ref('')
 const propertyIds = ref<string[]>([])
 const propertyId = ref('')
 const propLocked = ref(false)
-const propertySelectedLabel = ref('')
+const propertyInitialOptions = ref<PropertyPickOption[]>([])
 const propertyMultiFieldRef = ref<InstanceType<typeof PropertyMultiPickField> | null>(null)
 const customerSlug = ref('')
 const customerSelectedLabel = ref('')
@@ -45,8 +49,6 @@ const staffOptions = ref<StaffPeerOption[]>([])
 const selectedStaffIds = ref<string[]>([])
 const optionsLoading = ref(true)
 const optionsError = ref('')
-const propertyResolving = ref(false)
-
 function customerPickLabel(c: CustomerListItem) {
   const name = String(c.contactName || '').trim() || '—'
   const company = String(c.company || '').trim() || '—'
@@ -58,16 +60,6 @@ function customerSubline(c: CustomerListItem) {
   return parts.join(' · ') || c.id
 }
 
-function formatPropertyDisplayLabel(code: string, title: string) {
-  const c = String(code || '').trim() || '—'
-  const t = String(title || '').trim()
-  return t ? `${c} · ${t}` : c
-}
-
-function propertyPickLabel(p: PropertyListItem) {
-  return formatPropertyDisplayLabel(String(p.code || p.id || ''), String(p.title || ''))
-}
-
 function propertySubline(p: PropertyListItem) {
   return [p.metaLine, p.status].filter(Boolean).join(' · ')
 }
@@ -75,12 +67,6 @@ function propertySubline(p: PropertyListItem) {
 function customerRowKey(c: CustomerListItem) {
   return c.id
 }
-
-const propertyLabel = computed(() => {
-  if (propertyResolving.value) return '加载中…'
-  if (propertySelectedLabel.value) return propertySelectedLabel.value
-  return '—'
-})
 
 function applyStartEndStrings(startStr: string, endStr: string) {
   const s = splitYmdHm(startStr, '14:00')
@@ -136,44 +122,45 @@ function initStaffSelection(list: StaffPeerOption[], selfId: string) {
   selectedStaffIds.value = selfId && list.some((s) => s.id === selfId) ? [selfId] : list[0] ? [list[0].id] : []
 }
 
+function applyPropertyPick(navKey: string, label: string) {
+  const key = String(navKey || '').trim()
+  const name = String(label || '').trim()
+  if (!key) return
+  propertyId.value = key
+  propertyIds.value = [key]
+  propertyInitialOptions.value = [{ key, label: name || '—' }]
+  propertyMultiFieldRef.value?.setPickedOptions(propertyInitialOptions.value)
+}
+
 async function resolvePropertyLabel(key: string) {
   const k = String(key || '').trim()
   if (!k) return
-  propertyResolving.value = true
   try {
     const detail = await fetchPropertyDetail(k)
     const form = await fetchPropertyEditForm(k).catch(() => null)
     const code = String(form?.code || detail.id || k).trim()
-    const title = String(detail.detailTitle || '').trim()
-    const label = formatPropertyDisplayLabel(code, title)
-    const navKey = propertyNavKey({ id: detail.id, code: form?.code })
-    propertySelectedLabel.value = label
-    propertyId.value = navKey
-    if (!viewingId.value) {
-      propertyIds.value = [navKey]
-      propertyMultiFieldRef.value?.setPickedOptions([{ key: navKey, label }])
-    }
+    const navKey = propertyPickerNavKey({ id: detail.id, code: form?.code ?? detail.id })
+    const label = propertyDisplayName({
+      title: detail.detailTitle,
+      listTitle: form?.listTitle,
+      code,
+      fallbackKey: k,
+    })
+    applyPropertyPick(navKey || code || k, label)
   } catch {
     try {
       const r = await searchPropertyPicker(k, 1)
       const hit = r.list.find((p) => propertyNavKey(p) === k || p.code === k || p.id === k)
       if (hit) {
-        const label = propertyPickLabel(hit)
-        const navKey = propertyNavKey(hit)
-        propertySelectedLabel.value = label
-        propertyId.value = navKey
-        if (!viewingId.value) {
-          propertyIds.value = [navKey]
-          propertyMultiFieldRef.value?.setPickedOptions([{ key: navKey, label }])
-        }
+        const navKey = propertyPickerNavKey({ id: hit.id, code: hit.code })
+        const label = propertyDisplayName({ title: hit.title, code: hit.code, fallbackKey: k })
+        applyPropertyPick(navKey, label)
       } else {
-        propertySelectedLabel.value = ''
+        applyPropertyPick(k, propertyDisplayName({ fallbackKey: k }))
       }
     } catch {
-      propertySelectedLabel.value = ''
+      applyPropertyPick(k, propertyDisplayName({ fallbackKey: k }))
     }
-  } finally {
-    propertyResolving.value = false
   }
 }
 
@@ -195,11 +182,15 @@ onLoad((q) => {
   if (!viewingId.value) {
     defaultSlot()
     const routeKey = parsePropertyRouteKey(q)
+    const presetTitle = q?.propertyTitle != null ? decodeURIComponent(String(q.propertyTitle)) : ''
     if (routeKey) {
-      propertyIds.value = [routeKey]
-      propertyId.value = routeKey
+      const navKey = routeKey
+      propertyIds.value = [navKey]
+      propertyId.value = navKey
       propLocked.value = true
-      propertyResolving.value = true
+      if (presetTitle) {
+        propertyInitialOptions.value = [{ key: navKey, label: presetTitle }]
+      }
     }
     if (q?.customerId) customerSlug.value = String(q.customerId)
     optionsLoading.value = false
@@ -221,12 +212,13 @@ async function bootstrapPage(q: Record<string, string | undefined> | undefined) 
       applyStartEndStrings(v.start, v.end)
       grade.value = v.score || 'B'
       customerSlug.value = v.customerSlug || ''
-      propertyId.value = v.propertyId || v.propertyRef || v.miniPropCode || ''
-      propLocked.value = true
+      const pkey = String(v.propertyId || v.propertyRef || v.miniPropCode || '').trim()
+      propertyId.value = pkey
+      if (pkey) propertyIds.value = [pkey]
       selectedStaffIds.value =
         v.companionStaffIds?.length ? [...v.companionStaffIds] : staff.selfId ? [staff.selfId] : []
       void Promise.all([
-        resolvePropertyLabel(propertyId.value),
+        pkey ? resolvePropertyLabel(pkey) : Promise.resolve(),
         customerSlug.value ? resolveCustomerLabel(customerSlug.value) : Promise.resolve(),
       ])
     } else {
@@ -244,9 +236,12 @@ async function bootstrapPage(q: Record<string, string | undefined> | undefined) 
 }
 
 async function submit() {
-  const hasProperty = viewingId.value ? !!propertyId.value : propertyIds.value.length > 0
-  if (!hasProperty || !customerSlug.value) {
-    uni.showToast({ title: '请选择房源与客户', icon: 'none' })
+  if (!customerSlug.value) {
+    uni.showToast({ title: '请选择客户', icon: 'none' })
+    return
+  }
+  if (!viewingId.value && !propertyIds.value.length) {
+    uni.showToast({ title: '请选择房源', icon: 'none' })
     return
   }
   if (!selectedStaffIds.value.length) {
@@ -271,12 +266,13 @@ async function submit() {
       grade: grade.value,
     }
     if (viewingId.value) {
+      const propKey = String(propertyIds.value[0] || propertyId.value || '').trim()
       await updateViewing({
         ...timeFields,
         id: viewingId.value,
-        propertyId: propertyId.value,
-        propertyRef: propertyId.value,
-        prop: propertyId.value,
+        propertyId: propKey || undefined,
+        propertyRef: propKey || undefined,
+        prop: propKey || undefined,
       })
       markViewingDetailStale(viewingId.value)
       uni.showToast({ title: '已保存', icon: 'none' })
@@ -309,16 +305,19 @@ function back() {
             <text class="hint">加载中…</text>
           </view>
           <view v-else class="card customer-form">
-            <view v-if="viewingId || propLocked" class="form-group">
-              <text class="label">房源</text>
-              <view class="form-field-readonly">{{ propertyLabel }}</view>
-            </view>
             <PropertyMultiPickField
-              v-else
               ref="propertyMultiFieldRef"
               v-model="propertyIds"
+              :initial-options="propertyInitialOptions"
+              :disabled="propLocked"
               label="房源"
-              hint="同一时段带看多套房源将分别登记；可搜索编号 / 标题 / 区位"
+              :hint="
+                propLocked
+                  ? undefined
+                  : viewingId
+                    ? '可更换关联房源（单条带看对应一套）'
+                    : '同一时段带看多套房源将分别登记；可搜索编号 / 标题 / 区位'
+              "
             />
             <SearchableOptionPicker
               v-model="customerSlug"

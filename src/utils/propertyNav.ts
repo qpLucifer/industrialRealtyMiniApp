@@ -10,6 +10,36 @@ export function propertyNavKey(p: PropertyKeySource | string): string {
   return String(p.id || p.code || '').trim()
 }
 
+const INTERNAL_ID_RE = /^p-id-\d+$/i
+
+export function isInternalPropertyId(value: string) {
+  return INTERNAL_ID_RE.test(String(value || '').trim())
+}
+
+/** Prefer business code for forms / viewing (avoid bare p-id-xxx in UI). */
+export function propertyPickerNavKey(p: PropertyKeySource) {
+  const code = String(p.code || '').trim()
+  const id = String(p.id || '').trim()
+  if (code) return code
+  return id
+}
+
+/** User-facing property name — listing title, not internal id. */
+export function propertyDisplayName(opts: {
+  title?: string
+  listTitle?: string
+  code?: string
+  fallbackKey?: string
+}) {
+  const title = String(opts.title || opts.listTitle || '').trim()
+  const code = String(opts.code || '').trim()
+  const key = String(opts.fallbackKey || '').trim()
+  if (title) return title
+  if (code && !isInternalPropertyId(code)) return code
+  if (key && !isInternalPropertyId(key)) return key
+  return '—'
+}
+
 /** Read route query — supports legacy param names during migration. */
 export function parsePropertyRouteKey(q?: Record<string, string | undefined> | null): string {
   if (!q) return ''
@@ -37,10 +67,13 @@ export function navigateToPropertyLog(key: string) {
   uni.navigateTo({ url: `/pages/property/log?key=${encodeURIComponent(k)}` })
 }
 
-export function navigateToViewingNew(key: string) {
+export function navigateToViewingNew(key: string, opts?: { title?: string }) {
   const k = String(key || '').trim()
   if (!k) return
-  uni.navigateTo({ url: `/pages/viewing/new?key=${encodeURIComponent(k)}` })
+  const q = [`key=${encodeURIComponent(k)}`]
+  const title = String(opts?.title || '').trim()
+  if (title) q.push(`propertyTitle=${encodeURIComponent(title)}`)
+  uni.navigateTo({ url: `/pages/viewing/new?${q.join('&')}` })
 }
 
 export function markPropertyDetailStale(key: string) {

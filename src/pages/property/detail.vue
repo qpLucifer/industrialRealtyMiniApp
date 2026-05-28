@@ -248,7 +248,8 @@ function goLog(_key?: string) {
 }
 
 function goViewing() {
-  navigateToViewingNew(routeKey.value)
+  const code = String(detail.value?.id || routeKey.value).trim()
+  navigateToViewingNew(code || routeKey.value, { title: detail.value?.detailTitle })
 }
 
 function openMap() {

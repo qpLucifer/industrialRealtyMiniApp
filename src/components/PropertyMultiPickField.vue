@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { createMultiPickerSession, destroyMultiPickerSession } from '@/utils/pickerSession'
 import { propertyNavKey, searchPropertyPicker } from '@/api/property'
+import { isInternalPropertyId, propertyDisplayName, propertyPickerNavKey } from '@/utils/propertyNav'
 import type { PropertyListItem } from '@/types/property'
 
 defineOptions({
@@ -23,12 +24,17 @@ const props = withDefaults(
     sheetTitle?: string
     minCount?: number
     searchPlaceholder?: string
+    disabled?: boolean
+    /** Parent-resolved labels (route prefill, edit row). */
+    initialOptions?: PropertyPickOption[]
   }>(),
   {
     placeholder: '请选择房源（可多选）',
     sheetTitle: '选择房源',
     minCount: 1,
     searchPlaceholder: '搜索编号 / 标题 / 区位…',
+    disabled: false,
+    initialOptions: () => [],
   },
 )
 
@@ -39,46 +45,116 @@ const labelByKey = computed(() => {
   for (const p of pickedOptions.value) {
     if (p.key && p.label) m.set(p.key, p.label)
   }
+  // Parent-resolved labels win (e.g. replace transient "加载中…").
+  for (const p of props.initialOptions) {
+    if (p.key && p.label) m.set(p.key, p.label)
+  }
   return m
 })
 
+function lineForKey(key: string) {
+  const k = String(key || '').trim()
+  if (!k) return ''
+  const label = labelByKey.value.get(k)
+  if (label && !isTransientLabel(label, k)) return label
+  return ''
+}
+
 const displayText = computed(() => {
-  const labels = model.value.map((k) => labelByKey.value.get(k)).filter(Boolean) as string[]
-  return labels.length ? labels.join('、') : props.placeholder
+  const lines = model.value.map(lineForKey).filter(Boolean)
+  return lines.length ? lines.join('、') : props.placeholder
 })
 
-const showPlaceholder = computed(() => !model.value.length)
-
-function formatPropertyDisplayLabel(code: string, title: string) {
-  const c = String(code || '').trim() || '—'
-  const t = String(title || '').trim()
-  return t ? `${c} · ${t}` : c
-}
+const showPlaceholder = computed(() => !model.value.some((k) => lineForKey(k)))
 
 function propertyPickLabel(p: PropertyListItem) {
-  return formatPropertyDisplayLabel(String(p.code || p.id || ''), String(p.title || ''))
-}
-
-async function searchProperties(q: string) {
-  const r = await searchPropertyPicker(q, 1)
-  return r.list.map((p) => ({
-    id: propertyNavKey(p),
-    name: propertyPickLabel(p),
-  }))
+  return propertyDisplayName({
+    title: p.title,
+    code: p.code || p.id,
+    fallbackKey: propertyNavKey(p),
+  })
 }
 
 function mergePicked(selections: { id?: string; name?: string }[]) {
+  let next = [...pickedOptions.value]
   for (const s of selections) {
     const key = String(s.id || '').trim()
     if (!key) continue
     const label = String(s.name || '').trim() || key
-    if (!pickedOptions.value.some((x) => x.key === key)) {
-      pickedOptions.value = [...pickedOptions.value, { key, label }]
+    const idx = next.findIndex((x) => x.key === key)
+    if (idx >= 0) {
+      if (next[idx].label !== label) {
+        next = [...next]
+        next[idx] = { key, label }
+      }
+    } else {
+      next = [...next, { key, label }]
+    }
+  }
+  pickedOptions.value = next
+}
+
+function isTransientLabel(label: string | undefined, key?: string) {
+  const s = String(label || '').trim()
+  const k = String(key || '').trim()
+  if (!s) return true
+  if (s === '加载中…') return true
+  if (k && s === k) return true
+  if (isInternalPropertyId(s)) return true
+  return false
+}
+
+let resolveSeq = 0
+async function resolveMissingLabels(keys: string[]) {
+  const pending = keys.filter((k) => k && isTransientLabel(labelByKey.value.get(k), k))
+  if (!pending.length) return
+  const seq = ++resolveSeq
+  for (const key of pending) {
+    if (seq !== resolveSeq) return
+    if (labelByKey.value.get(key)) continue
+    try {
+      const r = await searchPropertyPicker(key, 1)
+      const hit = r.list.find((p) => propertyNavKey(p) === key || p.code === key || p.id === key)
+      if (hit) {
+        const navKey = propertyPickerNavKey({ id: hit.id, code: hit.code })
+        mergePicked([{ id: navKey, name: propertyPickLabel(hit) }])
+        if (navKey !== key && model.value.includes(key)) {
+          model.value = model.value.map((id) => (id === key ? navKey : id))
+        }
+      }
+    } catch {
+      /* keep resolving via parent */
     }
   }
 }
 
+watch(
+  () => props.initialOptions,
+  (rows) => {
+    if (!rows?.length) return
+    mergePicked(rows.map((r) => ({ id: r.key, name: r.label })))
+  },
+  { immediate: true, deep: true },
+)
+
+watch(
+  () => [...model.value],
+  (keys) => {
+    void resolveMissingLabels(keys)
+  },
+  { immediate: true },
+)
+
+async function searchProperties(q: string) {
+  const r = await searchPropertyPicker(q, 1)
+  return r.list.map((p) => ({
+    id: propertyPickerNavKey({ id: p.id, code: p.code }),
+    name: propertyPickLabel(p),
+  }))
+}
+
 function openSheet() {
+  if (props.disabled) return
   const sessionId = createMultiPickerSession({
     searchFn: searchProperties,
     title: props.sheetTitle,
@@ -103,7 +179,7 @@ function openSheet() {
 
 /** Seed labels when parent resolves keys (e.g. route prefill). */
 function setPickedOptions(rows: PropertyPickOption[]) {
-  pickedOptions.value = rows.filter((r) => r.key)
+  pickedOptions.value = rows.filter((r) => r.key).map((r) => ({ key: r.key, label: r.label || r.key }))
 }
 
 defineExpose({ setPickedOptions })
@@ -112,9 +188,16 @@ defineExpose({ setPickedOptions })
 <template>
   <view class="form-group property-multi-field">
     <text v-if="label" class="label">{{ label }}</text>
-    <view class="sop-trigger" :class="{ 'sop-trigger--placeholder': showPlaceholder }" @click="openSheet">
-      <text class="sop-trigger__text">{{ displayText }}</text>
-      <text class="sop-trigger__chev">›</text>
+    <view
+      class="sop-trigger"
+      :class="{
+        'sop-trigger--placeholder': showPlaceholder,
+        'sop-trigger--disabled': disabled,
+      }"
+      @click="openSheet"
+    >
+      <view class="sop-trigger__text">{{ displayText }}</view>
+      <text v-if="!disabled" class="sop-trigger__chev">›</text>
     </view>
     <text v-if="hint" class="hint property-multi-field__hint">{{ hint }}</text>
   </view>
@@ -140,12 +223,19 @@ defineExpose({ setPickedOptions })
   font-weight: 400;
 }
 
+.sop-trigger--disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
 .sop-trigger__text {
   flex: 1;
+  min-width: 0;
   font-size: 28rpx;
   font-weight: 600;
   color: var(--ink, #0f172a);
   line-height: 1.4;
+  word-break: break-all;
 }
 
 .sop-trigger__chev {
