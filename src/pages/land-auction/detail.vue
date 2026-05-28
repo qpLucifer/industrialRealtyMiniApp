@@ -89,10 +89,24 @@ function fmtPrice(v: number | null, suffix: string) {
             </view>
             <view v-if="d.region" class="land-detail-meta">所属区域 {{ d.region }}</view>
             <view class="land-detail-meta">面积 {{ fmtPrice(d.areaMu, '亩') }}</view>
-            <view class="land-detail-meta">起拍价 {{ fmtPrice(d.startPriceWan, '万元') }}</view>
-            <view v-if="d.auctionStatus === 'completed'" class="land-detail-meta">
-              成交价 {{ fmtPrice(d.dealPriceWan, '万元') }}
-            </view>
+            <view v-if="d.transferTerm" class="land-detail-meta">出让年限 {{ d.transferTerm }}</view>
+            <view v-if="d.taxPerMu != null" class="land-detail-meta">亩产税 {{ d.taxPerMu }}</view>
+            <view v-if="d.investmentPerMu != null" class="land-detail-meta">亩产投资 {{ d.investmentPerMu }}</view>
+            <template v-if="d.auctionStatus === 'upcoming' || d.auctionStatus === 'auctioning'">
+              <view v-if="d.depositWan != null" class="land-detail-meta">保证金 {{ fmtPrice(d.depositWan, '万元') }}</view>
+              <view class="land-detail-meta">起始价 {{ fmtPrice(d.startPriceWan, '万元') }}</view>
+            </template>
+            <template v-else-if="d.auctionStatus === 'completed'">
+              <view class="land-detail-meta">成交价 {{ fmtPrice(d.dealPriceWan, '万元') }}</view>
+              <view v-if="d.avgPricePerMu != null" class="land-detail-meta">
+                均价 {{ fmtPrice(d.avgPricePerMu, '万元/亩') }}
+              </view>
+              <view v-if="d.buyerInfo" class="land-detail-meta">买方 {{ d.buyerInfo }}</view>
+            </template>
+            <view
+              v-else-if="d.startPriceWan != null"
+              class="land-detail-meta"
+            >起拍价 {{ fmtPrice(d.startPriceWan, '万元') }}</view>
           </view>
 
           <view class="section-title">时间信息</view>

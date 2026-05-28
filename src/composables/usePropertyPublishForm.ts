@@ -483,8 +483,8 @@ export function usePropertyPublishPage() {
       uni.showModal({
         title: '确认发布',
         content: auditOn
-          ? '提交后房源将进入「待审核」，管理员审核通过后将按「租售类型」设置对外状态（出租→待租，出售→待售，租售皆可→待租售）。'
-          : '当前未开启发布审核，提交后将直接上架，对外状态按「租售类型」自动设置。',
+          ? '提交后房源将进入「待审核」，管理员审核通过后将按「租售类型」设置对外状态（出租→待租，出售→待售，租售皆可→待租售，待开发→待开发）。'
+          : '当前未开启发布审核，提交后将直接上架，对外状态按「租售类型」自动设置（含待开发→待开发）。',
         confirmText: '确认发布',
         cancelText: '取消',
         success: (res) => resolve(Boolean(res.confirm)),

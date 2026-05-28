@@ -109,20 +109,52 @@ function back() {
                 <view class="picker-like">{{ statusLabels[statusPickerIndex] || '即将挂拍' }}</view>
               </picker>
             </view>
+            <view class="form-group">
+              <text class="label">面积（亩）</text>
+              <input v-model="form.areaMu" type="digit" class="field-input" placeholder="亩" />
+            </view>
+            <view class="form-group">
+              <text class="label">出让年限</text>
+              <input v-model="form.transferTerm" type="text" class="field-input" placeholder="如：50年" />
+            </view>
             <view class="form-row-2">
               <view class="form-group">
-                <text class="label">面积（亩）</text>
-                <input v-model="form.areaMu" type="digit" class="field-input" placeholder="亩" />
+                <text class="label">亩产税</text>
+                <input v-model="form.taxPerMu" type="digit" class="field-input" />
               </view>
               <view class="form-group">
-                <text class="label">起拍价（万）</text>
-                <input v-model="form.startPriceWan" type="digit" class="field-input" placeholder="万元" />
+                <text class="label">亩产投资</text>
+                <input v-model="form.investmentPerMu" type="digit" class="field-input" />
               </view>
             </view>
-            <view v-if="form.auctionStatus === 'completed'" class="form-group">
-              <text class="label">成交价（万）</text>
-              <input v-model="form.dealPriceWan" type="digit" class="field-input" placeholder="万元" />
-            </view>
+            <template v-if="form.auctionStatus === 'upcoming' || form.auctionStatus === 'auctioning'">
+              <view class="form-row-2">
+                <view class="form-group">
+                  <text class="label">保证金（万）</text>
+                  <input v-model="form.depositWan" type="digit" class="field-input" placeholder="万元" />
+                </view>
+                <view class="form-group">
+                  <text class="label">起始价（万）</text>
+                  <input v-model="form.startPriceWan" type="digit" class="field-input" placeholder="万元" />
+                </view>
+              </view>
+            </template>
+            <template v-if="form.auctionStatus === 'completed'">
+              <view class="form-row-2">
+                <view class="form-group">
+                  <text class="label">成交价（万）</text>
+                  <input v-model="form.dealPriceWan" type="digit" class="field-input" placeholder="万元" />
+                </view>
+                <view class="form-group">
+                  <text class="label">均价（万/亩）</text>
+                  <input v-model="form.avgPricePerMu" type="digit" class="field-input" placeholder="万元/亩" />
+                </view>
+              </view>
+              <view class="form-group">
+                <text class="label">买方信息</text>
+                <input v-model="form.buyerInfo" type="text" class="field-input" placeholder="企业名称、联系人等" />
+              </view>
+            </template>
             <view v-if="form.auctionStatus === 'upcoming'" class="form-group">
               <text class="label">预计挂拍日期</text>
               <picker mode="date" :value="form.listingDate" @change="(e) => (form.listingDate = e.detail.value)">

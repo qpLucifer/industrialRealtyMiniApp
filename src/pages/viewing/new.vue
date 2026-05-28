@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import SearchableOptionPicker from '@/components/SearchableOptionPicker.vue'
+import PropertyMultiPickField from '@/components/PropertyMultiPickField.vue'
 import StaffMultiPickField from '@/components/StaffMultiPickField.vue'
 import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerDetail, searchCustomerPicker } from '@/api/customer'
@@ -29,9 +30,11 @@ const startDate = ref('')
 const startTime = ref('')
 const endDate = ref('')
 const endTime = ref('')
+const propertyIds = ref<string[]>([])
 const propertyId = ref('')
 const propLocked = ref(false)
 const propertySelectedLabel = ref('')
+const propertyMultiFieldRef = ref<InstanceType<typeof PropertyMultiPickField> | null>(null)
 const customerSlug = ref('')
 const customerSelectedLabel = ref('')
 const grade = ref('B')
@@ -142,15 +145,27 @@ async function resolvePropertyLabel(key: string) {
     const form = await fetchPropertyEditForm(k).catch(() => null)
     const code = String(form?.code || detail.id || k).trim()
     const title = String(detail.detailTitle || '').trim()
-    propertySelectedLabel.value = formatPropertyDisplayLabel(code, title)
-    propertyId.value = propertyNavKey({ id: detail.id, code: form?.code })
+    const label = formatPropertyDisplayLabel(code, title)
+    const navKey = propertyNavKey({ id: detail.id, code: form?.code })
+    propertySelectedLabel.value = label
+    propertyId.value = navKey
+    if (!viewingId.value) {
+      propertyIds.value = [navKey]
+      propertyMultiFieldRef.value?.setPickedOptions([{ key: navKey, label }])
+    }
   } catch {
     try {
       const r = await searchPropertyPicker(k, 1)
       const hit = r.list.find((p) => propertyNavKey(p) === k || p.code === k || p.id === k)
       if (hit) {
-        propertySelectedLabel.value = propertyPickLabel(hit)
-        propertyId.value = propertyNavKey(hit)
+        const label = propertyPickLabel(hit)
+        const navKey = propertyNavKey(hit)
+        propertySelectedLabel.value = label
+        propertyId.value = navKey
+        if (!viewingId.value) {
+          propertyIds.value = [navKey]
+          propertyMultiFieldRef.value?.setPickedOptions([{ key: navKey, label }])
+        }
       } else {
         propertySelectedLabel.value = ''
       }
@@ -181,6 +196,7 @@ onLoad((q) => {
     defaultSlot()
     const routeKey = parsePropertyRouteKey(q)
     if (routeKey) {
+      propertyIds.value = [routeKey]
       propertyId.value = routeKey
       propLocked.value = true
       propertyResolving.value = true
@@ -228,7 +244,8 @@ async function bootstrapPage(q: Record<string, string | undefined> | undefined) 
 }
 
 async function submit() {
-  if (!propertyId.value || !customerSlug.value) {
+  const hasProperty = viewingId.value ? !!propertyId.value : propertyIds.value.length > 0
+  if (!hasProperty || !customerSlug.value) {
     uni.showToast({ title: '请选择房源与客户', icon: 'none' })
     return
   }
@@ -245,24 +262,31 @@ async function submit() {
     await prepareWorkTaskSubscribe()
     markListStale('viewing-list')
     markWorkbenchStale()
-    const payload = {
+    const timeFields = {
       start: startPayload(),
       end: endPayload(),
-      propertyId: propertyId.value,
-      propertyRef: propertyId.value,
-      prop: propertyId.value,
       customerSlug: customerSlug.value,
       customerId: customerSlug.value,
       companionStaffIds: selectedStaffIds.value,
       grade: grade.value,
     }
     if (viewingId.value) {
-      await updateViewing({ ...payload, id: viewingId.value })
+      await updateViewing({
+        ...timeFields,
+        id: viewingId.value,
+        propertyId: propertyId.value,
+        propertyRef: propertyId.value,
+        prop: propertyId.value,
+      })
       markViewingDetailStale(viewingId.value)
       uni.showToast({ title: '已保存', icon: 'none' })
     } else {
-      await postAction('viewing-create', payload)
-      uni.showToast({ title: '带看已登记', icon: 'none' })
+      const r = await postAction<{ ok: boolean; count?: number }>('viewing-create', {
+        ...timeFields,
+        propertyIds: propertyIds.value,
+      })
+      const n = r.count && r.count > 1 ? r.count : propertyIds.value.length
+      uni.showToast({ title: n > 1 ? `已登记 ${n} 条带看` : '带看已登记', icon: 'none' })
     }
     uni.navigateBack()
   } catch (e) {
@@ -285,22 +309,17 @@ function back() {
             <text class="hint">加载中…</text>
           </view>
           <view v-else class="card customer-form">
-            <view class="form-group">
+            <view v-if="viewingId || propLocked" class="form-group">
               <text class="label">房源</text>
-              <view v-if="propLocked" class="form-field-readonly">{{ propertyLabel }}</view>
-              <SearchableOptionPicker
-                v-else
-                v-model="propertyId"
-                v-model:selected-label="propertySelectedLabel"
-                :search="searchPropertyPicker"
-                :get-key="propertyNavKey"
-                :get-label="propertyPickLabel"
-                :get-subline="propertySubline"
-                placeholder="请选择房源"
-                sheet-title="选择房源"
-                search-placeholder="搜索编号 / 标题 / 区位…"
-              />
+              <view class="form-field-readonly">{{ propertyLabel }}</view>
             </view>
+            <PropertyMultiPickField
+              v-else
+              ref="propertyMultiFieldRef"
+              v-model="propertyIds"
+              label="房源"
+              hint="同一时段带看多套房源将分别登记；可搜索编号 / 标题 / 区位"
+            />
             <SearchableOptionPicker
               v-model="customerSlug"
               v-model:selected-label="customerSelectedLabel"

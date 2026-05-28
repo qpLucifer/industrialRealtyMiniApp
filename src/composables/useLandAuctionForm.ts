@@ -36,8 +36,14 @@ export function useLandAuctionForm() {
     districtRegionId: 0,
     district: '',
     areaMu: '',
+    transferTerm: '',
+    taxPerMu: '',
+    investmentPerMu: '',
+    depositWan: '',
     startPriceWan: '',
     dealPriceWan: '',
+    avgPricePerMu: '',
+    buyerInfo: '',
     auctionStatus: 'upcoming' as LandAuctionStatus,
     listingDate: '',
     auctionStartDate: '',
@@ -69,8 +75,14 @@ export function useLandAuctionForm() {
     form.districtRegionId = d.districtRegionId ?? 0
     form.district = d.region
     form.areaMu = d.areaMu != null ? String(d.areaMu) : ''
+    form.transferTerm = d.transferTerm || ''
+    form.taxPerMu = d.taxPerMu != null ? String(d.taxPerMu) : ''
+    form.investmentPerMu = d.investmentPerMu != null ? String(d.investmentPerMu) : ''
+    form.depositWan = d.depositWan != null ? String(d.depositWan) : ''
     form.startPriceWan = d.startPriceWan != null ? String(d.startPriceWan) : ''
     form.dealPriceWan = d.dealPriceWan != null ? String(d.dealPriceWan) : ''
+    form.avgPricePerMu = d.avgPricePerMu != null ? String(d.avgPricePerMu) : ''
+    form.buyerInfo = d.buyerInfo || ''
     form.auctionStatus = d.auctionStatus
     form.listingDate = d.listingDate || ''
     const start = splitDateTime(d.auctionStartAt)
@@ -107,8 +119,14 @@ export function useLandAuctionForm() {
       title: form.title.trim(),
       districtRegionId: form.districtRegionId,
       areaMu: form.areaMu.trim() === '' ? null : Number(form.areaMu),
+      transferTerm: form.transferTerm.trim() || null,
+      taxPerMu: form.taxPerMu.trim() === '' ? null : Number(form.taxPerMu),
+      investmentPerMu: form.investmentPerMu.trim() === '' ? null : Number(form.investmentPerMu),
+      depositWan: form.depositWan.trim() === '' ? null : Number(form.depositWan),
       startPriceWan: form.startPriceWan.trim() === '' ? null : Number(form.startPriceWan),
       dealPriceWan: form.dealPriceWan.trim() === '' ? null : Number(form.dealPriceWan),
+      avgPricePerMu: form.avgPricePerMu.trim() === '' ? null : Number(form.avgPricePerMu),
+      buyerInfo: form.buyerInfo.trim() || null,
       auctionStatus: form.auctionStatus,
       listingDate: form.listingDate || null,
       auctionStartAt: joinDateTime(form.auctionStartDate, form.auctionStartTime) || null,

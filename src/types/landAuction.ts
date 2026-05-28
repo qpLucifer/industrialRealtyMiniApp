@@ -16,8 +16,14 @@ export interface LandAuctionItem {
   districtRegionId: number | null
   region: string
   areaMu: number | null
+  transferTerm?: string
+  taxPerMu?: number | null
+  investmentPerMu?: number | null
+  depositWan?: number | null
   startPriceWan: number | null
   dealPriceWan: number | null
+  avgPricePerMu?: number | null
+  buyerInfo?: string
 }
 
 export interface LandAuctionSummary {
@@ -30,8 +36,14 @@ export interface LandAuctionDetail {
   districtRegionId: number | null
   region: string
   areaMu: number | null
+  transferTerm: string
+  taxPerMu: number | null
+  investmentPerMu: number | null
+  depositWan: number | null
   startPriceWan: number | null
   dealPriceWan: number | null
+  avgPricePerMu: number | null
+  buyerInfo: string
   auctionStatus: LandAuctionStatus
   listingDate: string
   auctionStartAt: string
@@ -48,8 +60,14 @@ export interface LandAuctionFormPayload {
   title: string
   districtRegionId: number
   areaMu?: number | null
+  transferTerm?: string | null
+  taxPerMu?: number | null
+  investmentPerMu?: number | null
+  depositWan?: number | null
   startPriceWan?: number | null
   dealPriceWan?: number | null
+  avgPricePerMu?: number | null
+  buyerInfo?: string | null
   auctionStatus: LandAuctionStatus
   listingDate?: string | null
   auctionStartAt?: string | null
