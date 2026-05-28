@@ -6,6 +6,7 @@ import {
   miniLoginByWechatPhoneCode,
 } from '@/api/auth'
 import type { MiniLoginResult } from '@/types/auth'
+import { BRAND_NAME } from '@/constants/brand'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 
 const loading = ref(false)
@@ -177,7 +178,7 @@ onMounted(() => {
         <view class="login-hero__logo-wrap">
           <image class="login-hero__logo" :src="LOGO_SRC" mode="aspectFit" />
         </view>
-        <text class="login-hero__name">浙江企鹏工业地产</text>
+        <text class="login-hero__name">{{ BRAND_NAME }}</text>
         <text class="login-hero__tag">企业内部 · 厂房 / 土地 / 园区</text>
       </view>
 
@@ -242,7 +243,7 @@ onMounted(() => {
         </view>
       </view>
 
-      <text class="login-foot">© 浙江企鹏工业地产</text>
+      <text class="login-foot">© {{ BRAND_NAME }}</text>
     </view>
   </view>
 </template>

@@ -4,6 +4,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
 import { postCustomerFollowUp } from '@/api/customer'
 import { markCustomerDetailStale, markCustomerListStale } from '@/utils/customerNav'
+import { prepareWorkTaskSubscribe } from '@/utils/wechatSubscribe'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import type { CustomerGrade } from '@/types/customer'
 import { nowBeijingYmdHm } from '@/utils/beijingTime'
@@ -87,6 +88,7 @@ async function onSaveFollow() {
   }
   saving.value = true
   try {
+    await prepareWorkTaskSubscribe()
     const payload: Record<string, string> = {
       slug: id.value,
       note: followNote.value.trim(),

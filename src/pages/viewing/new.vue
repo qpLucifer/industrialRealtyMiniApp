@@ -19,9 +19,11 @@ import { fetchViewingDetail, updateViewing } from '@/api/extra'
 import { markListStale } from '@/utils/listStale'
 import { markWorkbenchStale } from '@/utils/workbenchRefresh'
 import { markViewingDetailStale } from '@/utils/viewingNav'
+import { prepareWorkTaskSubscribe } from '@/utils/wechatSubscribe'
 import type { CustomerListItem } from '@/types/customer'
 import type { PropertyListItem } from '@/types/property'
 import { defaultViewingSlotBeijing } from '@/utils/beijingTime'
+import { assertEndAfterStart } from '@/utils/datetimeRange'
 
 const startDate = ref('')
 const startTime = ref('')
@@ -234,7 +236,13 @@ async function submit() {
     uni.showToast({ title: '请选择陪同员工', icon: 'none' })
     return
   }
+  const rangeErr = assertEndAfterStart(startPayload(), endPayload())
+  if (rangeErr) {
+    uni.showToast({ title: rangeErr, icon: 'none' })
+    return
+  }
   try {
+    await prepareWorkTaskSubscribe()
     markListStale('viewing-list')
     markWorkbenchStale()
     const payload = {
