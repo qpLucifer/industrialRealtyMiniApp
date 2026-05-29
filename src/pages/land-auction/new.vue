@@ -108,12 +108,12 @@ function back() {
             </view>
             <view class="form-row-2">
               <view class="form-group">
-                <text class="label">亩产税</text>
-                <input v-model="form.taxPerMu" type="digit" class="field-input" />
+                <text class="label">亩产税（万/亩）</text>
+                <input v-model="form.taxPerMu" type="digit" class="field-input" placeholder="万元/亩" />
               </view>
               <view class="form-group">
-                <text class="label">亩产投资</text>
-                <input v-model="form.investmentPerMu" type="digit" class="field-input" />
+                <text class="label">亩产投资（万/亩）</text>
+                <input v-model="form.investmentPerMu" type="digit" class="field-input" placeholder="万元/亩" />
               </view>
             </view>
             <template v-if="form.auctionStatus === 'upcoming' || form.auctionStatus === 'auctioning'">

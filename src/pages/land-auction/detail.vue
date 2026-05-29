@@ -90,8 +90,8 @@ function fmtPrice(v: number | null, suffix: string) {
             <view v-if="d.region" class="land-detail-meta">所属区域 {{ d.region }}</view>
             <view class="land-detail-meta">面积 {{ fmtPrice(d.areaMu, '亩') }}</view>
             <view v-if="d.transferTerm" class="land-detail-meta">出让年限 {{ d.transferTerm }}</view>
-            <view v-if="d.taxPerMu != null" class="land-detail-meta">亩产税 {{ d.taxPerMu }}</view>
-            <view v-if="d.investmentPerMu != null" class="land-detail-meta">亩产投资 {{ d.investmentPerMu }}</view>
+            <view v-if="d.taxPerMu != null" class="land-detail-meta">亩产税（万/亩） {{ d.taxPerMu }}</view>
+            <view v-if="d.investmentPerMu != null" class="land-detail-meta">亩产投资（万/亩） {{ d.investmentPerMu }}</view>
             <template v-if="d.auctionStatus === 'upcoming' || d.auctionStatus === 'auctioning'">
               <view v-if="d.depositWan != null" class="land-detail-meta">保证金 {{ fmtPrice(d.depositWan, '万元') }}</view>
               <view class="land-detail-meta">起始价 {{ fmtPrice(d.startPriceWan, '万元') }}</view>
