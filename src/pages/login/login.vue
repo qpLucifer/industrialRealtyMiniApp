@@ -183,7 +183,7 @@ onMounted(() => {
       </view>
 
       <view class="login-card" @tap.stop>
-        <text class="login-card__lead">使用微信授权手机号登录，号码须在后台白名单且与员工档案一致。</text>
+        <text class="login-card__lead">使用手机号快捷登录，号码须在后台白名单且与员工档案一致。</text>
 
         <view class="login-agree" @tap="toggleAgree">
           <view class="login-agree__box" :class="{ 'login-agree__box--on': agreed }">
@@ -199,10 +199,10 @@ onMounted(() => {
           open-type="getPhoneNumber"
           @getphonenumber="onGetPhoneNumber"
         >
-          微信手机号快捷登录
+          手机号快捷登录
         </button>
         <button v-else class="login-btn login-btn--primary login-btn--ghost" @tap="warnAgree">
-          微信手机号快捷登录
+          手机号快捷登录
         </button>
         <!-- #endif -->
 
@@ -212,7 +212,6 @@ onMounted(() => {
 
         <view v-if="reviewerEntryVisible" class="login-reviewer">
           <text class="login-reviewer__title">审核员登录</text>
-          <text class="login-reviewer__hint">手机号须在后台「白名单」且与「员工与账号」中档案一致</text>
           <input
             v-model="reviewerPhone"
             type="number"
