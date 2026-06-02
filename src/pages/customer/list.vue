@@ -10,6 +10,13 @@ import { consumeCustomerListStale } from '@/utils/customerNav'
 import { fetchRegionDefs } from '@/utils/request'
 import type { CustomerDealStatus, CustomerGrade, CustomerListItem } from '@/types/customer'
 import { isBeijingDateOnOrAfterToday } from '@/utils/beijingTime'
+import {
+  customerAvatarToneClass,
+  customerCardGradeClass,
+  customerGradeChipClass,
+  customerInitials,
+} from '@/utils/customerDisplay'
+import { resolveMediaUrl } from '@/utils/request'
 
 const GRADE_CHIPS: { value: '' | CustomerGrade; label: string; chipClass: string }[] = [
   { value: '', label: '全部', chipClass: '' },
@@ -87,47 +94,21 @@ const filterSummary = computed(() => {
   return parts.join(' · ')
 })
 
-function customerGradeKey(c: CustomerListItem): 'a' | 'b' | 'c' | '' {
-  const g = String(c.grade || '').trim()
-  if (g.startsWith('A')) return 'a'
-  if (g.startsWith('B')) return 'b'
-  if (g.startsWith('C')) return 'c'
-  return ''
-}
-
 function customerCardClass(c: CustomerListItem) {
-  const key = customerGradeKey(c)
-  return key ? `cust-card--grade-${key}` : 'cust-card--grade-c'
+  return customerCardGradeClass(c)
 }
 
 function gradeChipClass(c: CustomerListItem) {
-  const key = customerGradeKey(c)
-  if (key === 'a') return 'ok'
-  if (key === 'b') return 'cust-grade--b'
-  return 'cust-grade--c'
+  return customerGradeChipClass(c)
 }
 
 function avatarToneClass(c: CustomerListItem) {
-  const key = customerGradeKey(c)
-  if (key === 'a') return 'cust-avatar--brand'
-  if (key === 'b') return 'cust-avatar--blue'
-  return 'cust-avatar--slate'
+  return customerAvatarToneClass(c)
 }
 
-/** Up to 2 chars for placeholder avatar (contact name preferred). */
-function customerInitials(c: CustomerListItem) {
-  const name = String(c.contactName || c.titleLine?.split('·')[0]?.trim() || '').trim()
-  if (name) {
-    const compact = name.replace(/\s+/g, '')
-    if (compact.length <= 2) return compact
-    return compact.slice(-2)
-  }
-  const company = String(c.company || '').trim()
-  if (company) {
-    const compact = company.replace(/\s+/g, '')
-    return compact.length <= 2 ? compact : compact.slice(0, 2)
-  }
-  return '客'
+function customerAvatarSrc(c: CustomerListItem) {
+  const u = String(c.avatarUrl || '').trim()
+  return u ? resolveMediaUrl(u) : ''
 }
 
 function primaryName(c: CustomerListItem) {
@@ -316,7 +297,13 @@ function goVideoFaq() {
             @click="goDetail((c as CustomerListItem).id)"
           >
             <view class="cust-avatar" :class="avatarToneClass(c as CustomerListItem)">
-              <text class="cust-avatar__text">{{ customerInitials(c as CustomerListItem) }}</text>
+              <image
+                v-if="(c as CustomerListItem).avatarUrl"
+                class="cust-avatar__img"
+                :src="customerAvatarSrc(c as CustomerListItem)"
+                mode="aspectFill"
+              />
+              <text v-else class="cust-avatar__text">{{ customerInitials(c as CustomerListItem) }}</text>
             </view>
             <view class="cust-body">
               <view class="cust-head">
@@ -470,6 +457,13 @@ function goVideoFaq() {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.cust-avatar__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 20rpx;
 }
 
 .cust-avatar--brand {

@@ -14,8 +14,12 @@ import {
   useCustomerStaffPeers,
 } from '@/utils/customerStaffPeers'
 import { isPhone11Cn, type PickerChange } from '@/utils/propertyPublish'
+import { customerAvatarToneClass, customerInitials } from '@/utils/customerDisplay'
+import { resolveMediaUrl } from '@/utils/request'
+import { uploadImagePath } from '@/utils/mediaUpload'
 
 const saving = ref(false)
+const avatarUploading = ref(false)
 const { staffOptions, selfId, selfName, reloadStaffPeers, staffSearchFn, prunePublicOwners } =
   useCustomerStaffPeers()
 const publicOwnerStaffIds = ref<string[]>([])
@@ -32,6 +36,7 @@ const form = reactive({
   districtRegionId: undefined as number | undefined,
   addressHint: '',
   scope: '私有' as CustomerScope,
+  avatarUrl: '',
 })
 
 const regionDefs = ref<{ id: number; name: string }[]>([])
@@ -92,6 +97,38 @@ function ownerPayload(): { ownerStaffIds?: string[] } {
   return { ownerStaffIds: [...publicOwnerStaffIds.value] }
 }
 
+function customerAvatarSrc() {
+  const u = String(form.avatarUrl || '').trim()
+  return u ? resolveMediaUrl(u) : ''
+}
+
+async function pickAvatar() {
+  if (avatarUploading.value) return
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const path = res.tempFilePaths?.[0]
+      if (!path) return
+      avatarUploading.value = true
+      try {
+        const { url } = await uploadImagePath(path, 'customers/avatars')
+        form.avatarUrl = url
+        uni.showToast({ title: '照片已上传', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: e instanceof Error ? e.message : '上传失败', icon: 'none' })
+      } finally {
+        avatarUploading.value = false
+      }
+    },
+  })
+}
+
+function clearAvatar() {
+  form.avatarUrl = ''
+}
+
 async function submit() {
   if (!form.company.trim() || !form.contactName.trim() || !form.phone.trim()) {
     uni.showToast({ title: '请填写公司、联系人与手机', icon: 'none' })
@@ -120,6 +157,7 @@ async function submit() {
       districtRegionId: form.districtRegionId,
       addressHint: form.addressHint.trim(),
       scope: form.scope,
+      avatarUrl: form.avatarUrl.trim() || null,
       ...ownerPayload(),
     })
     markCustomerListStale()
@@ -150,6 +188,21 @@ function back() {
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll customer-form-scroll">
         <view class="page-scroll__inner">
           <view class="card customer-form">
+            <view class="form-group cust-avatar-field">
+              <text class="label">客户照片（可选）</text>
+              <view class="cust-avatar-edit">
+                <view class="cust-avatar cust-avatar-edit__preview" :class="customerAvatarToneClass(form)">
+                  <image v-if="form.avatarUrl" class="cust-avatar__img" :src="customerAvatarSrc()" mode="aspectFill" />
+                  <text v-else class="cust-avatar__text">{{ customerInitials(form) }}</text>
+                </view>
+                <view class="cust-avatar-edit__actions">
+                  <button class="btn-secondary cust-avatar-edit__btn" :disabled="avatarUploading" @click="pickAvatar">
+                    {{ avatarUploading ? '上传中…' : '上传照片' }}
+                  </button>
+                  <button v-if="form.avatarUrl" class="btn-secondary cust-avatar-edit__btn" @click="clearAvatar">移除</button>
+                </view>
+              </view>
+            </view>
             <view class="form-group">
               <text class="label">公司 / 主体<text class="req">*</text></text>
               <input
@@ -289,5 +342,57 @@ function back() {
 
 .page-scroll__inner {
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.cust-avatar-edit {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  flex-wrap: wrap;
+}
+
+.cust-avatar-edit__preview {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 22rpx;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cust-avatar-edit__preview.cust-avatar--brand {
+  background: linear-gradient(145deg, #1a3a6c, #2d4f8c);
+}
+
+.cust-avatar-edit__preview.cust-avatar--blue {
+  background: linear-gradient(145deg, #0284c7, #38bdf8);
+}
+
+.cust-avatar-edit__preview.cust-avatar--slate {
+  background: linear-gradient(145deg, #64748b, #94a3b8);
+}
+
+.cust-avatar__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 22rpx;
+}
+
+.cust-avatar__text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cust-avatar-edit__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.cust-avatar-edit__btn {
+  margin: 0;
+  font-size: 26rpx;
 }
 </style>

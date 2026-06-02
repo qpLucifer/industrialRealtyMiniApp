@@ -7,6 +7,7 @@ export interface CustomerListItem {
   company: string
   contactName: string
   titleLine: string
+  avatarUrl?: string
   grade: string
   gradeTone: string
   gradeTag?: string
@@ -28,6 +29,7 @@ export interface CustomerDetail {
   company: string
   contactName: string
   titleLine: string
+  avatarUrl?: string
   phone: string
   phoneMasked: string
   grade: string
@@ -58,6 +60,7 @@ export interface CustomerFormPayload {
   contactName: string
   titleLine?: string
   phone: string
+  avatarUrl?: string | null
   grade: string
   dealStatus: string
   demandSummary?: string

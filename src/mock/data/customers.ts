@@ -69,6 +69,7 @@ function buildDetail(id: string): CustomerDetail {
     company: base.company,
     contactName: base.contactName,
     titleLine: base.titleLine,
+    avatarUrl: base.avatarUrl,
     phone: isZhang ? '13912349024' : '05767707707',
     phoneMasked: isZhang ? '139****9024' : '0576****7707',
     grade: base.grade,

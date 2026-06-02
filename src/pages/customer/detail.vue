@@ -7,6 +7,8 @@ import { useSecuritySettings } from '@/composables/useSecuritySettings'
 import { consumeCustomerDetailRefresh } from '@/utils/customerNav'
 import type { CustomerDetail } from '@/types/customer'
 import { formatBeijingDisplay } from '@/utils/beijingTime'
+import { customerAvatarToneClass, customerInitials } from '@/utils/customerDisplay'
+import { resolveMediaUrl } from '@/utils/request'
 
 const { noCopyClass } = useSecuritySettings()
 
@@ -18,6 +20,11 @@ const loadError = ref('')
 const displayTitle = computed(() => {
   if (!d.value) return ''
   return d.value.titleLine || `${d.value.contactName} · ${d.value.company}`
+})
+
+const customerAvatarSrc = computed(() => {
+  const u = String(d.value?.avatarUrl || '').trim()
+  return u ? resolveMediaUrl(u) : ''
 })
 
 const canDialPhone = computed(() => {
@@ -98,11 +105,19 @@ function goFollow() {
       <scroll-view v-else-if="d" scroll-y :show-scrollbar="false" class="page-scroll cust-detail-scroll">
         <view class="page-scroll__inner">
           <view class="card card-glow">
-            <text class="cust-head-title">{{ displayTitle }}</text>
-            <view class="cust-chip-row">
-              <text class="chip ok">{{ d.grade }}</text>
-              <text v-if="d.nextReminder" class="chip warn">下次 {{ d.nextReminder }}</text>
-              <text class="chip">{{ d.dealStatus }}</text>
+            <view class="cust-detail-head">
+              <view class="cust-avatar cust-detail-avatar" :class="d ? customerAvatarToneClass(d) : ''">
+                <image v-if="d.avatarUrl" class="cust-avatar__img" :src="customerAvatarSrc" mode="aspectFill" />
+                <text v-else class="cust-avatar__text">{{ customerInitials(d) }}</text>
+              </view>
+              <view class="cust-detail-head__text">
+                <text class="cust-head-title">{{ displayTitle }}</text>
+                <view class="cust-chip-row">
+                  <text class="chip ok">{{ d.grade }}</text>
+                  <text v-if="d.nextReminder" class="chip warn">下次 {{ d.nextReminder }}</text>
+                  <text class="chip">{{ d.dealStatus }}</text>
+                </view>
+              </view>
             </view>
             <view v-if="canDialPhone" class="cust-meta cust-meta--dial" @tap="onCallPhone">
               电话 {{ d.phone }}
@@ -176,6 +191,53 @@ function goFollow() {
   color: var(--mint);
 }
 
+.cust-detail-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  margin-bottom: 8rpx;
+}
+
+.cust-detail-head__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cust-detail-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 22rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cust-detail-avatar.cust-avatar--brand {
+  background: linear-gradient(145deg, #1a3a6c, #2d4f8c);
+}
+
+.cust-detail-avatar.cust-avatar--blue {
+  background: linear-gradient(145deg, #0284c7, #38bdf8);
+}
+
+.cust-detail-avatar.cust-avatar--slate {
+  background: linear-gradient(145deg, #64748b, #94a3b8);
+}
+
+.cust-detail-avatar .cust-avatar__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 22rpx;
+}
+
+.cust-detail-avatar .cust-avatar__text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
 .cust-head-title {
   display: block;
   font-size: 32rpx;
@@ -188,7 +250,7 @@ function goFollow() {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  margin-top: 20rpx;
+  margin-top: 16rpx;
   align-items: center;
 }
 
