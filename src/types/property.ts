@@ -146,3 +146,22 @@ export interface PropertyEditForm {
   assessment?: string
   [key: string]: unknown
 }
+
+export interface PropertyLogEntry {
+  line: string
+  sub: string
+  kind?: 'follow-up' | 'action'
+  occurredAt?: string
+  note?: string
+  imageUrls?: string[]
+  audioUrls?: string[]
+  displayLine?: string
+}
+
+export interface PropertyFollowUpPayload {
+  code: string
+  note?: string
+  occurredAt?: string
+  imageUrls?: string[]
+  audioUrls?: string[]
+}

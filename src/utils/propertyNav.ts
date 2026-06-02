@@ -67,6 +67,39 @@ export function navigateToPropertyLog(key: string) {
   uni.navigateTo({ url: `/pages/property/log?key=${encodeURIComponent(k)}` })
 }
 
+export function navigateToPropertyFollow(key: string) {
+  const k = String(key || '').trim()
+  if (!k) return
+  uni.navigateTo({ url: `/pages/property/follow?key=${encodeURIComponent(k)}` })
+}
+
+const LOG_REFRESH_PREFIX = 'property_log_refresh:'
+
+export function markPropertyLogStale(key: string) {
+  const k = String(key || '').trim()
+  if (!k) return
+  try {
+    uni.setStorageSync(`${LOG_REFRESH_PREFIX}${k}`, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function consumePropertyLogRefresh(key: string): boolean {
+  const k = String(key || '').trim()
+  if (!k) return false
+  const storageKey = `${LOG_REFRESH_PREFIX}${k}`
+  try {
+    if (uni.getStorageSync(storageKey) === '1') {
+      uni.removeStorageSync(storageKey)
+      return true
+    }
+  } catch {
+    /* ignore */
+  }
+  return false
+}
+
 export function navigateToViewingNew(key: string, opts?: { title?: string }) {
   const k = String(key || '').trim()
   if (!k) return

@@ -14,6 +14,7 @@
     { "path": "pages/property/detail", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/publish", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/log", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/property/follow", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/detail", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/new", "style": { "navigationStyle": "custom" } },
     { "path": "pages/customer/edit", "style": { "navigationStyle": "custom" } },

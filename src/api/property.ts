@@ -1,14 +1,22 @@
-import { get, put } from '@/utils/request'
+import { get, post, put } from '@/utils/request'
 import type { PagedListResponse } from '@/utils/pagedList'
 import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
 import { PICKER_SEARCH_PAGE_SIZE, type PickerSearchPage } from '@/utils/pickerSearch'
 import type { LiveListingStatus } from '@/utils/propertyListingStatus'
-import type { MyPublishedProperty, PropertyDetailPayload, PropertyEditForm, PropertyListItem } from '@/types/property'
+import type {
+  MyPublishedProperty,
+  PropertyDetailPayload,
+  PropertyEditForm,
+  PropertyFollowUpPayload,
+  PropertyListItem,
+  PropertyLogEntry,
+} from '@/types/property'
 
 export {
   consumePropertyDetailRefresh,
   navigateToPropertyDetail,
   navigateToPropertyLog,
+  navigateToPropertyFollow,
   navigateToPropertyPublish,
   navigateToViewingNew,
   markPropertyDetailStale,
@@ -60,7 +68,11 @@ export function fetchPropertyEditForm(key: string) {
 }
 
 export function fetchPropertyLogs(key: string) {
-  return get<{ list: { line: string; sub: string }[] }>('/api/property/logs', apiQueryKey(key))
+  return get<{ list: PropertyLogEntry[] }>('/api/property/logs', apiQueryKey(key))
+}
+
+export function postPropertyFollowUp(payload: PropertyFollowUpPayload) {
+  return post<{ success: boolean }>('/api/property/follow-up', payload as Record<string, unknown>)
 }
 
 /** Form picker: server search over visible properties for current staff. */

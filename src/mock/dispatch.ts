@@ -368,6 +368,10 @@ export async function dispatchMock(
     return okResult({ list: mockPropertyLogs })
   }
 
+  if (method === 'POST' && path === '/api/property/follow-up') {
+    return okResult({ success: true })
+  }
+
   if (method === 'GET' && path === '/api/property/my-published') {
     return okResult(paginateMockRows(mockMyPublishedProperties, query))
   }

@@ -8,6 +8,7 @@ import {
   fetchPropertyEditForm,
   markPropertyDetailStale,
   navigateToPropertyLog,
+  navigateToPropertyFollow,
   navigateToPropertyPublish,
   navigateToViewingNew,
   parsePropertyRouteKey,
@@ -246,6 +247,10 @@ function goEdit() {
 
 function goLog(_key?: string) {
   navigateToPropertyLog(routeKey.value)
+}
+
+function goFollow() {
+  navigateToPropertyFollow(routeKey.value)
 }
 
 function goViewing() {
@@ -532,19 +537,15 @@ function openVideoFullscreen(url: string) {
         </view>
       </scroll-view>
 
-      <view v-if="detail" class="page-footer">
+      <view v-if="detail" class="page-footer pf-detail-footer">
         <view class="page-footer__row">
-          <button
-            v-if="canEditProperty"
-            class="btn-secondary"
-            :class="{ 'btn-primary': !canViewing }"
-            :style="canViewing ? '' : 'flex: 1'"
-            @click="goEdit"
-            >编辑</button
-          >
-          <button v-if="canViewing" class="btn-primary" style="flex: 1" @click="goViewing">预约带看</button>
+          <button class="btn-primary pf-detail-follow-btn" @click="goFollow">写房源跟进</button>
+          <button v-if="canEditProperty" class="btn-secondary pf-detail-edit-btn" @click="goEdit">编辑</button>
         </view>
-        <button v-if="canViewing" class="btn-ghost" style="width: 100%; margin-top: 12rpx" @click="shareInternal">复制转发文案</button>
+        <view v-if="canViewing" class="page-footer__row pf-detail-footer__row2">
+          <button class="btn-primary" style="flex: 1" @click="goViewing">预约带看</button>
+        </view>
+        <button v-if="canViewing" class="btn-ghost pf-detail-share-btn" @click="shareInternal">复制转发文案</button>
       </view>
     </view>
   </view>
@@ -562,5 +563,27 @@ function openVideoFullscreen(url: string) {
   display: block;
   margin-top: 8rpx;
   font-size: 22rpx;
+}
+
+.pf-detail-footer {
+  flex-shrink: 0;
+}
+
+.pf-detail-follow-btn {
+  flex: 1;
+}
+
+.pf-detail-edit-btn {
+  flex-shrink: 0;
+  min-width: 160rpx;
+}
+
+.pf-detail-footer__row2 {
+  margin-top: 12rpx;
+}
+
+.pf-detail-share-btn {
+  width: 100%;
+  margin-top: 12rpx;
 }
 </style>

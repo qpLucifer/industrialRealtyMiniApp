@@ -210,10 +210,20 @@ export const propertyDetailKv = {
 }
 
 export const mockPropertyLogs = [
-  { line: '陈思远 · 查看详情', sub: '今天 10:22 · IP 内网' },
-  { line: '王敏 · 编辑配电参数', sub: '昨天 16:05' },
-  { line: '陈思远 · 内部转发卡片', sub: '昨天 11:40 · Token TTL 24h' },
-  { line: '系统 · 状态→意向中', sub: '前天 09:12 · 规则引擎' },
+  {
+    line: '陈思远 · 写跟进',
+    sub: '2026-05-28 15:30 · 客户现场看厂，关注配电容量（图片×2）',
+    kind: 'follow-up',
+    occurredAt: '2026-05-28 15:30',
+    note: '客户现场看厂，关注配电容量',
+    imageUrls: [],
+    audioUrls: [],
+    displayLine: '2026-05-28 15:30 · 客户现场看厂，关注配电容量（图片×2）',
+  },
+  { line: '陈思远 · 查看详情', sub: '今天 10:22 · IP 内网', kind: 'action' },
+  { line: '王敏 · 编辑配电参数', sub: '昨天 16:05', kind: 'action' },
+  { line: '陈思远 · 内部转发卡片', sub: '昨天 11:40 · Token TTL 24h', kind: 'action' },
+  { line: '系统 · 状态→意向中', sub: '前天 09:12 · 规则引擎', kind: 'action' },
 ]
 
 export const mockMyPublishedProperties = [
