@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { resolveMediaUrl } from '@/utils/request'
+import { applyInnerAudioOutputOptions } from '@/utils/innerAudioSetup'
 
 const props = withDefaults(
   defineProps<{
@@ -64,7 +65,6 @@ function setupCtx(url: string) {
   if (!resolved) return
 
   ctx = uni.createInnerAudioContext()
-  ctx.obeyMuteSwitch = false
   ctx.src = resolved
 
   ctx.onCanplay(() => syncDuration())
@@ -96,6 +96,7 @@ function setupCtx(url: string) {
 
 function togglePlay() {
   if (!ctx) return
+  applyInnerAudioOutputOptions()
   if (playing.value) {
     ctx.pause()
     return

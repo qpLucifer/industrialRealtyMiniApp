@@ -3,10 +3,12 @@ import { onLaunch } from '@dcloudio/uni-app'
 import { refreshMiniSession } from '@/api/session'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
 import { preloadSecuritySettings } from '@/utils/securitySettingsCache'
+import { applyInnerAudioOutputOptions } from '@/utils/innerAudioSetup'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 onLaunch(async () => {
+  applyInnerAudioOutputOptions()
   void preloadSecuritySettings()
   const token = uni.getStorageSync('mini_token')
   if (USE_MOCK || !token) return
