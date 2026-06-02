@@ -230,7 +230,11 @@ function applyFilter() {
         @load-more="loadMore"
       >
         <template #item="{ item: p }">
-          <view class="prop-list-card glass-list-card" @click="onPropertyRow(p as PropertyListItem)">
+          <view
+            class="prop-list-card glass-list-card"
+            :class="{ 'prop-list-card--featured': (p as PropertyListItem).featured }"
+            @click="onPropertyRow(p as PropertyListItem)"
+          >
             <image
               v-if="(p as PropertyListItem).thumbUrl"
               class="thumb thumb--cover"
@@ -241,22 +245,30 @@ function applyFilter() {
             <view style="flex: 1; min-width: 0">
               <view style="display: flex; justify-content: space-between; gap: 8px; align-items: center">
                 <view class="list-title-strong" style="flex: 1; min-width: 0">{{ (p as PropertyListItem).title }}</view>
-                <view
-                  class="chip"
-                  :class="
-                    (p as PropertyListItem).statusTone === 'ok'
-                      ? 'ok'
-                      : (p as PropertyListItem).statusTone === 'warn'
-                        ? 'warn'
-                        : ''
-                  "
-                  :style="
-                    (p as PropertyListItem).statusTone === 'draft'
-                      ? 'background:#e2e8f0;color:#475569;border-color:rgba(100,116,139,0.25);flex-shrink:0'
-                      : 'flex-shrink:0'
-                  "
-                  >{{ (p as PropertyListItem).status }}</view
-                >
+                <view class="prop-list-card__chips">
+                  <view
+                    v-if="(p as PropertyListItem).featured"
+                    class="chip featured"
+                    style="flex-shrink: 0"
+                    >主推</view
+                  >
+                  <view
+                    class="chip"
+                    :class="
+                      (p as PropertyListItem).statusTone === 'ok'
+                        ? 'ok'
+                        : (p as PropertyListItem).statusTone === 'warn'
+                          ? 'warn'
+                          : ''
+                    "
+                    :style="
+                      (p as PropertyListItem).statusTone === 'draft'
+                        ? 'background:#e2e8f0;color:#475569;border-color:rgba(100,116,139,0.25);flex-shrink:0'
+                        : 'flex-shrink:0'
+                    "
+                    >{{ (p as PropertyListItem).status }}</view
+                  >
+                </view>
               </view>
               <view class="list-meta-muted" style="margin-top: 6px">{{ (p as PropertyListItem).metaLine }}</view>
               <view
@@ -359,5 +371,25 @@ function applyFilter() {
 }
 .list-page-head {
   flex-shrink: 0;
+}
+
+.prop-list-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.prop-list-card--featured {
+  border: 2rpx solid rgba(234, 88, 12, 0.45);
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.65), rgba(255, 255, 255, 0.92));
+  box-shadow: 0 8rpx 28rpx rgba(234, 88, 12, 0.12);
+}
+
+.chip.featured {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #fff;
+  border-color: transparent;
 }
 </style>

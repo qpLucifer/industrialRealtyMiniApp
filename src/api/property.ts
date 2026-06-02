@@ -93,9 +93,15 @@ export function fetchMyPublished(query?: { page?: number; pageSize?: number }) {
   })
 }
 
-export function updatePropertyListingStatus(code: string, externalStatus: LiveListingStatus) {
-  return put<{ externalStatus: string; listingLine1: string; listingLine2: string }>(
+export function updatePropertyListingStatus(
+  code: string,
+  externalStatus: LiveListingStatus,
+  opts?: { featured?: boolean },
+) {
+  const body: Record<string, unknown> = { code, externalStatus }
+  if (opts?.featured !== undefined) body.featured = opts.featured
+  return put<{ externalStatus: string; featured?: boolean; listingLine1: string; listingLine2: string }>(
     '/api/property/listing-status',
-    { code, externalStatus },
+    body,
   )
 }

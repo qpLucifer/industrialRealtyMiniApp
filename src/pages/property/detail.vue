@@ -22,6 +22,8 @@ import {
   rentSaleStatusHint,
   type LiveListingStatus,
 } from '@/utils/propertyListingStatus'
+import { showFeaturedOption } from '@/utils/propertyFeatured'
+import { markListStale } from '@/utils/listStale'
 import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
 
 const { noCopyClass } = useSecuritySettings()
@@ -55,6 +57,10 @@ const showCompanyInHeader = computed(() => {
 })
 const canChangeListingStatus = computed(() => detail.value?.auditKey === 'live')
 const listingStatusSaving = ref(false)
+const featuredSaving = ref(false)
+const showFeaturedToggle = computed(
+  () => canChangeListingStatus.value && showFeaturedOption(currentListingStatus.value),
+)
 
 const currentListingStatus = computed(() => {
   const d = detail.value
@@ -141,6 +147,9 @@ const headerChips = computed(() => {
   const st = statusChipLabel.value
   if (st && st !== '—' && d.auditKey !== 'live') {
     items.push({ label: st, cls: statusChipClass.value })
+  }
+  if (d.featured && d.auditKey === 'live') {
+    items.push({ label: '主推', cls: 'chip featured' })
   }
   const out: { label: string; cls: string }[] = []
   for (const it of items) {
@@ -289,15 +298,38 @@ async function onListingStatusPick(e: { detail: { value: string | number } }) {
   if (!next || next === currentListingStatus.value) return
   listingStatusSaving.value = true
   try {
-    const r = await updatePropertyListingStatus(d.id, next)
+    const r = await updatePropertyListingStatus(d.id, next, {
+      featured: next === '待售' ? d.featured : false,
+    })
     d.externalStatus = r.externalStatus
     d.leaseChip = r.externalStatus
+    d.featured = Boolean(r.featured)
     markPropertyDetailStale(d.id)
     uni.showToast({ title: `已更新为「${next}」`, icon: 'none' })
   } catch (err) {
     uni.showToast({ title: err instanceof Error ? err.message : '更新失败', icon: 'none' })
   } finally {
     listingStatusSaving.value = false
+  }
+}
+
+async function onFeaturedSwitch(e: { detail: { value: boolean } }) {
+  const d = detail.value
+  if (!d || !showFeaturedToggle.value || featuredSaving.value) return
+  const next = Boolean(e.detail.value)
+  featuredSaving.value = true
+  try {
+    const r = await updatePropertyListingStatus(d.id, currentListingStatus.value as LiveListingStatus, {
+      featured: next,
+    })
+    d.featured = Boolean(r.featured)
+    markPropertyDetailStale(d.id)
+    markListStale('property-list')
+    uni.showToast({ title: next ? '已设为主推' : '已取消主推', icon: 'none' })
+  } catch (err) {
+    uni.showToast({ title: err instanceof Error ? err.message : '保存失败', icon: 'none' })
+  } finally {
+    featuredSaving.value = false
   }
 }
 
@@ -444,8 +476,18 @@ function openVideoFullscreen(url: string) {
               >
                 <view class="pf-kv-dd picker-like">{{ currentListingStatus }}</view>
               </picker>
-              <!-- <text v-if="rentSaleHint" class="hint pf-kv-row-hint">{{ rentSaleHint }}</text>
-              <text class="hint pf-kv-row-hint">不可改为草稿、待审核或驳回</text> -->
+            </view>
+            <view v-if="showFeaturedToggle" class="pf-kv-row pf-kv-row--stack">
+              <text class="pf-kv-dt">主推</text>
+              <view class="pf-featured-row">
+                <switch
+                  :checked="!!detail.featured"
+                  :disabled="featuredSaving"
+                  color="#ea580c"
+                  @change="onFeaturedSwitch"
+                />
+                <text class="pf-featured-label">{{ detail.featured ? '已主推（列表高亮）' : '设为主推' }}</text>
+              </view>
             </view>
             <view v-else-if="listingStatusLabel && listingStatusLabel !== '—'" class="pf-kv-row">
               <text class="pf-kv-dt">租售状态</text>
@@ -585,5 +627,23 @@ function openVideoFullscreen(url: string) {
 .pf-detail-share-btn {
   width: 100%;
   margin-top: 12rpx;
+}
+
+.pf-featured-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.pf-featured-label {
+  font-size: 26rpx;
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.chip.featured {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #fff;
+  border-color: transparent;
 }
 </style>

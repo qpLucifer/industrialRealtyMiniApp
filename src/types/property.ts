@@ -8,6 +8,8 @@ export interface PropertyListItem {
   priceLine: string
   status: string
   statusTone: 'draft' | 'ok' | 'warn' | 'neutral' | 'rejected'
+  /** 主推（待售且已勾选） */
+  featured?: boolean
   draftHint?: string
   /** First image from mediaImageUrls / mediaUrls */
   thumbUrl?: string
@@ -39,6 +41,7 @@ export interface PropertyDetailPayload {
   /** Set when auditKey is rejected — show prominently on detail */
   rejectReason?: string
   externalStatus?: string
+  featured?: boolean
   detailTitle: string
   specLine: string
   priceLine: string
@@ -77,6 +80,8 @@ export interface PropertyEditForm {
   auditState?: string
   /** List column status_tag: 草稿 | 待审核 | 驳回 | 待开发 | 待租 | … */
   externalStatus?: string
+  /** 主推（仅待售时可设为 true） */
+  featured?: boolean
   auditHint?: string
   submitterName?: string
   listTitle?: string

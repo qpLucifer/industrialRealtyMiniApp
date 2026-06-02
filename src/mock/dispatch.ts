@@ -564,8 +564,11 @@ export async function dispatchMock(
   if (method === 'PUT' && path === '/api/property/listing-status') {
     const code = String((body as Record<string, unknown>)?.code || '').trim()
     const externalStatus = String((body as Record<string, unknown>)?.externalStatus || '').trim()
+    const featured =
+      externalStatus === '待售' && (body as Record<string, unknown>)?.featured === true
     return okResult({
       externalStatus: externalStatus || '待租',
+      featured,
       listingLine1: externalStatus || '待租',
       listingLine2: `Mock · ${code || '—'}`,
     })
