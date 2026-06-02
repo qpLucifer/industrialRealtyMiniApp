@@ -25,7 +25,7 @@ const GRADE_CHIPS: { value: '' | CustomerGrade; label: string; chipClass: string
   { value: 'C 类', label: 'C 类', chipClass: 'grade-c' },
 ]
 const DEAL_CHIPS: { value: CustomerDealStatus; label: string }[] = [
-  { value: '洽谈中', label: '洽谈' },
+  // { value: '洽谈中', label: '洽谈' },
   { value: '已成交', label: '已成交' },
 ]
 const REMINDER_OPTIONS = ['全部提醒', '有待提醒', '已到期', '近7天待跟'] as const
