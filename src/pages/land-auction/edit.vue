@@ -18,16 +18,10 @@ const {
   statusLabels,
   loadRegions,
   fillFromDetail,
-  onRegionPick,
   onStatusPick,
   buildPayload,
   validate,
 } = useLandAuctionForm()
-
-const regionPickerIndex = computed(() => {
-  const i = regionNames.value.findIndex((n) => n === form.district)
-  return i >= 0 ? i : 0
-})
 
 const statusPickerIndex = computed(() =>
   LAND_STATUS_OPTIONS.findIndex((s) => s.value === form.auctionStatus),
@@ -85,19 +79,13 @@ function back() {
           <view class="card customer-form">
             <view class="form-group">
               <text class="label">地块/项目<text class="req">*</text></text>
-              <input
-                v-model="form.title"
-                type="text"
-                class="field-input"
-                placeholder="项目名称"
-                :cursor-spacing="120"
-              />
+              <view class="form-field-readonly">{{ form.title || '—' }}</view>
+              <text class="hint field-lock-hint">创建后不可修改</text>
             </view>
             <view v-if="regionNames.length" class="form-group">
               <text class="label">所属区域<text class="req">*</text></text>
-              <picker mode="selector" :range="regionNames" :value="regionPickerIndex" @change="onRegionPick">
-                <view class="picker-like">{{ form.district || '请选择' }}</view>
-              </picker>
+              <view class="form-field-readonly">{{ form.district || '—' }}</view>
+              <text class="hint field-lock-hint">创建后不可修改</text>
             </view>
             <view v-else class="form-group">
               <text class="label">所属区域</text>
@@ -232,5 +220,10 @@ function back() {
 
 .page-scroll__inner {
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
+.field-lock-hint {
+  display: block;
+  margin-top: 8rpx;
 }
 </style>

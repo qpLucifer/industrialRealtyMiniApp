@@ -228,13 +228,8 @@ function back() {
             </view>
             <view class="form-group">
               <text class="label">公司 / 主体<text class="req">*</text></text>
-              <input
-                v-model="form.company"
-                type="text"
-                class="field-input"
-                placeholder="营业执照名称"
-                :cursor-spacing="120"
-              />
+              <view class="form-field-readonly">{{ form.company || '—' }}</view>
+              <text class="hint field-lock-hint">创建后不可修改</text>
             </view>
             <view class="form-group">
               <text class="label">主题（列表摘要）</text>
@@ -248,24 +243,13 @@ function back() {
             </view>
             <view class="form-group">
               <text class="label">联系人<text class="req">*</text></text>
-              <input
-                v-model="form.contactName"
-                type="text"
-                class="field-input"
-                placeholder="姓名"
-                :cursor-spacing="120"
-              />
+              <view class="form-field-readonly">{{ form.contactName || '—' }}</view>
+              <text class="hint field-lock-hint">创建后不可修改</text>
             </view>
             <view class="form-group">
               <text class="label">手机<text class="req">*</text></text>
-              <input
-                v-model="form.phone"
-                type="number"
-                maxlength="11"
-                class="field-input"
-                placeholder="11 位手机号"
-                :cursor-spacing="120"
-              />
+              <view class="form-field-readonly">{{ form.phone || '—' }}</view>
+              <text class="hint field-lock-hint">创建后不可修改</text>
             </view>
             <view class="form-group">
               <text class="label">等级</text>
@@ -417,5 +401,10 @@ function back() {
 .cust-avatar-edit__btn {
   margin: 0;
   font-size: 26rpx;
+}
+
+.field-lock-hint {
+  display: block;
+  margin-top: 8rpx;
 }
 </style>
