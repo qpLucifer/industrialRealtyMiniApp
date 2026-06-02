@@ -83,6 +83,7 @@ const kvRows = computed(() => {
   const d = detail.value?.kv
   if (!d) return []
   let rows = (d[TAB_KV_KEYS[tab.value]] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
+  if (detail.value?.auditKey === 'live') rows = rows.filter((r) => r.dt !== '租售类型')
   if (privacyRestricted.value) {
     rows = rows.filter((r) => !PRIVACY_KV_LABELS.has(r.dt))
   }
