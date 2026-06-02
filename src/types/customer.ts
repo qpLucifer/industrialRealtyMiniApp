@@ -23,6 +23,14 @@ export interface CustomerListItem {
   nextReminderAt?: string
 }
 
+export interface CustomerFollowEntry {
+  occurredAt: string
+  note: string
+  imageUrls: string[]
+  audioUrls: string[]
+  displayLine: string
+}
+
 export interface CustomerDetail {
   id: string
   slug: string
@@ -48,7 +56,7 @@ export interface CustomerDetail {
   reminderText: string
   reminderTone: string
   kv: { dt: string; dd: string }[]
-  timeline: string[]
+  timeline: CustomerFollowEntry[]
   canEdit: boolean
   /** Legacy display */
   h2: string
@@ -75,8 +83,10 @@ export interface CustomerFormPayload {
 
 export interface CustomerFollowUpPayload {
   slug: string
-  note: string
+  note?: string
   occurredAt?: string
   grade?: string
   nextReminderAt?: string
+  imageUrls?: string[]
+  audioUrls?: string[]
 }

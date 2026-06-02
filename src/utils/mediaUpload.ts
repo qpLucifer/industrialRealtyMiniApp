@@ -315,3 +315,37 @@ export function formatBatchUploadToast(summary: BatchUploadSummary): string {
   if (!succeeded.length) return failed[0]?.error || '图片上传失败'
   return `成功 ${succeeded.length} 张，失败 ${failed.length} 张`
 }
+
+export function uploadAudioPath(
+  filePath: string,
+  folder: string,
+  displayName = 'audio.mp3',
+): Promise<{ url: string; key: string }> {
+  if (!API_BASE) return Promise.reject(new Error('未配置 VITE_API_BASE'))
+  const filename = displayName.includes('.') ? displayName : `${displayName}.mp3`
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: `${API_BASE}/api/upload/oss`,
+      filePath,
+      name: 'file',
+      formData: { folder, filename },
+      header: miniAuthHeaders(),
+      timeout: 120000,
+      success(res) {
+        try {
+          if ((res.statusCode ?? 0) >= 400) {
+            reject(new Error(parseUploadError(res)))
+            return
+          }
+          const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          resolve(unwrapResult<{ url: string; key: string }>(data))
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error(`${displayName} 上传失败`))
+        }
+      },
+      fail(err) {
+        reject(err ?? new Error(`${displayName} 上传失败`))
+      },
+    })
+  })
+}

@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import NavIconBar from '@/components/NavIconBar.vue'
+import FollowAudioPlayer from '@/components/FollowAudioPlayer.vue'
 import { fetchCustomerDetail } from '@/api/customer'
 import { useSecuritySettings } from '@/composables/useSecuritySettings'
 import { consumeCustomerDetailRefresh } from '@/utils/customerNav'
-import type { CustomerDetail } from '@/types/customer'
+import type { CustomerDetail, CustomerFollowEntry } from '@/types/customer'
 import { formatBeijingDisplay } from '@/utils/beijingTime'
 import { customerAvatarToneClass, customerInitials } from '@/utils/customerDisplay'
 import { resolveMediaUrl } from '@/utils/request'
@@ -86,6 +87,30 @@ function goEdit() {
 function goFollow() {
   uni.navigateTo({ url: `/pages/customer/follow?id=${encodeURIComponent(id.value)}` })
 }
+
+function mediaSrc(url: string) {
+  return resolveMediaUrl(url)
+}
+
+function previewImage(urls: string[], idx: number) {
+  uni.previewImage({
+    current: mediaSrc(urls[idx] || ''),
+    urls: urls.map((u) => mediaSrc(u)),
+  })
+}
+
+function timelineEntry(entry: CustomerFollowEntry | string): CustomerFollowEntry {
+  if (entry && typeof entry === 'object' && 'displayLine' in entry) return entry
+  const line = String(entry || '')
+  const sep = line.indexOf(' · ')
+  return {
+    occurredAt: sep >= 0 ? line.slice(0, sep) : '',
+    note: sep >= 0 ? line.slice(sep + 3) : line,
+    imageUrls: [],
+    audioUrls: [],
+    displayLine: line,
+  }
+}
 </script>
 
 <template>
@@ -141,8 +166,26 @@ function goFollow() {
 
           <view class="section-title">跟进时间轴</view>
           <view v-if="d.timeline.length" class="timeline">
-            <view v-for="(line, i) in d.timeline" :key="i" class="timeline-item">
-              <text class="timeline-line">{{ line }}</text>
+            <view v-for="(raw, i) in d.timeline" :key="i" class="timeline-item">
+              <text class="timeline-line">{{ timelineEntry(raw).displayLine }}</text>
+              <view v-if="timelineEntry(raw).imageUrls.length" class="timeline-images">
+                <image
+                  v-for="(img, j) in timelineEntry(raw).imageUrls"
+                  :key="img"
+                  :src="mediaSrc(img)"
+                  mode="aspectFill"
+                  class="timeline-img"
+                  @tap="previewImage(timelineEntry(raw).imageUrls, j)"
+                />
+              </view>
+              <view v-if="timelineEntry(raw).audioUrls.length" class="timeline-audios">
+                <FollowAudioPlayer
+                  v-for="(aud, j) in timelineEntry(raw).audioUrls"
+                  :key="`${j}-${aud}`"
+                  :src="aud"
+                  :label="`语音 ${j + 1}`"
+                />
+              </view>
             </view>
           </view>
           <view v-else class="card">
@@ -165,6 +208,26 @@ function goFollow() {
 .cust-detail-frame {
   display: flex;
   flex-direction: column;
+}
+
+.timeline-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.timeline-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 10rpx;
+}
+
+.timeline-audios {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 16rpx;
 }
 
 .cust-detail-state {

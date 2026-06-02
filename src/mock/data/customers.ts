@@ -93,8 +93,31 @@ function buildDetail(id: string): CustomerDetail {
       { dt: '成交状态', dd: '洽谈中' },
     ],
     timeline: isZhang
-      ? ['2026-05-11 16:20 · 电话 接受半年付', '2026-05-08 14:30 · 带看 黄埔科学城']
-      : ['2026-01-09 15:40 · 现场拍照备选厂房'],
+      ? [
+          {
+            occurredAt: '2026-05-11 16:20',
+            note: '电话 接受半年付',
+            imageUrls: [],
+            audioUrls: [],
+            displayLine: '2026-05-11 16:20 · 电话 接受半年付',
+          },
+          {
+            occurredAt: '2026-05-08 14:30',
+            note: '带看 黄埔科学城',
+            imageUrls: [],
+            audioUrls: [],
+            displayLine: '2026-05-08 14:30 · 带看 黄埔科学城',
+          },
+        ]
+      : [
+          {
+            occurredAt: '2026-01-09 15:40',
+            note: '现场拍照备选厂房',
+            imageUrls: [],
+            audioUrls: [],
+            displayLine: '2026-01-09 15:40 · 现场拍照备选厂房',
+          },
+        ],
     canEdit: true,
     h2: `${base.contactName} · ${base.company}`,
     gradeLabel: base.grade,
