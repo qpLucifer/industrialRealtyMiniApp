@@ -59,7 +59,9 @@ const canChangeListingStatus = computed(() => detail.value?.auditKey === 'live')
 const listingStatusSaving = ref(false)
 const featuredSaving = ref(false)
 const showFeaturedToggle = computed(
-  () => canChangeListingStatus.value && showFeaturedOption(currentListingStatus.value),
+  () =>
+    canChangeListingStatus.value &&
+    showFeaturedOption(currentListingStatus.value, detail.value?.rentSaleType),
 )
 
 const currentListingStatus = computed(() => {

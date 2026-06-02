@@ -368,6 +368,7 @@ export function emptyPropertyForm(): PropertyEditForm {
     auditState: 'draft',
     externalStatus: '草稿',
     auditHint: '未发布 · 保存后仍为草稿',
+    featured: false,
   }
 }
 
@@ -404,6 +405,7 @@ export function applyPropertyApiForm(target: PropertyEditForm, api: PropertyEdit
     target.externalStatus = String(api.externalStatus).trim()
   }
   if (api.auditHint != null) target.auditHint = String(api.auditHint)
+  if (api.featured != null) target.featured = Boolean(api.featured)
   normalizePropertyFormNumbers(target)
 }
 
@@ -503,6 +505,7 @@ export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEdit
     mediaImageUrls: images,
     mediaVideoUrls: videos,
     mediaUrls: [images, videos].filter(Boolean).join('\n'),
+    featured: Boolean(form.featured),
   }
   normalizePropertyFormNumbers(payload)
   return payload

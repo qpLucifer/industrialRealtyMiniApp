@@ -45,6 +45,8 @@ const {
   fireFailOff,
   coTenantAnnualOff,
   showRentFields,
+  showFeaturedField,
+  onFeaturedSwitch,
   auditState,
   auditStatusClass,
   formReadonly,
@@ -706,7 +708,13 @@ const {
           </view>
 
           <view v-show="step === 7" class="pf-card">
-            <picker mode="selector" :range="RENT_SALE" :value="pickerIdx(RENT_SALE, form.rentSaleType || '出租')" @change="onPickRentSale">
+            <picker
+              v-if="auditState !== 'live'"
+              mode="selector"
+              :range="RENT_SALE"
+              :value="pickerIdx(RENT_SALE, form.rentSaleType || '出租')"
+              @change="onPickRentSale"
+            >
               <view class="pf-cell">
                 <text class="pf-cell__label">租售类型<text class="req">*</text></text>
                 <view class="pf-select">
@@ -715,6 +723,23 @@ const {
                 </view>
               </view>
             </picker>
+            <view v-else-if="auditState === 'live'" class="pf-cell pf-cell--col">
+              <text class="hint">已上架：租售状态与主推请在房源详情「基础分类」中调整。</text>
+            </view>
+            <view v-if="showFeaturedField && auditState !== 'live'" class="pf-cell pf-cell--col">
+              <text class="pf-cell__label">主推</text>
+              <view class="pf-featured-row">
+                <switch
+                  :checked="!!form.featured"
+                  :disabled="formLocked"
+                  color="#ea580c"
+                  @change="onFeaturedSwitch"
+                />
+                <text class="pf-featured-hint">{{
+                  form.featured ? '已设为主推（上架待售后列表高亮）' : '上架为待售后在列表高亮展示'
+                }}</text>
+              </view>
+            </view>
             <view v-if="showRentFields" class="pf-cell pf-cell--col">
               <view class="pf-field-grid">
                 <view class="pf-field">
@@ -794,3 +819,18 @@ const {
     </view>
   </view>
 </template>
+
+<style scoped>
+.pf-featured-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 12rpx;
+}
+.pf-featured-hint {
+  flex: 1;
+  font-size: 26rpx;
+  color: #64748b;
+  line-height: 1.45;
+}
+</style>

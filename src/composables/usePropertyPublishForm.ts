@@ -49,6 +49,7 @@ import {
   uploadVideoFromPath,
 } from '@/utils/mediaUpload'
 import { MAX_IMAGES_PER_PICK } from '@/utils/mediaUploadPolicy'
+import { isRentSaleTypeForFeatured, showFeaturedOption } from '@/utils/propertyFeatured'
 
 export function usePropertyPublishPage() {
   const step = ref(0)
@@ -106,6 +107,9 @@ export function usePropertyPublishPage() {
   const fireFailOff = computed(() => form.firePass !== '否')
   const coTenantAnnualOff = computed(() => !Number(form.coTenantCount))
   const showRentFields = computed(() => form.rentSaleType === '出租' || form.rentSaleType === '租售皆可')
+  const showFeaturedField = computed(() =>
+    showFeaturedOption(form.externalStatus, form.rentSaleType),
+  )
 
   const auditState = computed(() => {
     const s = String(form.auditState || '').trim()
@@ -261,7 +265,13 @@ export function usePropertyPublishPage() {
   function onPickRentSale(e: PickerChange) {
     pickFromRange(RENT_SALE, e, (v) => {
       form.rentSaleType = v
+      if (!isRentSaleTypeForFeatured(v)) form.featured = false
     })
+  }
+
+  function onFeaturedSwitch(e: { detail?: { value?: boolean } }) {
+    if (formLocked.value) return
+    form.featured = !!e.detail?.value
   }
   function onPickMonitor(e: PickerChange) {
     pickFromRange(MONITOR, e, (v) => {
@@ -548,6 +558,8 @@ export function usePropertyPublishPage() {
     fireFailOff,
     coTenantAnnualOff,
     showRentFields,
+    showFeaturedField,
+    onFeaturedSwitch,
     auditState,
     statusDisplay,
     auditStatusClass,
