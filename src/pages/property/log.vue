@@ -11,6 +11,7 @@ const list = ref<PropertyLogEntry[]>([])
 const code = ref('')
 const loading = ref(false)
 const loadError = ref('')
+const expandedMediaIdx = ref<number | null>(null)
 
 onLoad((q) => {
   code.value = parsePropertyRouteKey(q)
@@ -26,6 +27,7 @@ async function load() {
   if (!code.value) return
   loading.value = true
   loadError.value = ''
+  expandedMediaIdx.value = null
   try {
     const r = await fetchPropertyLogs(code.value)
     list.value = r.list
@@ -45,6 +47,10 @@ function goFollow() {
   if (!code.value) return
   navigateToPropertyFollow(code.value)
 }
+
+function toggleLogMedia(idx: number) {
+  expandedMediaIdx.value = expandedMediaIdx.value === idx ? null : idx
+}
 </script>
 
 <template>
@@ -61,7 +67,11 @@ function goFollow() {
         </view>
         <template v-else>
           <view v-for="(t, i) in list" :key="i" class="card prop-log-card">
-            <PropertyLogEntryCard :entry="t" />
+            <PropertyLogEntryCard
+              :entry="t"
+              :media-expanded="expandedMediaIdx === i"
+              @toggle-media="toggleLogMedia(i)"
+            />
           </view>
           <view v-if="!list.length" class="card">
             <text class="hint">暂无日志</text>
