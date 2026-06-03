@@ -114,6 +114,7 @@ function normalizeWorkbenchSummary(raw: unknown): WorkbenchSummary {
 const topBarInsetStyle = useTopBarInsetStyle()
 
 const data = ref<WorkbenchSummary | null>(null)
+const loading = ref(false)
 const loadError = ref('')
 const popupVisible = ref(false)
 const popupItem = ref<AnnouncementItem | null>(null)
@@ -121,10 +122,13 @@ const popupItem = ref<AnnouncementItem | null>(null)
 const isFirstShow = ref(true)
 let workbenchInflight: Promise<void> | null = null
 
+const showSkeleton = computed(() => loading.value && !data.value && !loadError.value)
+
 async function loadWorkbench(force = false) {
   if (!ensureMiniSession()) return
   if (!force && !shouldRefreshWorkbench() && data.value) return
   if (workbenchInflight) return workbenchInflight
+  if (!data.value) loading.value = true
   workbenchInflight = (async () => {
     try {
       const raw = await fetchWorkbench()
@@ -139,6 +143,7 @@ async function loadWorkbench(force = false) {
         uni.showToast({ title: '工作台数据加载失败', icon: 'none' })
       }
     } finally {
+      loading.value = false
       workbenchInflight = null
     }
   })()
@@ -267,7 +272,8 @@ function todoHighlightStyle(highlight: boolean | undefined) {
         <view class="top-bar__home-row">
           <view class="top-bar__titles">
             <view class="h1-title">{{ tabBrandTitle('工作台') }}</view>
-            <view class="sub">{{ data?.regionLine }}</view>
+            <view v-if="showSkeleton" class="home-skel-line home-skel-line--sub" />
+            <view v-else class="sub">{{ data?.regionLine || '工作台' }}</view>
           </view>
           <view class="top-bar__home-icon" @click="goAnnounce">
             <view class="ic-announce" />
@@ -276,12 +282,44 @@ function todoHighlightStyle(highlight: boolean | undefined) {
         </view>
       </view>
 
-      <view v-if="loadError" class="home-load-error card">
+      <view v-if="loadError && !data" class="home-load-error card">
         <view style="font-weight: 700; margin-bottom: 8px">数据加载失败</view>
         <view class="hint">{{ loadError }}</view>
+        <button class="btn-secondary" style="margin-top: 16rpx" @click="() => void loadWorkbench(true)">重试</button>
       </view>
 
-      <view v-if="data" class="home-body">
+      <view v-if="showSkeleton" class="home-body home-body--skeleton">
+        <view class="card card-glow home-summary">
+          <view class="home-skel-row home-skel-row--head">
+            <view class="home-skel-col">
+              <view class="home-skel-line home-skel-line--tag" />
+              <view class="home-skel-line home-skel-line--title" />
+            </view>
+            <view class="home-skel-chip" />
+          </view>
+          <view class="home-skel-line home-skel-line--remind" />
+          <view class="home-stats-grid">
+            <view v-for="i in 3" :key="'sk-stat-' + i" class="home-stat-cell">
+              <view class="home-skel-line home-skel-line--stat-val" />
+              <view class="home-skel-line home-skel-line--stat-label" />
+            </view>
+          </view>
+        </view>
+
+        <scroll-view scroll-y :show-scrollbar="false" class="home-todo-scroll">
+          <view class="home-todo-scroll__inner">
+            <view v-for="i in 4" :key="'sk-todo-' + i" class="card home-skeleton-todo">
+              <view class="home-skel-avatar" />
+              <view class="home-skel-todo-text">
+                <view class="home-skel-line home-skel-line--todo-title" />
+                <view class="home-skel-line home-skel-line--todo-hint" />
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view v-else-if="data" class="home-body">
         <view class="card card-glow home-summary">
           <view style="display: flex; justify-content: space-between; align-items: flex-start">
             <view>
@@ -561,5 +599,118 @@ function todoHighlightStyle(highlight: boolean | undefined) {
   width: 100%;
   padding: 24rpx;
   font-size: 30rpx;
+}
+
+.home-skel-line,
+.home-skel-chip,
+.home-skel-avatar {
+  border-radius: 8rpx;
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.85) 0%,
+    rgba(241, 245, 249, 0.95) 45%,
+    rgba(226, 232, 240, 0.85) 100%
+  );
+  background-size: 200% 100%;
+  animation: home-skel-shimmer 1.25s ease-in-out infinite;
+}
+
+.home-skel-line--sub {
+  width: 180rpx;
+  height: 24rpx;
+  margin-top: 8rpx;
+}
+
+.home-skel-row--head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.home-skel-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-skel-line--tag {
+  width: 96rpx;
+  height: 22rpx;
+}
+
+.home-skel-line--title {
+  width: 280rpx;
+  height: 44rpx;
+  margin-top: 12rpx;
+}
+
+.home-skel-chip {
+  width: 140rpx;
+  height: 48rpx;
+  border-radius: 999rpx;
+  flex-shrink: 0;
+}
+
+.home-skel-line--remind {
+  width: 100%;
+  height: 36rpx;
+  margin-top: 24rpx;
+  border-radius: 10rpx;
+}
+
+.home-skel-line--stat-val {
+  width: 72rpx;
+  height: 36rpx;
+  margin: 0 auto;
+}
+
+.home-skel-line--stat-label {
+  width: 96rpx;
+  height: 22rpx;
+  margin: 12rpx auto 0;
+}
+
+.home-skeleton-todo {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+}
+
+.home-skeleton-todo:first-of-type {
+  margin-top: 0;
+}
+
+.home-skel-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  flex-shrink: 0;
+}
+
+.home-skel-todo-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-skel-line--todo-title {
+  width: 72%;
+  height: 32rpx;
+}
+
+.home-skel-line--todo-hint {
+  width: 48%;
+  height: 24rpx;
+  margin-top: 12rpx;
+}
+
+@keyframes home-skel-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 </style>
