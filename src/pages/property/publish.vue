@@ -256,7 +256,7 @@ const {
             </view>
             <view class="pf-section-h">图片上传</view>
             <view class="prop-media-editor">
-              <text v-if="editorImages.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按图片可拖动排序</text>
+              <text v-if="editorImages.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按 ≡ 或图片，拖到目标位后松手</text>
               <PropertyMediaReorderGrid
                 kind="image"
                 :urls="editorImages"
@@ -274,7 +274,7 @@ const {
             </view>
             <view class="pf-section-h">视频上传</view>
             <view class="prop-media-editor">
-              <text v-if="editorVideos.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按视频可拖动排序</text>
+              <text v-if="editorVideos.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按 ≡ 或视频区，拖到目标位后松手</text>
               <PropertyMediaReorderGrid
                 kind="video"
                 :urls="editorVideos"

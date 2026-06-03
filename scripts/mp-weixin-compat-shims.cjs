@@ -131,15 +131,18 @@ function scrubStaleComponentRefs(dir) {
       let changed = false
       for (const [k, v] of Object.entries(j.usingComponents)) {
         const val = String(v)
-        if (
-          /PropertyMedia|property-media-/i.test(k) ||
-          /PropertyMedia/i.test(val) ||
-          /PfField/i.test(k) ||
+        const key = String(k)
+        // Only drop removed hero/editor stubs — keep PropertyMediaReorderGrid on publish.
+        const removedMedia =
+          /PropertyMediaHero|PropertyMediaEditor|property-media-hero|property-media-editor/i.test(key) ||
+          /PropertyMediaHero|PropertyMediaEditor/i.test(val)
+        const removedField =
+          /PfField/i.test(key) ||
           /PfField/i.test(val) ||
-          /DateTimeField/i.test(k) ||
+          /DateTimeField/i.test(key) ||
           /DateTimeField/i.test(val) ||
-          /date-time-field/i.test(k)
-        ) {
+          /date-time-field/i.test(key)
+        if (removedMedia || removedField) {
           delete j.usingComponents[k]
           changed = true
         }
