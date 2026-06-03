@@ -20,6 +20,7 @@ import { usePagedList } from '@/utils/pagedList'
 import {
   normalizePropertySectorScope,
   propertyListTabsFromScope,
+  propertyListStatusLabel,
   type PropertyListTab,
 } from '@/utils/propertyListTabs'
 
@@ -293,7 +294,7 @@ function applyFilter() {
                         ? 'background:#e2e8f0;color:#475569;border-color:rgba(100,116,139,0.25);flex-shrink:0'
                         : 'flex-shrink:0'
                     "
-                    >{{ (p as PropertyListItem).status }}</view
+                    >{{ propertyListStatusLabel((p as PropertyListItem).status) }}</view
                   >
                 </view>
               </view>

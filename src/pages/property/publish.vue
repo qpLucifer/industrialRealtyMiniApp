@@ -357,7 +357,7 @@ const {
             <view class="pf-cell pf-cell--col">
               <view class="pf-field-grid">
                 <view class="pf-field">
-                  <text class="pf-field__label">电力总容量（kVA）<text class="req">*</text></text>
+                  <text class="pf-field__label">电力总容量（kVA）</text>
                   <input :cursor-spacing="120" v-model="form.powerKva" class="pf-input" type="number" placeholder="kVA" />
                 </view>
                 <view class="pf-field">

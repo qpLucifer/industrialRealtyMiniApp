@@ -37,7 +37,6 @@ export function collectPropertyRequiredMiss(form: PropertyEditForm): string[] {
   const hasVid = parseMediaLines(form.mediaVideoUrls).length > 0
   if (!hasImg && !hasVid) miss.push('图片或视频（至少一类）')
   if (form.landMu == null || Number(form.landMu) <= 0) miss.push('土地（亩）')
-  if (form.powerKva == null || Number(form.powerKva) <= 0) miss.push('电力总容量')
   if (!String(form.rentSaleType || '').trim()) miss.push('租售类型')
   if (!String(form.contactName || '').trim()) miss.push('联系人姓名')
   if (!String(form.contactPhone || '').trim()) miss.push('联系人电话')
