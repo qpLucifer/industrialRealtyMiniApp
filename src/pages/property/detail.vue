@@ -330,7 +330,7 @@ async function onListingStatusPick(e: { detail: { value: string | number } }) {
   listingStatusSaving.value = true
   try {
     const r = await updatePropertyListingStatus(d.id, next, {
-      featured: next === '待售' ? d.featured : false,
+      featured: next === '出售' || next === '待售' ? d.featured : false,
     })
     d.externalStatus = r.externalStatus
     d.leaseChip = r.externalStatus

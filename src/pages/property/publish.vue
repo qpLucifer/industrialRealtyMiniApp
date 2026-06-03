@@ -735,7 +735,7 @@ const {
                   @change="onFeaturedSwitch"
                 />
                 <text class="pf-featured-hint">{{
-                  form.featured ? '已设为主推（上架待售后列表高亮）' : '上架为待售后在列表高亮展示'
+                  form.featured ? '已设为主推（上架出售后列表高亮）' : '上架为出售后在列表高亮展示'
                 }}</text>
               </view>
             </view>

@@ -8,7 +8,7 @@ export interface PropertyListItem {
   priceLine: string
   status: string
   statusTone: 'draft' | 'ok' | 'warn' | 'neutral' | 'rejected'
-  /** 主推（待售且已勾选） */
+  /** 主推（出售且已勾选） */
   featured?: boolean
   draftHint?: string
   /** First image from mediaImageUrls / mediaUrls */
@@ -80,9 +80,9 @@ export interface PropertyEditForm {
   code?: string
   /** draft | pending | rejected | live — aligned with properties.audit_state */
   auditState?: string
-  /** List column status_tag: 草稿 | 待审核 | 驳回 | 待开发 | 待租 | … */
+  /** List column status_tag: 草稿 | 待审核 | 驳回 | 待开发 | 出租 | … */
   externalStatus?: string
-  /** 主推（仅待售时可设为 true） */
+  /** 主推（仅出售时可设为 true） */
   featured?: boolean
   auditHint?: string
   /** Set when loaded from edit-form API — live edit grant confirmed by server */

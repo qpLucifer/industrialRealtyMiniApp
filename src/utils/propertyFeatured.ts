@@ -1,11 +1,12 @@
-/** 主推 — when live status is 待售, or publish form rent/sale type is 出售. */
+/** 主推 — when live status is 出售, or publish form rent/sale type is 出售. */
 
-export const PROPERTY_STATUS_FOR_SALE = '待售'
+export const PROPERTY_STATUS_FOR_SALE = '出售'
 
 export const RENT_SALE_TYPE_FOR_FEATURED = '出售'
 
 export function isPropertyForSaleStatus(status: string | undefined | null) {
-  return String(status || '').trim() === PROPERTY_STATUS_FOR_SALE
+  const s = String(status || '').trim()
+  return s === PROPERTY_STATUS_FOR_SALE || s === '待售'
 }
 
 export function isRentSaleTypeForFeatured(rentSaleType: string | undefined | null) {

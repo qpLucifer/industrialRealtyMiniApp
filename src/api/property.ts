@@ -32,7 +32,7 @@ function apiQueryKey(key: string) {
 export type PropertyListQuery = {
   q?: string
   status?: string
-  /** Filter status_tag 待租/待售 (optional; home stat uses total count without this) */
+  /** Filter status_tag 出租/出售 (optional; home stat uses total count without this) */
   available?: boolean
   /** Only audit_state = live (e.g. viewing property picker) */
   auditLive?: boolean

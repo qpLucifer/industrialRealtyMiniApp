@@ -76,7 +76,7 @@ function filterMockPropertyList(query: Record<string, string>) {
   }
   const available = query.available === '1' || query.available === 'true'
   if (available) {
-    rows = rows.filter((p) => p.status === '待租' || p.status === '待售')
+    rows = rows.filter((p) => p.status === '出租' || p.status === '出售' || p.status === '待租' || p.status === '待售')
   } else {
     const status = (query.status || '').trim()
     if (status) rows = rows.filter((p) => p.status === status)
@@ -570,11 +570,12 @@ export async function dispatchMock(
     const code = String((body as Record<string, unknown>)?.code || '').trim()
     const externalStatus = String((body as Record<string, unknown>)?.externalStatus || '').trim()
     const featured =
-      externalStatus === '待售' && (body as Record<string, unknown>)?.featured === true
+      (externalStatus === '出售' || externalStatus === '待售') &&
+      (body as Record<string, unknown>)?.featured === true
     return okResult({
-      externalStatus: externalStatus || '待租',
+      externalStatus: externalStatus || '出租',
       featured,
-      listingLine1: externalStatus || '待租',
+      listingLine1: externalStatus || '出租',
       listingLine2: `Mock · ${code || '—'}`,
     })
   }
