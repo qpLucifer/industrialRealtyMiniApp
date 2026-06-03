@@ -35,6 +35,8 @@ export interface PropertyDetailPayload {
   id: string
   /** Whether mini staff may see privacy fields on this property */
   canViewPrivacy?: boolean
+  /** Whether mini staff may edit this property (live requires grant; draft/rejected by access rules) */
+  canEditProperty?: boolean
   auditKey: 'live' | 'pending' | 'draft' | 'rejected'
   auditBadge: string
   auditHint: string
@@ -83,6 +85,8 @@ export interface PropertyEditForm {
   /** 主推（仅待售时可设为 true） */
   featured?: boolean
   auditHint?: string
+  /** Set when loaded from edit-form API — live edit grant confirmed by server */
+  canEditProperty?: boolean
   submitterName?: string
   listTitle?: string
   companyName?: string

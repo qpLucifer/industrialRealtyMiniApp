@@ -72,6 +72,8 @@ export interface PropertyDetailMock {
   propertyType?: string
   mediaImages?: string[]
   mediaVideos?: string[]
+  canViewPrivacy?: boolean
+  canEditProperty?: boolean
 }
 
 const DETAIL_MAP: Record<string, PropertyDetailMock> = {
@@ -99,6 +101,8 @@ const DETAIL_MAP: Record<string, PropertyDetailMock> = {
       'https://img.alicdn.com/imgextra/i2/O1CN01example2.jpg',
     ],
     mediaVideos: [],
+    canViewPrivacy: true,
+    canEditProperty: true,
   },
   'P-7730': {
     id: 'P-7730',

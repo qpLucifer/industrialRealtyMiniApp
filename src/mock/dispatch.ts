@@ -188,6 +188,8 @@ function mockEditFormForDetail(id: string): PropertyEditForm {
   const d = getPropertyDetail(id)
   return {
     code: id,
+    auditState: d.auditKey,
+    canEditProperty: d.canEditProperty ?? d.auditKey !== 'live',
     types: d.propertyType ? [d.propertyType] : ['标准厂房'],
     listTitle: d.detailTitle,
     companyName: d.company,
@@ -245,6 +247,9 @@ function buildPropertyDetailPayload(key: string) {
   const rejectReason = d.auditKey === 'rejected' ? d.rejectReason || d.auditHint : ''
   return {
     ...d,
+    canViewPrivacy: d.canViewPrivacy !== false,
+    canEditProperty:
+      d.canEditProperty === true || d.auditKey === 'draft' || d.auditKey === 'rejected',
     rejectReason,
     kv,
     mediaImages: d.mediaImages ?? [],

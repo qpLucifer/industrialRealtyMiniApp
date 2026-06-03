@@ -52,6 +52,7 @@ const {
   formReadonly,
   canPublishForAudit,
   canSaveDraft,
+  saveDraftLabel,
   showStatusAuditHint,
   toggleTypes,
   togglePhoto,
@@ -785,12 +786,12 @@ const {
         </view>
         <view v-else-if="auditState === 'live'" class="pf-detail-audit-wrap" style="margin-bottom: 12rpx">
           <view class="prop-detail-audit-strip audit-live">
-            <text>已上线，可在房源详情页调整租售状态（不可改为草稿/待审核/驳回）</text>
+            <text>已上架 · 保存后立即生效；租售状态请在详情页调整</text>
           </view>
         </view>
         <view class="page-footer__row">
           <button v-if="step > 0" class="btn-secondary" @click="prevStep">上一步</button>
-          <button v-if="canSaveDraft" class="btn-secondary" :disabled="saving" @click="saveDraft">保存草稿</button>
+          <button v-if="canSaveDraft" class="btn-secondary" :disabled="saving" @click="saveDraft">{{ saveDraftLabel }}</button>
           <button v-if="!isLast" class="btn-primary" @click="nextStep">下一步</button>
           <button v-else-if="canPublishForAudit" class="btn-primary" :disabled="saving" @click="submitFinal">提交审核</button>
         </view>

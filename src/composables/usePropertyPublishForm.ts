@@ -124,9 +124,12 @@ export function usePropertyPublishPage() {
     return 'audit-draft'
   })
   const formReadonly = computed(() => auditState.value === 'pending')
-  const formLocked = computed(() => formReadonly.value || auditState.value === 'live')
+  const formLocked = computed(() => formReadonly.value)
   const canPublishForAudit = computed(() => auditState.value === 'draft' || auditState.value === 'rejected')
-  const canSaveDraft = computed(() => canPublishForAudit.value || !form.code)
+  const canSaveDraft = computed(
+    () => canPublishForAudit.value || !form.code || auditState.value === 'live',
+  )
+  const saveDraftLabel = computed(() => (auditState.value === 'live' ? '保存修改' : '保存草稿'))
   const showStatusAuditHint = computed(() => {
     if (auditState.value === 'draft' || auditState.value === 'rejected') return false
     const hint = String(form.auditHint || '').trim()
@@ -458,7 +461,10 @@ export function usePropertyPublishPage() {
       markListStale('my-published')
       markListStale('property-list')
       markWorkbenchStale()
-      uni.showToast({ title: '草稿已保存', icon: 'none' })
+      uni.showToast({
+        title: auditState.value === 'live' ? '已保存修改' : '草稿已保存',
+        icon: 'none',
+      })
     } catch (e) {
       uni.showToast({ title: e instanceof Error ? e.message : '保存失败', icon: 'none' })
     } finally {
@@ -567,6 +573,7 @@ export function usePropertyPublishPage() {
     formLocked,
     canPublishForAudit,
     canSaveDraft,
+    saveDraftLabel,
     showStatusAuditHint,
     toggleTypes,
     togglePhoto,

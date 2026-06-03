@@ -81,9 +81,14 @@ const listingStatusIdx = computed(() => {
 
 const rentSaleHint = computed(() => rentSaleStatusHint(detail.value?.rentSaleType || ''))
 const canEditProperty = computed(() => {
-  const k = detail.value?.auditKey
-  return k === 'draft' || k === 'rejected'
+  const d = detail.value
+  if (!d) return false
+  const k = d.auditKey
+  if (k === 'draft' || k === 'rejected') return true
+  if (k === 'live' && d.canEditProperty) return true
+  return false
 })
+const showLiveEditOnDetail = computed(() => detail.value?.auditKey === 'live' && canEditProperty.value)
 
 const KV_STATUS_OMIT = new Set(['对外状态', '当前状态', '状态', '审核状态'])
 const PRIVACY_KV_LABELS = new Set(['公司名称', '业主联系人'])
@@ -582,14 +587,23 @@ function openVideoFullscreen(url: string) {
       </scroll-view>
 
       <view v-if="detail" class="page-footer pf-detail-footer">
-        <view class="page-footer__row">
-          <button class="btn-primary pf-detail-follow-btn" @click="goFollow">写房源跟进</button>
-          <button v-if="canEditProperty" class="btn-secondary pf-detail-edit-btn" @click="goEdit">编辑</button>
+        <view v-if="canViewing && showLiveEditOnDetail" class="pf-detail-actions pf-detail-actions--triple">
+          <button class="pf-detail-action pf-detail-action--ghost" @click="goFollow">写跟进</button>
+          <button class="pf-detail-action pf-detail-action--ghost" @click="goEdit">编辑房源</button>
+          <button class="pf-detail-action pf-detail-action--primary" @click="goViewing">预约带看</button>
         </view>
-        <view v-if="canViewing" class="page-footer__row pf-detail-footer__row2">
-          <button class="btn-primary" style="flex: 1" @click="goViewing">预约带看</button>
+        <view v-else-if="canViewing" class="pf-detail-actions">
+          <button class="pf-detail-action pf-detail-action--ghost" @click="goFollow">写跟进</button>
+          <button class="pf-detail-action pf-detail-action--primary" @click="goViewing">预约带看</button>
         </view>
-        <button v-if="canViewing" class="btn-ghost pf-detail-share-btn" @click="shareInternal">复制转发文案</button>
+        <view v-else-if="canEditProperty" class="pf-detail-actions">
+          <button class="pf-detail-action pf-detail-action--ghost" @click="goFollow">写跟进</button>
+          <button class="pf-detail-action pf-detail-action--primary" @click="goEdit">编辑房源</button>
+        </view>
+        <view v-else class="pf-detail-actions pf-detail-actions--single">
+          <button class="pf-detail-action pf-detail-action--primary" @click="goFollow">写房源跟进</button>
+        </view>
+        <button v-if="canViewing" class="pf-detail-share-link" @click="shareInternal">复制转发文案</button>
       </view>
     </view>
   </view>
@@ -611,24 +625,88 @@ function openVideoFullscreen(url: string) {
 
 .pf-detail-footer {
   flex-shrink: 0;
+  padding-top: 16rpx;
 }
 
-.pf-detail-follow-btn {
+.pf-detail-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 16rpx;
+}
+
+.pf-detail-actions--single .pf-detail-action {
   flex: 1;
 }
 
-.pf-detail-edit-btn {
-  flex-shrink: 0;
-  min-width: 160rpx;
+.pf-detail-actions--triple .pf-detail-action {
+  flex: 1;
+  padding: 0 12rpx;
+  font-size: 26rpx;
 }
 
-.pf-detail-footer__row2 {
-  margin-top: 12rpx;
+.pf-detail-actions--triple .pf-detail-action--primary {
+  flex: 1;
 }
 
-.pf-detail-share-btn {
+.pf-detail-action {
+  flex: 1;
+  margin: 0;
+  padding: 0 24rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+  box-sizing: border-box;
+}
+
+.pf-detail-action::after {
+  border: none;
+}
+
+.pf-detail-action--primary {
+  flex: 1.15;
+  color: #fff;
+  background: linear-gradient(145deg, #1a3a6c, #2d5088);
+  box-shadow: 0 8rpx 24rpx rgba(26, 58, 108, 0.28);
+}
+
+.pf-detail-action--primary:active {
+  opacity: 0.92;
+  transform: scale(0.99);
+}
+
+.pf-detail-action--ghost {
+  color: #1a3a6c;
+  background: #f1f5f9;
+  border: 2rpx solid rgba(26, 58, 108, 0.12);
+}
+
+.pf-detail-action--ghost:active {
+  background: #e8eef6;
+}
+
+.pf-detail-share-link {
+  display: block;
   width: 100%;
-  margin-top: 12rpx;
+  margin: 16rpx 0 0;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.pf-detail-share-link::after {
+  border: none;
+}
+
+.pf-detail-share-link:active {
+  color: #1a3a6c;
 }
 
 .pf-featured-row {

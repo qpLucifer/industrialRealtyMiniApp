@@ -466,8 +466,9 @@ export function buildPropertySubmitPayload(form: PropertyEditForm): PropertyEdit
   const images = joinMediaLines(parseMediaLines(form.mediaImageUrls))
   const videos = joinMediaLines(parseMediaLines(form.mediaVideoUrls))
   const types = Array.isArray(form.types) ? form.types.filter(Boolean) : ['标准厂房']
+  const { canEditProperty: _omitCanEdit, ...formRest } = form
   const payload: PropertyEditForm = {
-    ...form,
+    ...formRest,
     code: form.code,
     listTitle: String(form.listTitle || '').trim() || `${form.companyName || '房源'} · ${types[0]}`,
     companyName: String(form.companyName || '').trim(),
