@@ -9,6 +9,8 @@ export interface MiniStaffProfile {
   roleLine?: string
   regionLine?: string
   avatarUrl?: string
+  propertySectorScope?: 'sale' | 'rent' | 'both'
+  propertyListTabs?: { key: string; label: string; status: string }[]
 }
 
 export interface MiniLoginResult {

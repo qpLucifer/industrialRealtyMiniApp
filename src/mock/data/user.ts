@@ -1,5 +1,8 @@
 /** Profile + settings mock */
 
+import type { PropertyListTab, PropertySectorScope } from '@/utils/propertyListTabs'
+import { propertyListTabsFromScope } from '@/utils/propertyListTabs'
+
 export interface UserProfile {
   name: string
   roleLine: string
@@ -7,6 +10,8 @@ export interface UserProfile {
   avatarUrl?: string
   employeeNo?: string
   staffId?: string
+  propertySectorScope?: PropertySectorScope
+  propertyListTabs?: PropertyListTab[]
 }
 
 export const mockUserProfile: UserProfile = {
@@ -16,6 +21,8 @@ export const mockUserProfile: UserProfile = {
   employeeNo: 'E-900218',
   staffId: 's1',
   avatarUrl: '',
+  propertySectorScope: 'both',
+  propertyListTabs: propertyListTabsFromScope('both'),
 }
 
 export interface SecuritySettings {

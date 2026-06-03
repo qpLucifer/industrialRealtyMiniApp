@@ -5,6 +5,9 @@ export interface UserProfile {
   avatarUrl?: string
   staffId?: string
   employeeNo?: string
+  /** sale | rent | both — mini property list sector */
+  propertySectorScope?: 'sale' | 'rent' | 'both'
+  propertyListTabs?: { key: string; label: string; status: string }[]
 }
 
 export interface SecuritySettings {

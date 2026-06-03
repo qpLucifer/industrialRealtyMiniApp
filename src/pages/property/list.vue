@@ -10,14 +10,21 @@ import {
   propertyNavKey,
   type PropertyListQuery,
 } from '@/api/property'
+import { fetchUserProfile } from '@/api/user'
 import type { PropertyListItem } from '@/types/property'
 import { fetchRegionDefs, resolveMediaUrl } from '@/utils/request'
 import { consumeListStale } from '@/utils/listStale'
 import { tabBrandTitle } from '@/constants/brand'
 import { consumeTabNavIntent } from '@/utils/tabNavIntent'
 import { usePagedList } from '@/utils/pagedList'
+import {
+  normalizePropertySectorScope,
+  propertyListTabsFromScope,
+  type PropertyListTab,
+} from '@/utils/propertyListTabs'
 
 const topBarInsetStyle = useTopBarInsetStyle()
+const listTabs = ref<PropertyListTab[]>(propertyListTabsFromScope('both'))
 const {
   items: list,
   loading,
@@ -29,7 +36,6 @@ const {
 const filterOpen = ref(false)
 const seg = ref(0)
 const keyword = ref('')
-const segStatus = ['', '草稿', '待开发', '待租', '待售', '待租售']
 
 const regionDefs = ref<{ id: number; name: string }[]>([])
 const regionNames = computed(() => ['全部区域', ...regionDefs.value.map((r) => r.name)])
@@ -72,7 +78,8 @@ const filterSummary = computed(() => {
 })
 
 function buildListQuery(): PropertyListQuery {
-  const status = listAvailableOnly.value ? '' : segStatus[seg.value] || ''
+  const tab = listTabs.value[seg.value]
+  const status = listAvailableOnly.value ? '' : tab?.status || ''
   const q: PropertyListQuery = {
     q: keyword.value.trim() || undefined,
     status: status || undefined,
@@ -112,9 +119,21 @@ async function loadRegionDefs() {
   }
 }
 
-onMounted(() => {
+async function loadListTabs() {
+  try {
+    const profile = await fetchUserProfile()
+    const scope = normalizePropertySectorScope(profile.propertySectorScope)
+    listTabs.value =
+      profile.propertyListTabs?.length ? profile.propertyListTabs : propertyListTabsFromScope(scope)
+  } catch {
+    listTabs.value = propertyListTabsFromScope('both')
+  }
+  if (seg.value >= listTabs.value.length) seg.value = 0
+}
+
+onMounted(async () => {
   applyTabNavIntent()
-  void loadRegionDefs()
+  await Promise.all([loadRegionDefs(), loadListTabs()])
 })
 
 function applyTabNavIntent() {
@@ -131,7 +150,10 @@ useTabPageShow(() => {
   if (consumeListStale('property-list')) {
     /* refresh after publish / edit */
   }
-  return reload()
+  return (async () => {
+    await loadListTabs()
+    await reload()
+  })()
 }, { requireAuth: true })
 
 function onSeg(i: number) {
@@ -211,14 +233,19 @@ function applyFilter() {
           <text class="filter-active-bar__text">{{ filterSummary }}</text>
           <text class="filter-active-bar__clear" @click="resetFilter">清除</text>
         </view>
-        <view class="segmented">
-          <button class="seg-btn" :class="{ active: seg === 0 }" @click="onSeg(0)">全部</button>
-          <button class="seg-btn" :class="{ active: seg === 1 }" @click="onSeg(1)">草稿</button>
-          <button class="seg-btn" :class="{ active: seg === 2 }" @click="onSeg(2)">待开发</button>
-          <button class="seg-btn" :class="{ active: seg === 3 }" @click="onSeg(3)">待租</button>
-          <button class="seg-btn" :class="{ active: seg === 4 }" @click="onSeg(4)">待售</button>
-          <button class="seg-btn" :class="{ active: seg === 5 }" @click="onSeg(5)">待租售</button>
-        </view>
+        <scroll-view scroll-x class="segmented-scroll" :show-scrollbar="false">
+          <view class="segmented segmented--scroll">
+            <button
+              v-for="(tab, i) in listTabs"
+              :key="tab.key"
+              class="seg-btn"
+              :class="{ active: seg === i }"
+              @click="onSeg(i)"
+            >
+              {{ tab.label }}
+            </button>
+          </view>
+        </scroll-view>
       </view>
       <PagedVirtualList
         class="page-scroll"
@@ -371,6 +398,23 @@ function applyFilter() {
 }
 .list-page-head {
   flex-shrink: 0;
+}
+
+.segmented-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.segmented--scroll {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 12rpx;
+  min-width: 100%;
+}
+
+.segmented--scroll .seg-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .prop-list-card__chips {
