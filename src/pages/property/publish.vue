@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { provide } from 'vue'
 import NavIconBar from '@/components/NavIconBar.vue'
+import PropertyMediaReorderGrid from '@/components/PropertyMediaReorderGrid.vue'
 import {
   PROPERTY_PUBLISH_KEY,
   usePropertyPublishPage,
@@ -82,6 +83,8 @@ const {
   onMapTap,
   removeEditorImage,
   removeEditorVideo,
+  reorderEditorImage,
+  reorderEditorVideo,
   previewEditorImage,
   pickImages,
   pickVideos,
@@ -94,7 +97,6 @@ const {
   leaveStay,
   leaveGo,
   pickerIdx,
-  onVideoComponentError,
   previewNetworkVideo,
   statusDisplay,
   formLocked,
@@ -254,12 +256,15 @@ const {
             </view>
             <view class="pf-section-h">图片上传</view>
             <view class="prop-media-editor">
-              <view v-if="editorImages.length" class="prop-media-editor__grid">
-                <view v-for="(url, i) in editorImages" :key="'img' + i" class="prop-media-editor__cell">
-                  <image class="prop-media-editor__img" :src="url" mode="aspectFill" @click="previewEditorImage(i)" />
-                  <text class="prop-media-editor__del" @tap.stop="removeEditorImage(i)">×</text>
-                </view>
-              </view>
+              <text v-if="editorImages.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按图片可拖动排序</text>
+              <PropertyMediaReorderGrid
+                kind="image"
+                :urls="editorImages"
+                :disabled="formLocked"
+                @reorder="reorderEditorImage"
+                @remove="removeEditorImage"
+                @preview="previewEditorImage"
+              />
               <view class="upload-grid">
                 <view class="upload-tile" :class="{ 'upload-tile--busy': uploading }" @click="pickImages">
                   <text class="tile-title">{{ uploading ? '上传中…' : '上传图片' }}</text>
@@ -269,22 +274,15 @@ const {
             </view>
             <view class="pf-section-h">视频上传</view>
             <view class="prop-media-editor">
-              <view v-if="editorVideos.length" class="prop-media-editor__video-list">
-                <view v-for="(url, i) in editorVideos" :key="'vid' + i" class="prop-media-editor__video-block">
-                  <view class="prop-media-editor__cell prop-media-editor__cell--video">
-                    <video
-                      class="prop-media-editor__img prop-media-editor__video"
-                      :src="url"
-                      controls
-                      show-center-play-btn
-                      object-fit="cover"
-                      @error="onVideoComponentError"
-                    />
-                    <text class="prop-media-editor__del" @tap.stop="removeEditorVideo(i)">×</text>
-                  </view>
-                  <text class="prop-media-editor__link" @tap="previewNetworkVideo(url)">全屏播放</text>
-                </view>
-              </view>
+              <text v-if="editorVideos.length > 1 && !formLocked" class="hint prop-media-sort__hint">长按视频可拖动排序</text>
+              <PropertyMediaReorderGrid
+                kind="video"
+                :urls="editorVideos"
+                :disabled="formLocked"
+                @reorder="reorderEditorVideo"
+                @remove="removeEditorVideo"
+                @preview-video="previewNetworkVideo"
+              />
               <view class="upload-grid">
                 <view class="upload-tile" :class="{ 'upload-tile--busy': uploading }" @click="pickVideos">
                   <text class="tile-title">上传视频</text>

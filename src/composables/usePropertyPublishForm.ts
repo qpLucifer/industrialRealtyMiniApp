@@ -211,6 +211,25 @@ export function usePropertyPublishPage() {
     if (guessed) form.district = guessed
   }
 
+  function reorderMediaField(field: 'mediaImageUrls' | 'mediaVideoUrls', from: number, to: number) {
+    if (formLocked.value) return
+    const cur = field === 'mediaImageUrls' ? form.mediaImageUrls : form.mediaVideoUrls
+    const lines = parseMediaLines(cur)
+    if (from === to || from < 0 || to < 0 || from >= lines.length || to >= lines.length) return
+    const [item] = lines.splice(from, 1)
+    lines.splice(to, 0, item)
+    if (field === 'mediaImageUrls') form.mediaImageUrls = joinMediaLines(lines)
+    else form.mediaVideoUrls = joinMediaLines(lines)
+  }
+
+  function reorderEditorImage(from: number, to: number) {
+    reorderMediaField('mediaImageUrls', from, to)
+  }
+
+  function reorderEditorVideo(from: number, to: number) {
+    reorderMediaField('mediaVideoUrls', from, to)
+  }
+
   function removeEditorImage(i: number) {
     const lines = parseMediaLines(form.mediaImageUrls)
     lines.splice(i, 1)
@@ -603,6 +622,8 @@ export function usePropertyPublishPage() {
     onMapTap,
     removeEditorImage,
     removeEditorVideo,
+    reorderEditorImage,
+    reorderEditorVideo,
     previewEditorImage,
     pickImages,
     pickVideos,
