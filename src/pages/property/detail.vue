@@ -182,6 +182,30 @@ function parseCoord(v: unknown) {
   return Number.isFinite(n) ? n : NaN
 }
 
+const CONTACT_PHONE_KV_LABEL = '联系人电话'
+
+function canDialContactPhone(value: unknown) {
+  const p = String(value ?? '').trim()
+  if (!p || p === '—' || p.includes('*')) return false
+  return p.replace(/\D/g, '').length >= 7
+}
+
+function isContactPhoneKvRow(label: unknown) {
+  return String(label ?? '').trim() === CONTACT_PHONE_KV_LABEL
+}
+
+function onCallContactPhone(value: unknown) {
+  if (!canDialContactPhone(value)) {
+    uni.showToast({ title: '号码不可用', icon: 'none' })
+    return
+  }
+  const digits = String(value).replace(/\s/g, '').replace(/[^\d+]/g, '')
+  uni.makePhoneCall({
+    phoneNumber: digits,
+    fail: () => uni.showToast({ title: '无法唤起拨号', icon: 'none' }),
+  })
+}
+
 const hasMapCoords = computed(() => {
   const d = detail.value
   if (!d) return false
@@ -502,14 +526,30 @@ function openVideoFullscreen(url: string) {
             </view>
             <view v-for="(row, i) in kvRows" :key="'kv-' + i" class="pf-kv-row">
               <text class="pf-kv-dt">{{ row.dt }}</text>
-              <text class="pf-kv-dd">{{ row.dd }}</text>
+              <view
+                v-if="isContactPhoneKvRow(row.dt) && canDialContactPhone(row.dd)"
+                class="pf-kv-dd pf-kv-dd--dial"
+                @tap="onCallContactPhone(row.dd)"
+              >
+                {{ row.dd }}
+                <text class="pf-kv-dd__action"> 拨打</text>
+              </view>
+              <text v-else class="pf-kv-dd">{{ row.dd }}</text>
             </view>
           </view>
 
           <view v-else-if="kvRows.length" class="pf-kv-card">
             <view v-for="(row, i) in kvRows" :key="i" class="pf-kv-row">
               <text class="pf-kv-dt">{{ row.dt }}</text>
-              <text class="pf-kv-dd">{{ row.dd }}</text>
+              <view
+                v-if="isContactPhoneKvRow(row.dt) && canDialContactPhone(row.dd)"
+                class="pf-kv-dd pf-kv-dd--dial"
+                @tap="onCallContactPhone(row.dd)"
+              >
+                {{ row.dd }}
+                <text class="pf-kv-dd__action"> 拨打</text>
+              </view>
+              <text v-else class="pf-kv-dd">{{ row.dd }}</text>
             </view>
           </view>
 
@@ -621,6 +661,15 @@ function openVideoFullscreen(url: string) {
   display: block;
   margin-top: 8rpx;
   font-size: 22rpx;
+}
+
+.pf-kv-dd--dial {
+  color: var(--navy, #0f172a);
+}
+
+.pf-kv-dd__action {
+  color: var(--mint, #10b981);
+  font-weight: 600;
 }
 
 .pf-detail-footer {
