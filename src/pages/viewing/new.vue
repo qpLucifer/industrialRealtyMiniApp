@@ -9,7 +9,6 @@ import { joinYmdHm, splitYmdHm } from '@/utils/nativeDateTimePick'
 import { fetchCustomerDetail, searchCustomerPicker } from '@/api/customer'
 import {
   fetchPropertyDetail,
-  fetchPropertyEditForm,
   parsePropertyRouteKey,
   propertyNavKey,
   searchPropertyPicker,
@@ -137,12 +136,10 @@ async function resolvePropertyLabel(key: string) {
   if (!k) return
   try {
     const detail = await fetchPropertyDetail(k)
-    const form = await fetchPropertyEditForm(k).catch(() => null)
-    const code = String(form?.code || detail.id || k).trim()
-    const navKey = propertyPickerNavKey({ id: detail.id, code: form?.code ?? detail.id })
+    const code = String(detail.id || k).trim()
+    const navKey = propertyPickerNavKey({ id: detail.id, code })
     const label = propertyDisplayName({
       title: detail.detailTitle,
-      listTitle: form?.listTitle,
       code,
       fallbackKey: k,
     })

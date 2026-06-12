@@ -51,7 +51,7 @@ function open(m: MessageItem) {
     return
   }
   if (m.nav === 'settings') {
-    uni.navigateTo({ url: '/pages/settings/settings' })
+    uni.showToast({ title: '系统设置已关闭', icon: 'none' })
     return
   }
   uni.showToast({ title: '暂不支持该消息类型', icon: 'none' })

@@ -1,10 +1,35 @@
 /** Beijing time (Asia/Shanghai) — miniapp display & pickers. */
 
 const BJ_OFFSET_MS = 8 * 60 * 60 * 1000
+const BJ_TZ = 'Asia/Shanghai'
 
-/** Wall-clock parts in UTC+8 without Intl (WeChat mini program may lack Intl). */
+/** Wall-clock parts in UTC+8 (prefer Intl; fallback works on any device TZ). */
 function beijingParts(date: Date = new Date()) {
-  const bj = new Date(date.getTime() + date.getTimezoneOffset() * 60_000 + BJ_OFFSET_MS)
+  try {
+    if (typeof Intl !== 'undefined' && typeof Intl.DateTimeFormat === 'function') {
+      const dtf = new Intl.DateTimeFormat('en-US', {
+        timeZone: BJ_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      const map = Object.fromEntries(dtf.formatToParts(date).map((p) => [p.type, p.value]))
+      return {
+        year: map.year,
+        month: map.month,
+        day: map.day,
+        hour: map.hour,
+        minute: map.minute,
+      }
+    }
+  } catch {
+    /* Intl unavailable — use offset fallback below */
+  }
+  // Instant → Beijing wall clock: shift +8h then read UTC fields (do NOT mix local getTimezoneOffset).
+  const bj = new Date(date.getTime() + BJ_OFFSET_MS)
   const pad2 = (n: number) => String(n).padStart(2, '0')
   return {
     year: String(bj.getUTCFullYear()),
@@ -53,18 +78,16 @@ export function toMysqlDateTime(input: unknown): string | null {
   return `${m[1]}-${m[2]}-${pad(m[3])} ${pad(m[4])}:${pad(m[5])}:00`
 }
 
-/** Default slot: tomorrow 14:00 Beijing + 90min end */
+/** Default slot: tomorrow 14:00–15:30 Beijing. */
 export function defaultViewingSlotBeijing() {
-  const base = parseBeijingNaiveToInstant(formatBeijingYmdHm()) ?? new Date()
-  const start = new Date(base.getTime() + 24 * 60 * 60 * 1000)
-  const p = beijingParts(start)
-  p.hour = '14'
-  p.minute = '00'
-  const startStr = `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`
+  const nowInst = parseBeijingNaiveToInstant(formatBeijingYmdHm()) ?? new Date()
+  const tomorrowInst = new Date(nowInst.getTime() + 24 * 60 * 60 * 1000)
+  const d = beijingParts(tomorrowInst)
+  const startStr = `${d.year}-${d.month}-${d.day} 14:00`
   const startInst = parseBeijingNaiveToInstant(startStr)
   if (!startInst) return { start: startStr, end: startStr }
-  const end = new Date(startInst.getTime() + 90 * 60 * 1000)
-  return { start: startStr, end: formatBeijingYmdHm(end) }
+  const endInst = new Date(startInst.getTime() + 90 * 60 * 1000)
+  return { start: startStr, end: formatBeijingYmdHm(endInst) }
 }
 
 /** Follow-up timeline line: normalize date prefix before ` · `. */

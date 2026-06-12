@@ -17,7 +17,6 @@ const menuItems = [
   { title: '我的发布', hint: '草稿 / 待审 / 已上架', path: '/pages/me/my-properties', tone: 'mint' as const },
   { title: '带看记录', hint: '日程与纪要', path: '/pages/viewing/list', tone: 'slate' as const },
   { title: '视频话术库', hint: '验厂高频问答', path: '/pages/video-faq/index', tone: 'cyan' as const },
-  { title: '安全与隐私', hint: '查看全站策略', path: '/pages/settings/settings', tone: 'slate' as const },
 ]
 
 async function loadProfile() {
@@ -63,7 +62,7 @@ async function onChooseAvatar(e: { detail?: { avatarUrl?: string } }) {
       <view class="top-bar top-bar--stack" :style="topBarInsetStyle">
         <view class="top-bar__titles">
           <view class="tb-title">我的</view>
-          <view class="sub">账号 · 资产 · 安全</view>
+          <view class="sub">账号 · 资产 · 工作台</view>
         </view>
       </view>
       <scroll-view scroll-y :show-scrollbar="false" class="page-scroll me-scroll">
