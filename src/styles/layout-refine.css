@@ -144,8 +144,7 @@ button[plain]::after {
     0 6rpx 20rpx rgba(26, 58, 108, 0.12) !important;
 }
 
-.card.list-item.home-todo-item--highlight .home-todo-avatar--mint,
-.card.list-item.home-todo-item--highlight .home-todo-avatar--slate {
+.card.list-item.home-todo-item--highlight .home-todo-avatar {
   box-shadow: 0 0 0 4rpx rgba(52, 211, 153, 0.45);
 }
 

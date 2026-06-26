@@ -9,6 +9,10 @@ export interface WorkbenchTodo {
   tone: 'mint' | 'slate'
   /** System-reminder customer — pinned first on home */
   highlight?: boolean
+  avatarUrl?: string
+  contactName?: string
+  grade?: string
+  company?: string
 }
 
 export interface WorkbenchStat {

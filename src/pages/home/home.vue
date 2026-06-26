@@ -11,6 +11,8 @@ import type { AnnouncementItem } from '@/types/message'
 import type { WorkbenchStat, WorkbenchSummary, WorkbenchTodo } from '@/types/workbench'
 import { tabBrandTitle } from '@/constants/brand'
 import { setTabNavIntent } from '@/utils/tabNavIntent'
+import { customerAvatarToneClass, customerInitials } from '@/utils/customerDisplay'
+import { resolveMediaUrl } from '@/utils/request'
 
 function asRecord(v: unknown): Record<string, unknown> | null {
   return v != null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
@@ -39,6 +41,10 @@ function normalizeTodo(raw: unknown, remindCustomerId: string): WorkbenchTodo | 
     hint: str(o.hint, '—'),
     tone,
     highlight,
+    avatarUrl: str(o.avatarUrl) || undefined,
+    contactName: str(o.contactName) || undefined,
+    grade: str(o.grade) || undefined,
+    company: str(o.company) || undefined,
   }
 }
 
@@ -252,6 +258,24 @@ function onStatTap(label: string) {
   }
 }
 
+function todoAvatarSrc(t: WorkbenchTodo) {
+  const u = String(t.avatarUrl || '').trim()
+  return u ? resolveMediaUrl(u) : ''
+}
+
+function todoAvatarTone(t: WorkbenchTodo) {
+  return customerAvatarToneClass({ grade: t.grade || '' })
+}
+
+function todoInitials(t: WorkbenchTodo) {
+  const nameFromTitle = t.title.split('·')[0]?.trim() || ''
+  return customerInitials({
+    contactName: t.contactName || nameFromTitle,
+    titleLine: t.title,
+    company: t.company || '',
+  })
+}
+
 /** Inline fallback — WeChat MP often ignores scoped/global border on nested .card */
 function todoHighlightStyle(highlight: boolean | undefined) {
   if (!highlight) return {}
@@ -361,10 +385,10 @@ function todoHighlightStyle(highlight: boolean | undefined) {
               :style="todoHighlightStyle(t.highlight)"
               @click="goCustomer(t.id)"
             >
-              <view
-                class="home-todo-avatar"
-                :class="t.tone === 'mint' ? 'home-todo-avatar--mint' : 'home-todo-avatar--slate'"
-              />
+              <view class="cust-avatar home-todo-avatar" :class="todoAvatarTone(t)">
+                <image v-if="t.avatarUrl" class="cust-avatar__img" :src="todoAvatarSrc(t)" mode="aspectFill" />
+                <text v-else class="cust-avatar__text">{{ todoInitials(t) }}</text>
+              </view>
               <view style="flex: 1; min-width: 0">
                 <view class="home-todo-title">{{ t.title }}</view>
                 <view class="hint" style="margin: 4px 0 0">{{ t.hint }}</view>
@@ -503,13 +527,34 @@ function todoHighlightStyle(highlight: boolean | undefined) {
   height: 40px;
   border-radius: 12px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.home-todo-avatar--mint {
+.home-todo-avatar .cust-avatar__img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.home-todo-avatar .cust-avatar__text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.home-todo-avatar.cust-avatar--brand {
   background: linear-gradient(135deg, #1a3a6c, #2d4f8c);
 }
 
-.home-todo-avatar--slate {
+.home-todo-avatar.cust-avatar--blue {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.home-todo-avatar.cust-avatar--slate {
   background: linear-gradient(135deg, #64748b, #94a3b8);
 }
 

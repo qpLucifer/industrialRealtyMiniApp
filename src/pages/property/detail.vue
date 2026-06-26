@@ -35,10 +35,10 @@ const loading = ref(true)
 const loadError = ref('')
 const tab = ref(0)
 
-/** Same order as publish wizard */
-const tabLabels = ['基础分类', '地图定位', '图片视频', '土地建筑', '电力配套', '产权合规', '政策亮点', '挂牌联系']
+/** Detail tabs — media is in hero gallery; publish wizard still has a media step */
+const tabLabels = ['基础分类', '地图定位', '土地建筑', '电力配套', '产权合规', '政策亮点', '挂牌联系']
 
-const TAB_KV_KEYS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'] as const
+const DETAIL_TAB_KV_KEYS = ['s1', 's2', 's4', 's5', 's6', 's7', 's8'] as const
 
 const auditClass = computed(() => {
   const k = detail.value?.auditKey || 'live'
@@ -96,7 +96,8 @@ const PRIVACY_KV_LABELS = new Set(['公司名称', '业主联系人'])
 const kvRows = computed(() => {
   const d = detail.value?.kv
   if (!d) return []
-  let rows = (d[TAB_KV_KEYS[tab.value]] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
+  const key = DETAIL_TAB_KV_KEYS[tab.value]
+  let rows = (d[key] ?? []).filter((r) => !KV_STATUS_OMIT.has(r.dt))
   if (detail.value?.auditKey === 'live') rows = rows.filter((r) => r.dt !== '租售类型')
   if (privacyRestricted.value) {
     rows = rows.filter((r) => !PRIVACY_KV_LABELS.has(r.dt))
@@ -115,15 +116,51 @@ const showBasicTabKvCard = computed(
 
 const mediaImages = computed(() => (detail.value?.mediaImages ?? []).map((u) => resolveMediaUrl(u)))
 const mediaVideos = computed(() => (detail.value?.mediaVideos ?? []).map((u) => resolveMediaUrl(u)))
-const heroVideo = computed(() => mediaVideos.value[0] || '')
+
+type HeroMediaItem = {
+  type: 'video' | 'image'
+  url: string
+  imageIndex: number
+  videoIndex: number
+}
+
+/** Videos first (publish priority), then images — unified hero swiper */
+const heroMediaItems = computed<HeroMediaItem[]>(() => {
+  const items: HeroMediaItem[] = []
+  mediaVideos.value.forEach((url, i) => {
+    items.push({ type: 'video', url, imageIndex: -1, videoIndex: i })
+  })
+  mediaImages.value.forEach((url, i) => {
+    items.push({ type: 'image', url, imageIndex: i, videoIndex: -1 })
+  })
+  return items
+})
+
+const heroMediaIndex = ref(0)
+const heroMediaCounter = computed(() => {
+  const total = heroMediaItems.value.length
+  if (!total) return ''
+  return `${heroMediaIndex.value + 1}/${total}`
+})
+const activeHeroMedia = computed(() => heroMediaItems.value[heroMediaIndex.value] ?? null)
+const showHeroStrip = computed(() => heroMediaItems.value.length > 1)
+
+const PHOTO_CHECKLIST_LABELS = new Set(['现场必拍', '现场必拍清单'])
+
+const photoChecklistItems = computed(() => {
+  const rows = detail.value?.kv?.s3 ?? []
+  const row = rows.find((r) => PHOTO_CHECKLIST_LABELS.has(String(r.dt || '').trim()))
+  const raw = String(row?.dd ?? '').trim()
+  if (!raw || raw === '—') return []
+  return raw
+    .split(/[、,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+})
+
+const showPhotoChecklist = computed(() => photoChecklistItems.value.length > 0)
+
 const propertyTypeLabel = computed(() => detail.value?.propertyType || '')
-const heroImage = computed(() => (heroVideo.value ? '' : mediaImages.value[0] || ''))
-const heroActiveImage = ref(0)
-/** Tab 2: videos already in hero — only list images below */
-const detailTabVideos = computed(() => (heroVideo.value ? [] : mediaVideos.value))
-const showMediaTab = computed(
-  () => mediaImages.value.length > 0 || detailTabVideos.value.length > 0,
-)
 
 const statusChipLabel = computed(() => {
   const d = detail.value
@@ -263,6 +300,7 @@ async function load() {
       }
     }
     detail.value = payload
+    heroMediaIndex.value = 0
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '加载失败'
     uni.showToast({ title: loadError.value, icon: 'none' })
@@ -379,12 +417,42 @@ function previewHeroImage(index: number) {
   uni.previewImage({ urls, current: urls[index] || urls[0] })
 }
 
-function playHeroFullscreen() {
-  if (heroVideo.value) previewNetworkVideo(heroVideo.value)
+function heroVideoContextId(index: number) {
+  return `pf-hero-vid-${index}`
 }
 
-function openVideoFullscreen(url: string) {
-  previewNetworkVideo(url)
+function pauseHeroVideoAt(index: number) {
+  const item = heroMediaItems.value[index]
+  if (!item || item.type !== 'video') return
+  try {
+    uni.createVideoContext(heroVideoContextId(index))?.pause()
+  } catch {
+    /* ignore */
+  }
+}
+
+function onHeroSwiperChange(e: { detail: { current: number } }) {
+  const prev = heroMediaIndex.value
+  const next = Number(e.detail.current)
+  if (!Number.isFinite(next) || next === prev) return
+  pauseHeroVideoAt(prev)
+  heroMediaIndex.value = next
+}
+
+function selectHeroMedia(index: number) {
+  if (index < 0 || index >= heroMediaItems.value.length) return
+  if (index !== heroMediaIndex.value) pauseHeroVideoAt(heroMediaIndex.value)
+  heroMediaIndex.value = index
+}
+
+function onHeroImageTap(item: HeroMediaItem) {
+  if (item.type !== 'image' || item.imageIndex < 0) return
+  previewHeroImage(item.imageIndex)
+}
+
+function playActiveHeroFullscreen() {
+  const item = activeHeroMedia.value
+  if (item?.type === 'video') previewNetworkVideo(item.url)
 }
 </script>
 
@@ -409,39 +477,86 @@ function openVideoFullscreen(url: string) {
 
       <scroll-view v-else-if="detail" scroll-y :show-scrollbar="false" class="page-scroll">
         <view class="pf-detail-hero-wrap">
-          <view class="prop-media-hero">
-            <video
-              v-if="heroVideo"
-              class="prop-media-hero__main prop-media-hero__video"
-              :src="heroVideo"
-              controls
-              show-center-play-btn
-              object-fit="cover"
-              @error="onVideoComponentError"
-            />
-            <image
-              v-else-if="heroImage"
-              class="prop-media-hero__main"
-              :src="heroImage"
-              mode="aspectFill"
-              @click="previewHeroImage(0)"
-            />
+          <view class="prop-media-hero prop-media-hero--gallery">
+            <view v-if="heroMediaItems.length" class="prop-media-hero__stage">
+              <swiper
+                class="prop-media-hero__swiper"
+                :current="heroMediaIndex"
+                :circular="heroMediaItems.length > 1"
+                @change="onHeroSwiperChange"
+              >
+                <swiper-item v-for="(item, i) in heroMediaItems" :key="'hero-' + i" class="prop-media-hero__slide">
+                  <video
+                    v-if="item.type === 'video'"
+                    :id="heroVideoContextId(i)"
+                    class="prop-media-hero__main prop-media-hero__video"
+                    :src="item.url"
+                    controls
+                    show-center-play-btn
+                    object-fit="contain"
+                    @error="onVideoComponentError"
+                  />
+                  <image
+                    v-else
+                    class="prop-media-hero__main prop-media-hero__image"
+                    :src="item.url"
+                    mode="aspectFill"
+                    @click="onHeroImageTap(item)"
+                  />
+                </swiper-item>
+              </swiper>
+              <view v-if="heroMediaCounter" class="prop-media-hero__counter">{{ heroMediaCounter }}</view>
+              <view
+                v-if="activeHeroMedia?.type === 'video'"
+                class="prop-media-hero__fs"
+                @tap="playActiveHeroFullscreen"
+              >全屏</view>
+            </view>
             <view v-else class="prop-media-hero__main prop-media-hero__empty">
               <view class="prop-media-hero__orb" />
               <text class="prop-media-hero__empty-txt">暂无图片/视频</text>
             </view>
-            <view v-if="heroVideo" class="prop-media-hero__fs" @tap="playHeroFullscreen">全屏</view>
-            <scroll-view v-if="mediaImages.length > 1" scroll-x class="prop-media-hero__strip" :show-scrollbar="false">
-              <image
-                v-for="(url, i) in mediaImages"
+            <scroll-view
+              v-if="showHeroStrip"
+              scroll-x
+              class="prop-media-hero__strip prop-media-hero__strip--below"
+              :show-scrollbar="false"
+              :scroll-into-view="'hero-thumb-' + heroMediaIndex"
+              scroll-with-animation
+            >
+              <view
+                v-for="(item, i) in heroMediaItems"
+                :id="'hero-thumb-' + i"
                 :key="'t' + i"
-                class="prop-media-hero__thumb"
-                :class="{ on: !heroVideo && heroActiveImage === i }"
-                :src="url"
-                mode="aspectFill"
-                @click="heroActiveImage = i; previewHeroImage(i)"
-              />
+                class="prop-media-hero__thumb-wrap"
+                :class="{ on: heroMediaIndex === i }"
+                @tap="selectHeroMedia(i)"
+              >
+                <image
+                  v-if="item.type === 'image'"
+                  class="prop-media-hero__thumb"
+                  :src="item.url"
+                  mode="aspectFill"
+                />
+                <view v-else class="prop-media-hero__thumb prop-media-hero__thumb--video">
+                  <image
+                    v-if="mediaImages[0]"
+                    class="prop-media-hero__thumb-bg"
+                    :src="mediaImages[0]"
+                    mode="aspectFill"
+                  />
+                  <text class="prop-media-hero__thumb-play">▶</text>
+                </view>
+              </view>
             </scroll-view>
+          </view>
+          <view v-if="showPhotoChecklist" class="pf-photo-checklist">
+            <text class="pf-photo-checklist__title">现场必拍</text>
+            <view class="pf-photo-checklist__chips">
+              <text v-for="(item, i) in photoChecklistItems" :key="'photo-' + i" class="pf-photo-checklist__chip">{{
+                item
+              }}</text>
+            </view>
           </view>
         </view>
 
@@ -578,43 +693,13 @@ function openVideoFullscreen(url: string) {
             </view>
           </view>
 
-          <!-- Tab 2: images only when hero plays video; otherwise images + videos -->
-          <view v-if="tab === 2 && showMediaTab" class="pf-kv-card">
-            <view v-if="mediaImages.length" class="pf-detail-media-block">
-              <view class="section-title">{{ heroVideo ? '图片' : '全部图片' }}</view>
-              <view class="pf-detail-media-grid">
-                <image
-                  v-for="(url, i) in mediaImages"
-                  :key="'img' + i"
-                  class="pf-detail-media-grid__img"
-                  :src="url"
-                  mode="aspectFill"
-                  @click="previewHeroImage(i)"
-                />
-              </view>
-            </view>
-            <view v-if="detailTabVideos.length" class="pf-detail-media-block">
-              <view class="section-title">全部视频</view>
-              <view v-for="(url, i) in detailTabVideos" :key="'vid' + i" class="pf-detail-video-item">
-                <video
-                  class="prop-media-editor__video-sm"
-                  :src="url"
-                  controls
-                  object-fit="contain"
-                  @error="onVideoComponentError"
-                />
-                <button class="btn-ghost sm" style="width: 100%; margin-top: 12rpx" @click="openVideoFullscreen(url)">全屏播放</button>
-              </view>
-            </view>
-          </view>
-
           <text
             v-if="tab === 0 && !showBasicTabKvCard"
             class="hint pf-detail-empty"
             >暂无数据</text
           >
           <text
-            v-else-if="!kvRows.length && tab !== 0 && tab !== 1 && !(tab === 2 && showMediaTab)"
+            v-else-if="!kvRows.length && tab !== 0 && tab !== 1"
             class="hint pf-detail-empty"
             >暂无数据</text
           >
