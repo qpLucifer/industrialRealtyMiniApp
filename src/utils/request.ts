@@ -2,7 +2,7 @@ import { dispatchMock } from '@/mock/dispatch'
 import type { PropertyEditForm } from '@/types/property'
 import type { ApiResult } from '@/utils/result'
 import { unwrapResult } from '@/utils/result'
-import { clearMiniSessionAndGoLogin } from '@/utils/session'
+import { clearMiniSessionAndGoLogin, isPublicSharePage } from '@/utils/session'
 
 /** Explicit `VITE_USE_MOCK=true` only — production builds default to real API. */
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
@@ -54,7 +54,9 @@ function handleHttpResponse<T>(res: UniApp.RequestSuccessCallbackResult): T {
   const sc = res.statusCode ?? 0
   if (sc === 401 && !USE_MOCK) {
     const msg = messageFromApiBody(res.data)
-    clearMiniSessionAndGoLogin(msg)
+    if (!isPublicSharePage()) {
+      clearMiniSessionAndGoLogin(msg)
+    }
     throw new Error(msg || 'Unauthorized')
   }
   if (sc >= 400) {
@@ -64,6 +66,52 @@ function handleHttpResponse<T>(res: UniApp.RequestSuccessCallbackResult): T {
   return unwrapResult<T>(res.data)
 }
 
+function handlePublicHttpResponse<T>(res: UniApp.RequestSuccessCallbackResult): T {
+  if (res == null) {
+    throw new Error('uni.request: empty response')
+  }
+  const sc = res.statusCode ?? 0
+  if (sc >= 400) {
+    const msg = messageFromApiBody(res.data) || `请求失败 (${sc})`
+    throw new Error(msg)
+  }
+  return unwrapResult<T>(res.data)
+}
+
+/** GET without session headers — for token-based public pages (no login redirect on 401). */
+export async function getPublic<T>(
+  url: string,
+  query?: Record<string, string | number | boolean | undefined>,
+): Promise<T> {
+  const full = joinUrl(url, query)
+  if (USE_MOCK) {
+    const raw = await dispatchMock('GET', full)
+    return unwrapResult<T>(raw)
+  }
+  const resolved = resolveUrl(full)
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: resolved,
+      method: 'GET',
+      header: { 'X-Client': 'miniapp-public' },
+      success(res) {
+        try {
+          resolve(handlePublicHttpResponse<T>(res))
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail(err) {
+        const msg =
+          err && typeof err === 'object' && 'errMsg' in err
+            ? String((err as { errMsg?: string }).errMsg || '网络请求失败')
+            : '网络请求失败'
+        reject(new Error(msg))
+      },
+    })
+  })
+}
+
 /** Meta APIs live here so mp-weixin pages only require utils/request.js (see .cursor/rules/mp-weixin.mdc). */
 export function fetchRegionDefs() {
   return get<{ list: { id: string; name: string }[] }>('/api/meta/regions')
@@ -71,6 +119,35 @@ export function fetchRegionDefs() {
 
 export function fetchCodeMasterLabels(type: string) {
   return get<{ list: string[] }>('/api/meta/code-master', { type })
+}
+
+export type PublicPropertySharePayload = {
+  title: string
+  specLine: string
+  mediaImages: string[]
+  mediaVideos: string[]
+  expiresAt?: string
+  viewOnly: boolean
+}
+
+/** Public share gallery — token only, no login (share-view page). */
+export function fetchPublicPropertyShare(shareToken: string) {
+  return getPublic<PublicPropertySharePayload>('/api/public/property-share', {
+    token: String(shareToken || '').trim(),
+  })
+}
+
+/** Package logo for WeChat share card (local path, no network download). */
+export const SHARE_CARD_IMAGE_URL = '/static/brand/logo.png'
+
+/** Top inset for standalone share-view (avoid page-only composable imports on mp-weixin). */
+export function sharePageTopStyle(): Record<string, string> {
+  const sys = uni.getSystemInfoSync()
+  const sb = Number(sys.statusBarHeight) || 24
+  return {
+    paddingTop: `${Math.max(sb + 8, 48)}px`,
+    boxSizing: 'border-box',
+  }
 }
 
 export async function get<T>(url: string, query?: Record<string, string | number | boolean | undefined>): Promise<T> {

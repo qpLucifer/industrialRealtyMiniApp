@@ -4,7 +4,11 @@ export interface PropertyListTab {
   key: string
   label: string
   status: string
+  /** When true, list only featured (主推) listings within staff sector scope. */
+  featuredOnly?: boolean
 }
+
+const FEATURED_TAB: PropertyListTab = { key: 'featured', label: '主推', status: '', featuredOnly: true }
 
 /** Display label — maps legacy 待租/待售 if any row not migrated yet. */
 export function propertyListStatusLabel(status: string | undefined | null): string {
@@ -20,6 +24,7 @@ export function propertyListTabsFromScope(scope?: string | null): PropertyListTa
   if (s === 'sale') {
     return [
       all,
+      FEATURED_TAB,
       { key: '出售', label: '出售', status: '出售' },
       { key: '已售', label: '已售', status: '已售' },
       { key: '待开发', label: '待开发', status: '待开发' },
@@ -34,6 +39,7 @@ export function propertyListTabsFromScope(scope?: string | null): PropertyListTa
   }
   return [
     all,
+    FEATURED_TAB,
     { key: '出租', label: '出租', status: '出租' },
     { key: '出售', label: '出售', status: '出售' },
     { key: '已租', label: '已租', status: '已租' },

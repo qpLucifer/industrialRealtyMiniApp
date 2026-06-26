@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage, onShow } from '@dcloudio/uni-app'
+import { hideWeixinShareMenu } from '@/utils/session'
 import NavIconBar from '@/components/NavIconBar.vue'
 import {
   consumePropertyDetailRefresh,
@@ -13,6 +14,7 @@ import {
   navigateToViewingNew,
   parsePropertyRouteKey,
   updatePropertyListingStatus,
+  createPropertyShareLink,
 } from '@/api/property'
 import type { PropertyDetailPayload } from '@/types/property'
 import { buildPropertyDetailKvFromForm, isLegacyPropertyDetailKv } from '@/utils/propertyDetailKv'
@@ -24,7 +26,7 @@ import {
 } from '@/utils/propertyListingStatus'
 import { showFeaturedOption } from '@/utils/propertyFeatured'
 import { markListStale } from '@/utils/listStale'
-import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl } from '@/utils/request'
+import { onVideoComponentError, previewNetworkVideo, resolveMediaUrl, SHARE_CARD_IMAGE_URL } from '@/utils/request'
 
 const { noCopyClass } = useSecuritySettings()
 
@@ -161,6 +163,21 @@ const photoChecklistItems = computed(() => {
 const showPhotoChecklist = computed(() => photoChecklistItems.value.length > 0)
 
 const propertyTypeLabel = computed(() => detail.value?.propertyType || '')
+const canShareExternal = computed(
+  () =>
+    detail.value?.auditKey === 'live' &&
+    (mediaImages.value.length > 0 || mediaVideos.value.length > 0),
+)
+
+function syncWechatShareMenu() {
+  // #ifdef MP-WEIXIN
+  if (canShareExternal.value) {
+    uni.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage'] })
+  } else {
+    hideWeixinShareMenu()
+  }
+  // #endif
+}
 
 const statusChipLabel = computed(() => {
   const d = detail.value
@@ -306,12 +323,15 @@ async function load() {
     uni.showToast({ title: loadError.value, icon: 'none' })
   } finally {
     loading.value = false
+    syncWechatShareMenu()
   }
 }
 
 onShow(() => {
   if (routeKey.value && consumePropertyDetailRefresh(routeKey.value)) {
     void load()
+  } else {
+    syncWechatShareMenu()
   }
 })
 
@@ -410,6 +430,29 @@ function shareInternal() {
     success: () => uni.showToast({ title: '已复制转发文案', icon: 'none' }),
   })
 }
+
+onShareAppMessage(() => {
+  const run = async () => {
+    const d = detail.value
+    const code = d?.id || routeKey.value
+    if (!canShareExternal.value) {
+      return { title: d?.detailTitle || '房源', path: `/pages/property/detail?id=${encodeURIComponent(code)}` }
+    }
+    try {
+      const r = await createPropertyShareLink(code)
+      return {
+        title: r.title || d?.detailTitle || '房源展示',
+        path: r.sharePath || `pages/property/share-view?token=${encodeURIComponent(r.token)}`,
+        imageUrl: SHARE_CARD_IMAGE_URL,
+        withShareTicket: true,
+      }
+    } catch (e) {
+      uni.showToast({ title: e instanceof Error ? e.message : '分享失败', icon: 'none' })
+      return { title: d?.detailTitle || '房源', path: `/pages/property/detail?id=${encodeURIComponent(code)}` }
+    }
+  }
+  return run()
+})
 
 function previewHeroImage(index: number) {
   const urls = mediaImages.value

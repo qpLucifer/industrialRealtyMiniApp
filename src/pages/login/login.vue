@@ -8,6 +8,7 @@ import {
 import type { MiniLoginResult } from '@/types/auth'
 import { BRAND_NAME } from '@/constants/brand'
 import { isIndustrialMiniSessionToken } from '@/utils/miniSessionToken'
+import { shouldSkipLoginSessionRestore } from '@/utils/session'
 
 const loading = ref(false)
 const manualPhone = ref('')
@@ -158,6 +159,7 @@ async function onReviewerPhoneLogin() {
 }
 
 onMounted(() => {
+  if (shouldSkipLoginSessionRestore()) return
   const t = uni.getStorageSync('mini_token')
   if (!t) return
   if (!USE_MOCK && typeof t === 'string' && !isIndustrialMiniSessionToken(t)) {

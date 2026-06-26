@@ -12,6 +12,19 @@
     { "path": "pages/me/messages", "style": { "navigationStyle": "custom" } },
     { "path": "pages/me/me", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/detail", "style": { "navigationStyle": "custom" } },
+    {
+      "path": "pages/property/share-view",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "房源展示",
+        "backgroundColor": "#0f172a",
+        "backgroundColorContent": "#0f172a",
+        "mp-weixin": {
+          "enableShareAppMessage": false,
+          "enableShareTimeline": false
+        }
+      }
+    },
     { "path": "pages/property/publish", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/log", "style": { "navigationStyle": "custom" } },
     { "path": "pages/property/follow", "style": { "navigationStyle": "custom" } },

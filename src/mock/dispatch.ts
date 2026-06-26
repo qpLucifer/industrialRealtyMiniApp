@@ -81,6 +81,10 @@ function filterMockPropertyList(query: Record<string, string>) {
     const status = (query.status || '').trim()
     if (status) rows = rows.filter((p) => p.status === status)
   }
+  const featuredOnly = query.featured === '1' || query.featured === 'true' || query.featured === 1
+  if (featuredOnly) {
+    rows = rows.filter((p) => Boolean((p as { featured?: boolean }).featured))
+  }
   const regionId = query.districtRegionId != null && String(query.districtRegionId).trim() !== ''
     ? Number(query.districtRegionId)
     : NaN
@@ -375,6 +379,31 @@ export async function dispatchMock(
 
   if (method === 'POST' && path === '/api/property/follow-up') {
     return okResult({ success: true })
+  }
+
+  if (method === 'POST' && path === '/api/property/share-link') {
+    const code = String(body?.code || body?.id || body?.key || 'P-8821')
+    const token = `mock${Date.now().toString(36)}`
+    return okResult({
+      token,
+      sharePath: `pages/property/share-view?token=${encodeURIComponent(token)}`,
+      imageUrl: 'https://picsum.photos/400/300',
+      shareCoverUrl: `https://jiayizhou.top/api/public/property-share-cover?token=${encodeURIComponent(token)}`,
+      expiresAt: '2026-06-09 14:00:00',
+      ttlHours: 72,
+      title: `Mock · ${code}`,
+    })
+  }
+
+  if (method === 'GET' && path === '/api/public/property-share') {
+    const d = getPropertyDetail('P-8821')
+    return okResult({
+      title: d.detailTitle,
+      specLine: d.specLine,
+      mediaImages: d.mediaImages ?? [],
+      mediaVideos: d.mediaVideos ?? [],
+      viewOnly: true,
+    })
   }
 
   if (method === 'GET' && path === '/api/property/my-published') {

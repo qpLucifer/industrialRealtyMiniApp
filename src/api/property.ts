@@ -1,4 +1,5 @@
-import { get, post, put } from '@/utils/request'
+import { get, post, put, fetchPublicPropertyShare as fetchPublicPropertyShareFromRequest } from '@/utils/request'
+import type { PublicPropertySharePayload } from '@/utils/request'
 import type { PagedListResponse } from '@/utils/pagedList'
 import { MINI_LIST_PAGE_SIZE } from '@/utils/pagedList'
 import { PICKER_SEARCH_PAGE_SIZE, type PickerSearchPage } from '@/utils/pickerSearch'
@@ -34,6 +35,8 @@ export type PropertyListQuery = {
   status?: string
   /** Filter status_tag 出租/出售 (optional; home stat uses total count without this) */
   available?: boolean
+  /** Only featured (主推) listings */
+  featured?: boolean
   /** Only audit_state = live (e.g. viewing property picker) */
   auditLive?: boolean
   districtRegionId?: number
@@ -48,6 +51,7 @@ export function fetchPropertyList(query?: PropertyListQuery) {
   if (query?.q) params.q = query.q
   if (query?.status) params.status = query.status
   if (query?.available) params.available = '1'
+  if (query?.featured) params.featured = '1'
   if (query?.auditLive) params.auditLive = '1'
   if (query?.districtRegionId != null && Number.isFinite(query.districtRegionId)) {
     params.districtRegionId = query.districtRegionId
@@ -104,4 +108,29 @@ export function updatePropertyListingStatus(
     '/api/property/listing-status',
     body,
   )
+}
+
+export type PropertyShareLinkResult = {
+  token: string
+  sharePath: string
+  /** Direct COS URL (may not work as WeChat share card image). */
+  imageUrl: string
+  /** Proxied cover on API host — use for onShareAppMessage imageUrl. */
+  shareCoverUrl: string
+  expiresAt: string | null
+  ttlHours: number
+  title: string
+}
+
+export type { PublicPropertySharePayload }
+
+/** Create time-limited mini-program share card (images + videos only). */
+export function createPropertyShareLink(key: string) {
+  const k = String(key || '').trim()
+  return post<PropertyShareLinkResult>('/api/property/share-link', { code: k })
+}
+
+/** Re-export for non-page callers; share-view page should import from @/utils/request. */
+export function fetchPublicPropertyShare(token: string) {
+  return fetchPublicPropertyShareFromRequest(token)
 }

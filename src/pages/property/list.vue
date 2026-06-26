@@ -85,6 +85,7 @@ function buildListQuery(): PropertyListQuery {
     q: keyword.value.trim() || undefined,
     status: status || undefined,
     available: listAvailableOnly.value || undefined,
+    featured: !listAvailableOnly.value && tab?.featuredOnly ? true : undefined,
   }
   if (filterApplied.districtRegionId != null) {
     q.districtRegionId = filterApplied.districtRegionId
